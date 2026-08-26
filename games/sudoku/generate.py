@@ -29,70 +29,164 @@ SUDOKU_TIER_SUB = {
 
 EXTRA_CSS = r"""
 .size-row { margin-bottom: .75rem; }
-.sudoku-wrap { display: flex; justify-content: center; margin: .5rem 0; }
+
+/* ── 对局区 ── */
+.play-card { padding: .85rem .85rem 1rem; }
+.sudoku-stage {
+  display: flex;
+  justify-content: center;
+  padding: .65rem;
+  margin: 0 0 .7rem;
+  border-radius: 14px;
+  background: #f0f4f2;
+}
+.sudoku-wrap { width: 100%; max-width: min(100%, 400px); margin: 0 auto; }
 .sudoku {
   display: grid;
-  gap: 1px;
-  background: var(--ink);
-  border: 2px solid var(--ink);
-  max-width: 100%;
+  width: 100%;
+  aspect-ratio: 1;
+  background: #1a2420;
+  border: 2.5px solid #1a2420;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(26,36,33,.1);
 }
 .sudoku button {
-  aspect-ratio: 1;
-  min-width: 32px;
-  min-height: 32px;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: 0;
-  background: #fffdf8;
-  font-family: var(--display);
-  font-size: clamp(1rem, 4vw, 1.35rem);
-  font-weight: 700;
-  cursor: pointer;
+  margin: 0;
   padding: 0;
+  line-height: 1;
+  background: #fffcf8;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(.9rem, 4.2vw, 1.35rem);
+  font-weight: 600;
+  color: #1a5c48;
+  cursor: pointer;
+  transition: background .1s ease, color .1s ease;
 }
-.sudoku button.given { background: #eef5f1; color: var(--ink); }
-.sudoku button.selected { box-shadow: inset 0 0 0 2px var(--accent); }
-.sudoku button.conflict { background: rgba(163,59,45,.2); }
-.sudoku button.hinted { color: var(--accent-deep); }
-.sudoku .block-r { box-shadow: inset -2px 0 0 var(--ink); }
-.sudoku .block-b { box-shadow: inset 0 -2px 0 var(--ink); }
+.sudoku button.box-alt { background: #f0f5f2; }
+.sudoku button.bdr-r-thin { border-right: 1px solid #c5d5cd; }
+.sudoku button.bdr-r-thick { border-right: 2px solid #1a2420; }
+.sudoku button.bdr-b-thin { border-bottom: 1px solid #c5d5cd; }
+.sudoku button.bdr-b-thick { border-bottom: 2px solid #1a2420; }
+.sudoku button:not(.given):hover { background: #e8f3ee; }
+.sudoku button.given {
+  background: #f5f8f6;
+  color: #1a2420;
+  font-weight: 700;
+  cursor: default;
+}
+.sudoku button.given.box-alt { background: #e8eeeb; }
+.sudoku button.related { background: #dceee6 !important; }
+.sudoku button.given.related { background: #d0e4db !important; }
+.sudoku button.same-num {
+  color: #0a5240;
+  font-weight: 700;
+  background: #c8e6d8 !important;
+}
+.sudoku button.selected {
+  background: #0f7a5a !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+.sudoku button.selected.given { color: #fff !important; }
+.sudoku button.conflict {
+  background: #f5d4cf !important;
+  color: #a33b2d !important;
+}
+.sudoku button.hinted { color: #9a4a12; }
+.sudoku.size-4 button { font-size: clamp(1.2rem, 7vw, 1.75rem); }
+.sudoku.size-6 button { font-size: clamp(1rem, 5vw, 1.35rem); }
+.sudoku.size-9 button { font-size: clamp(.85rem, 3.5vw, 1.1rem); }
+
+/* ── 操作区 ── */
+.play-dock {
+  padding: .65rem;
+  border-radius: 14px;
+  background: #f7faf8;
+  border: 1px solid var(--line);
+}
 .numpad {
+  display: flex;
+  gap: .4rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.numpad.grid-9 {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: .45rem;
-  margin-top: .85rem;
+  gap: .4rem;
 }
 .numpad button {
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: .65rem 0;
-  font: inherit;
+  flex: 1 1 2.6rem;
+  max-width: 3.25rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 10px;
+  padding: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 1.15rem;
   font-weight: 700;
-  background: #fffdf8;
+  color: #0a5240;
+  background: #fff;
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(26,36,33,.08);
+  transition: background .1s ease, transform .08s ease;
 }
-.numpad button.accent {
-  background: rgba(15,122,90,.12);
-  border-color: var(--accent);
-  color: var(--accent-deep);
+.numpad.grid-9 button { max-width: none; height: 2.5rem; font-size: 1rem; }
+.numpad button:hover { background: #e8f5ef; }
+.numpad button:active { transform: scale(.96); }
+.numpad button.clear {
+  flex: 0 0 auto;
+  max-width: none;
+  min-width: 3.2rem;
+  padding: 0 .6rem;
+  font-size: .88rem;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  box-shadow: none;
+  border: 1px dashed #c5d5cd;
 }
+.numpad button.clear:hover { background: #fff; }
+
 .tool-row {
-  display: flex;
-  gap: .5rem;
-  flex-wrap: wrap;
-  margin-top: .65rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .4rem;
+  margin-top: .55rem;
+  padding-top: .55rem;
+  border-top: 1px solid var(--line);
 }
 .tool-row button {
-  flex: 1;
-  min-width: 70px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: .55rem;
+  border: 0;
+  border-radius: 10px;
+  padding: .55rem .3rem;
   font: inherit;
-  font-size: .88rem;
-  background: #fffdf8;
+  font-size: .84rem;
+  font-weight: 600;
+  background: #fff;
+  color: var(--ink);
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(26,36,33,.06);
+  transition: background .1s ease;
 }
+.tool-row button:hover { background: #eef5f1; }
+.tool-row button.tool-accent {
+  color: #0a5240;
+  background: #e0f0e8;
+}
+.play-actions { margin-top: .7rem; }
 """
 
 BODY = r"""
@@ -148,16 +242,19 @@ BODY = r"""
       <span><strong id="timer-text">00:00</strong></span>
     </div>
     <p class="hint" id="play-hint">点格选中，再点数字填入</p>
-    <div class="card">
-      <div class="sudoku-wrap"><div class="sudoku" id="board"></div></div>
-      <div class="numpad" id="numpad"></div>
-      <div class="tool-row">
-        <button type="button" id="btn-erase">清除</button>
-        <button type="button" id="btn-undo">撤销</button>
-        <button type="button" id="btn-check">检查</button>
-        <button type="button" id="btn-hint">提示</button>
+    <div class="card play-card">
+      <div class="sudoku-stage">
+        <div class="sudoku-wrap"><div class="sudoku" id="board"></div></div>
       </div>
-      <div class="actions">
+      <div class="play-dock">
+        <div class="numpad" id="numpad"></div>
+        <div class="tool-row">
+          <button type="button" id="btn-undo">撤销</button>
+          <button type="button" id="btn-check" class="tool-accent">检查</button>
+          <button type="button" id="btn-hint" class="tool-accent">提示</button>
+        </div>
+      </div>
+      <div class="actions play-actions">
         <button type="button" class="danger" id="btn-exit">退出</button>
         <button type="button" id="btn-restart">重来</button>
         <button type="button" id="btn-next">下一题</button>
@@ -312,25 +409,162 @@ SCRIPT = r"""
     return count;
   }
 
+  function cloneGrid(grid) {
+    return grid.map(function (row) { return row.slice(); });
+  }
+
+  function filledCount(grid) {
+    var n = grid.length, cnt = 0;
+    for (var r = 0; r < n; r++) {
+      for (var c = 0; c < n; c++) {
+        if (grid[r][c] !== 0) cnt++;
+      }
+    }
+    return cnt;
+  }
+
+  function applyDigitPerm(grid, n) {
+    var perm = shuffle(Array.from({ length: n }, function (_, i) { return i + 1; }));
+    for (var r = 0; r < n; r++) {
+      for (var c = 0; c < n; c++) {
+        grid[r][c] = perm[grid[r][c] - 1];
+      }
+    }
+  }
+
+  function swapRows(grid, r1, r2) {
+    var t = grid[r1];
+    grid[r1] = grid[r2];
+    grid[r2] = t;
+  }
+
+  function permuteBands(grid, n, br) {
+    var numBands = n / br;
+    var order = shuffle(Array.from({ length: numBands }, function (_, i) { return i; }));
+    var src = cloneGrid(grid);
+    for (var bi = 0; bi < numBands; bi++) {
+      for (var dr = 0; dr < br; dr++) {
+        grid[bi * br + dr] = src[order[bi] * br + dr].slice();
+      }
+    }
+    for (var b = 0; b < numBands; b++) {
+      var rows = shuffle(Array.from({ length: br }, function (_, i) { return b * br + i; }));
+      var tmp = cloneGrid(grid);
+      for (var i = 0; i < br; i++) grid[b * br + i] = tmp[rows[i]].slice();
+    }
+  }
+
+  function permuteStacks(grid, n, bc) {
+    var numStacks = n / bc;
+    var order = shuffle(Array.from({ length: numStacks }, function (_, i) { return i; }));
+    var src = cloneGrid(grid);
+    for (var si = 0; si < numStacks; si++) {
+      for (var dc = 0; dc < bc; dc++) {
+        for (var r = 0; r < n; r++) {
+          grid[r][si * bc + dc] = src[r][order[si] * bc + dc];
+        }
+      }
+    }
+    for (var s = 0; s < numStacks; s++) {
+      var cols = shuffle(Array.from({ length: bc }, function (_, i) { return s * bc + i; }));
+      var tmp = cloneGrid(grid);
+      for (var i = 0; i < bc; i++) {
+        var dst = s * bc + i;
+        for (var r = 0; r < n; r++) grid[r][dst] = tmp[r][cols[i]];
+      }
+    }
+  }
+
+  function randomizeSolved(grid, n, br, bc) {
+    applyDigitPerm(grid, n);
+    permuteBands(grid, n, br);
+    permuteStacks(grid, n, bc);
+    if (br === bc && Math.random() < 0.5) {
+      for (var r = 0; r < n; r++) {
+        for (var c = r + 1; c < n; c++) {
+          var t = grid[r][c];
+          grid[r][c] = grid[c][r];
+          grid[c][r] = t;
+        }
+      }
+    }
+  }
+
+  function carvePuzzle(grid, n, br, bc, target) {
+    var maxAttempts = n * n * 50;
+    var attempts = 0;
+    while (filledCount(grid) > target && attempts < maxAttempts) {
+      attempts++;
+      var r = randInt(n), c = randInt(n);
+      if (grid[r][c] === 0) continue;
+      var backup = grid[r][c];
+      grid[r][c] = 0;
+      var copy = cloneGrid(grid);
+      if (countSolutions(copy, n, br, bc, 2) !== 1) grid[r][c] = backup;
+    }
+  }
+
+  function ensureSpread(grid, sol, n, br, bc) {
+    function rowCount(r) {
+      var cnt = 0;
+      for (var c = 0; c < n; c++) if (grid[r][c] !== 0) cnt++;
+      return cnt;
+    }
+    function colCount(c) {
+      var cnt = 0;
+      for (var r = 0; r < n; r++) if (grid[r][c] !== 0) cnt++;
+      return cnt;
+    }
+    function boxCount(bi, si) {
+      var cnt = 0;
+      for (var dr = 0; dr < br; dr++) {
+        for (var dc = 0; dc < bc; dc++) {
+          if (grid[bi * br + dr][si * bc + dc] !== 0) cnt++;
+        }
+      }
+      return cnt;
+    }
+    function restoreAt(r, c) {
+      if (grid[r][c] === 0) grid[r][c] = sol[r][c];
+    }
+
+    for (var r = 0; r < n; r++) {
+      if (!rowCount(r)) {
+        var cols = shuffle(Array.from({ length: n }, function (_, i) { return i; }));
+        restoreAt(r, cols[0]);
+      }
+    }
+    for (var c = 0; c < n; c++) {
+      if (!colCount(c)) {
+        var rows = shuffle(Array.from({ length: n }, function (_, i) { return i; }));
+        restoreAt(rows[0], c);
+      }
+    }
+    var numBands = n / br, numStacks = n / bc;
+    for (var bi = 0; bi < numBands; bi++) {
+      for (var si = 0; si < numStacks; si++) {
+        if (!boxCount(bi, si)) {
+          var coords = [];
+          for (var dr = 0; dr < br; dr++) {
+            for (var dc = 0; dc < bc; dc++) coords.push([bi * br + dr, si * bc + dc]);
+          }
+          coords = shuffle(coords);
+          restoreAt(coords[0][0], coords[0][1]);
+        }
+      }
+    }
+  }
+
   function generatePuzzle(n, givensTarget) {
     var br = BOX[n][0], bc = BOX[n][1];
     var grid = [];
     for (var r = 0; r < n; r++) { grid[r] = []; for (var c = 0; c < n; c++) grid[r][c] = 0; }
     solve(grid, n, br, bc);
-    var sol = grid.map(function (row) { return row.slice(); });
-    var cells = [];
-    for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) cells.push([r, c]);
-    shuffle(cells);
+    randomizeSolved(grid, n, br, bc);
+    var sol = cloneGrid(grid);
     var target = givensTarget || (DIFF[diffKey] || DIFF.normal).givens;
-    var removed = 0;
-    for (var i = 0; i < cells.length && removed < n * n - target; i++) {
-      var r = cells[i][0], c = cells[i][1];
-      var backup = grid[r][c];
-      grid[r][c] = 0;
-      var copy = grid.map(function (row) { return row.slice(); });
-      if (countSolutions(copy, n, br, bc, 2) !== 1) grid[r][c] = backup;
-      else removed++;
-    }
+    carvePuzzle(grid, n, br, bc, target);
+    ensureSpread(grid, sol, n, br, bc);
     var g = {};
     for (var r = 0; r < n; r++) {
       for (var c = 0; c < n; c++) {
@@ -362,11 +596,26 @@ SCRIPT = r"""
     if (history.length > 40) history.shift();
   }
 
+  function isRelated(r, c, sr, sc) {
+    if (r === sr && c === sc) return false;
+    if (r === sr || c === sc) return true;
+    var br = BOX[size][0], bc = BOX[size][1];
+    var br0 = Math.floor(r / br), bc0 = Math.floor(c / bc);
+    var sbr0 = Math.floor(sr / br), sbc0 = Math.floor(sc / bc);
+    return br0 === sbr0 && bc0 === sbc0;
+  }
+
   function renderBoard() {
     var el = document.getElementById("board");
+    el.className = "sudoku size-" + size;
     el.style.gridTemplateColumns = "repeat(" + size + ", 1fr)";
+    el.style.gridTemplateRows = "repeat(" + size + ", 1fr)";
     el.innerHTML = "";
     var br = BOX[size][0], bc = BOX[size][1];
+    var sr = selected ? selected[0] : -1;
+    var sc = selected ? selected[1] : -1;
+    var sameVal = selected && board[sr][sc] ? board[sr][sc] : 0;
+    var boxesPerRow = size / bc;
     for (var r = 0; r < size; r++) {
       for (var c = 0; c < size; c++) {
         var btn = document.createElement("button");
@@ -374,11 +623,15 @@ SCRIPT = r"""
         var v = board[r][c];
         btn.textContent = v ? String(v) : "";
         var key = r + "," + c;
+        var boxIdx = Math.floor(r / br) * boxesPerRow + Math.floor(c / bc);
+        if (boxIdx % 2 === 1) btn.classList.add("box-alt");
         if (givens[key]) btn.classList.add("given");
         if (selected && selected[0] === r && selected[1] === c) btn.classList.add("selected");
+        else if (selected && isRelated(r, c, sr, sc)) btn.classList.add("related");
+        if (sameVal && v === sameVal) btn.classList.add("same-num");
         if (hasConflict(r, c, v)) btn.classList.add("conflict");
-        if ((r + 1) % br === 0 && c < size - 1) btn.classList.add("block-r");
-        if ((c + 1) % bc === 0 && r < size - 1) btn.classList.add("block-b");
+        if (c < size - 1) btn.classList.add((c + 1) % bc === 0 ? "bdr-r-thick" : "bdr-r-thin");
+        if (r < size - 1) btn.classList.add((r + 1) % br === 0 ? "bdr-b-thick" : "bdr-b-thin");
         btn.dataset.r = String(r);
         btn.dataset.c = String(c);
         if (!givens[key]) btn.addEventListener("click", function () {
@@ -410,6 +663,7 @@ SCRIPT = r"""
   function buildNumpad() {
     var pad = document.getElementById("numpad");
     pad.innerHTML = "";
+    pad.className = "numpad" + (size > 6 ? " grid-9" : "");
     for (var i = 1; i <= size; i++) {
       var b = document.createElement("button");
       b.type = "button";
@@ -421,7 +675,8 @@ SCRIPT = r"""
     }
     var clr = document.createElement("button");
     clr.type = "button";
-    clr.textContent = "×";
+    clr.className = "clear";
+    clr.textContent = "清除";
     clr.addEventListener("click", function () { setCell(0); });
     pad.appendChild(clr);
   }
@@ -539,7 +794,6 @@ SCRIPT = r"""
   });
   document.getElementById("btn-casual-start").addEventListener("click", startCasualPlay);
   document.getElementById("btn-start").addEventListener("click", startChallenge);
-  document.getElementById("btn-erase").addEventListener("click", function () { setCell(0); });
   document.getElementById("btn-undo").addEventListener("click", function () {
     if (!history.length) return;
     board = history.pop();

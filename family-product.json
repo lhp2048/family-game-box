@@ -1,0 +1,46 @@
+{
+  "manifestVersion": 1,
+  "id": "family_game_box",
+  "title": "家庭游戏盒",
+  "subtitle": "家用小游戏在线网站",
+  "version": "26.826.2340",
+  "port": 18029,
+  "defaultInstallDir": "~/family_game_box",
+  "zipNameHint": "family_game_box.zip",
+  "packageType": "python-service",
+  "monorepoPath": "family_game_box",
+  "validateFiles": [
+    "app/main.py",
+    "web/index.html",
+    "requirements.txt",
+    "family-product.json",
+    "INSTALL.txt",
+    "install.bat",
+    "install.sh",
+    "service.bat",
+    "service.sh"
+  ],
+  "healthPath": "/api/v1/health",
+  "endpoints": {
+    "apiBasePath": "/api/v1",
+    "healthPath": "/api/v1/health",
+    "webPath": "/"
+  },
+  "build": {
+    "windows": "scripts\\build_and_pack.bat",
+    "mac": "./scripts/build_and_pack.sh",
+    "linux": "./scripts/build_and_pack.sh",
+    "notes": "解压后 install.bat|install.sh 或 service.bat|service.sh <action>"
+  },
+  "platforms": {
+    "darwin": {
+      "serviceScript": "service.sh"
+    },
+    "linux": {
+      "serviceScript": "service.sh"
+    },
+    "windows": {
+      "serviceScript": "service.bat"
+    }
+  }
+}

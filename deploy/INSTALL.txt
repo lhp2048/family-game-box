@@ -1,0 +1,55 @@
+家庭游戏盒 — 部署说明 (Windows / Linux / macOS)
+==========================================================
+
+zip 根目录解压后:
+  app/                         FastAPI 应用（uvicorn app.main:app）
+  web/                         大厅与游戏静态页
+  requirements.txt
+  family-product.json, INSTALL.txt
+  install.bat / install.sh
+  service.bat / service.sh
+  scripts/                     各平台底层脚本
+
+默认端口: 18029
+Python: 3.10+（install 自动选版本并建 .venv）
+本期无 Agent Skill / MCP
+
+健康检查: GET http://127.0.0.1:18029/api/v1/health
+大厅:     GET http://127.0.0.1:18029/
+Windows 计划任务: FamilyGameBox
+launchd (macOS): com.family.smart.game-box
+Linux systemd user: family-game-box.service
+
+======================================================================
+服务维护
+======================================================================
+
+  install / start / stop / restart / status / uninstall
+  Windows: service.bat <action>
+  Unix:    ./service.sh <action>
+
+  快捷: install.bat  或  ./install.sh
+
+======================================================================
+Windows
+======================================================================
+
+1. 解压 family_game_box.zip
+2. cd family_game_box
+3. service.bat install
+4. http://127.0.0.1:18029/
+
+======================================================================
+Linux / macOS
+======================================================================
+
+1. unzip -d ~/family_game_box && cd ~/family_game_box
+2. chmod +x *.sh scripts/*.sh scripts/lib/*.sh
+3. ./service.sh install
+4. Linux 自启: loginctl enable-linger $USER
+
+======================================================================
+打包
+======================================================================
+
+  scripts\build.bat

@@ -1,0 +1,17 @@
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+dist_out/
+build/
+data/
+games.zip
+output/
+web/games/**/*
+!web/games/**/
+games/**/build/

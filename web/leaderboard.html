@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>排行榜 · 家庭游戏盒</title>
+<style>
+:root { --ink:#1a2421; --muted:#5c6b66; --line:rgba(26,36,33,.12); --accent:#0f7a5a; }
+body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; background:radial-gradient(1200px 600px at 10% -10%,#fff8e8,#f3efe6); color:var(--ink); }
+main { max-width:880px; margin:0 auto; padding:40px 20px 64px; }
+a { color:var(--accent); }
+.tabs { display:flex; gap:8px; margin:20px 0 12px; flex-wrap:wrap; }
+.tab { border:1px solid var(--line); background:#fffdf8; color:var(--ink); border-radius:999px; padding:8px 16px; font:inherit; cursor:pointer; }
+.tab.is-active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.filters { display:grid; gap:12px; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); margin:0 0 12px; }
+.filters.hidden { display:none; }
+select { width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:12px; padding:10px 12px; font:inherit; background:#fffdf8; }
+.panel { background:rgba(255,252,246,.95); border:1px solid var(--line); border-radius:16px; overflow:hidden; }
+table { width:100%; border-collapse:collapse; }
+th, td { padding:12px 14px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; }
+th { font-size:.85rem; color:var(--muted); background:#fffdf8; }
+tr:last-child td { border-bottom:0; }
+.rank { width:48px; color:var(--muted); }
+.me td { background:rgba(15,122,90,.08); }
+.empty { padding:28px; text-align:center; color:var(--muted); }
+.my-best { margin:0 0 12px; padding:14px 16px; border-radius:14px; background:#fffdf8; border:1px solid var(--line); color:var(--muted); }
+.my-best.hidden { display:none; }
+.my-best strong { color:var(--ink); }
+.lead-note { color:var(--muted); margin:0 0 8px; }
+.game-sub { display:block; font-size:.82rem; color:var(--muted); margin-top:2px; }
+</style>
+</head>
+<body>
+<main>
+  <p><a href="/">← 返回大厅</a></p>
+  <h1>排行榜</h1>
+  <p class="lead-note" id="page-desc">最近 20 条游戏完成记录。</p>
+  <div class="tabs">
+    <button type="button" class="tab is-active" data-view="recent">最近完成</button>
+    <button type="button" class="tab" data-view="global">总榜</button>
+    <button type="button" class="tab" data-view="filtered">分榜</button>
+  </div>
+  <div class="filters hidden" id="filters">
+    <label>游戏<select id="game"></select></label>
+    <label>模式<select id="mode"><option value="challenge">挑战</option><option value="casual">休闲</option></select></label>
+    <label>难度<select id="tier"></select></label>
+  </div>
+  <div class="my-best hidden" id="my-best">加载我的最佳记录…</div>
+  <div class="panel">
+    <table>
+      <thead id="board-head"><tr><th class="rank">#</th><th>昵称</th><th>游戏</th><th>成绩</th><th>时间</th></tr></thead>
+      <tbody id="board-body"><tr><td colspan="5" class="empty">加载中…</td></tr></tbody>
+    </table>
+  </div>
+</main>
+<script src="/js/fgb-client.js"></script>
+<script>
+(function () {
+  var meta = null;
+  var view = "recent";
+  var gameEl = document.getElementById("game");
+  var modeEl = document.getElementById("mode");
+  var tierEl = document.getElementById("tier");
+  var headEl = document.getElementById("board-head");
+  var bodyEl = document.getElementById("board-body");
+  var myBestEl = document.getElementById("my-best");
+  var filtersEl = document.getElementById("filters");
+  var pageDesc = document.getElementById("page-desc");
+  var myTerminal = FGB.getTerminalId();
+
+  var HEADERS = {
+    recent: '<tr><th class="rank">#</th><th>昵称</th><th>游戏</th><th>成绩</th><th>时间</th></tr>',
+    global: '<tr><th class="rank">#</th><th>昵称</th><th>成绩</th><th>时间</th></tr>',
+    filtered: '<tr><th class="rank">#</th><th>昵称</th><th>成绩</th><th>时间</th></tr>'
+  };
+
+  function fillSelect(el, items, getValue, getLabel) {
+    el.innerHTML = "";
+    items.forEach(function (item) {
+      var opt = document.createElement("option");
+      opt.value = getValue(item);
+      opt.textContent = getLabel(item);
+      el.appendChild(opt);
+    });
+  }
+
+  function currentTierOptions() {
+    var gid = gameEl.value;
+    return (meta.tiers[gid] || []).map(function (tier) {
+      return { id: tier, label: (meta.tierLabels[tier] || tier) };
+    });
+  }
+
+  function refreshTiers() {
+    fillSelect(tierEl, currentTierOptions(), function (x) { return x.id; }, function (x) { return x.label; });
+  }
+
+  function fmtTime(iso) {
+    if (!iso) return "—";
+    try { return new Date(iso).toLocaleString("zh-CN"); } catch (e) { return iso; }
+  }
+
+  function esc(s) {
+    return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  function colCount() {
+    return view === "recent" ? 5 : 4;
+  }
+
+  function showEmpty(msg) {
+    bodyEl.innerHTML = '<tr><td colspan="' + colCount() + '" class="empty">' + esc(msg || "暂无记录") + '</td></tr>';
+  }
+
+  function renderRecentRows(items) {
+    if (!items.length) {
+      showEmpty("暂无记录，快去玩游戏吧！");
+      return;
+    }
+    bodyEl.innerHTML = items.map(function (item) {
+      var cls = item.terminalId === myTerminal ? ' class="me"' : "";
+      var sub = esc(item.modeLabel) + " · " + esc(item.tierLabel);
+      return '<tr' + cls + '><td class="rank">' + item.rank + '</td><td>' + esc(item.nickname) + '</td><td>' + esc(item.gameTitle) + '<span class="game-sub">' + sub + '</span></td><td>' + esc(item.display) + '</td><td>' + fmtTime(item.playedAt) + '</td></tr>';
+    }).join("");
+  }
+
+  function renderSimpleRows(items) {
+    if (!items.length) {
+      showEmpty("暂无记录，快去玩游戏吧！");
+      return;
+    }
+    bodyEl.innerHTML = items.map(function (item) {
+      var cls = item.terminalId === myTerminal ? ' class="me"' : "";
+      return '<tr' + cls + '><td class="rank">' + item.rank + '</td><td>' + esc(item.nickname) + '</td><td>' + esc(item.display) + '</td><td>' + fmtTime(item.playedAt) + '</td></tr>';
+    }).join("");
+  }
+
+  function loadRecent() {
+    showEmpty("加载中…");
+    FGB.getRecentLeaderboard(20).then(function (data) {
+      renderRecentRows((data && data.items) || []);
+    }).catch(function () {
+      showEmpty("加载失败");
+    });
+  }
+
+  function loadGlobal() {
+    showEmpty("加载中…");
+    FGB.getGlobalLeaderboard(50).then(function (data) {
+      renderSimpleRows((data && data.items) || []);
+    }).catch(function () {
+      showEmpty("加载失败");
+    });
+  }
+
+  function loadFiltered() {
+    var gameId = gameEl.value;
+    var mode = modeEl.value;
+    var tier = tierEl.value;
+    showEmpty("加载中…");
+    myBestEl.textContent = "加载我的最佳记录…";
+    FGB.getLeaderboard(gameId, mode, tier, 20).then(function (data) {
+      renderSimpleRows((data && data.items) || []);
+    }).catch(function () {
+      showEmpty("加载失败");
+    });
+    FGB.getBests(gameId).then(function (data) {
+      var bests = (((data || {}).bests || {})[gameId] || {})[mode] || {};
+      var mine = bests[tier];
+      if (!mine) {
+        myBestEl.innerHTML = '我的最佳：<strong>暂无记录</strong>';
+        return;
+      }
+      myBestEl.innerHTML = '我的最佳：<strong>' + esc(mine.display) + '</strong> · ' + fmtTime(mine.playedAt);
+    }).catch(function () {
+      myBestEl.textContent = "尚未注册昵称，请先到大厅设置。";
+    });
+  }
+
+  function setView(next) {
+    view = next;
+    document.querySelectorAll(".tab").forEach(function (btn) {
+      btn.classList.toggle("is-active", btn.dataset.view === view);
+    });
+    headEl.innerHTML = HEADERS[view] || HEADERS.recent;
+    var isFiltered = view === "filtered";
+    filtersEl.classList.toggle("hidden", !isFiltered);
+    myBestEl.classList.toggle("hidden", !isFiltered);
+    if (view === "recent") {
+      pageDesc.textContent = "最近 20 条游戏完成记录，按时间从新到旧排列。";
+      loadRecent();
+    } else if (view === "global") {
+      pageDesc.textContent = "家庭内所有成绩记录，按时间从新到旧排列（不区分游戏、模式与难度）。";
+      loadGlobal();
+    } else {
+      pageDesc.textContent = "按游戏、模式与难度查看家庭内最高记录（每台设备一个昵称）。";
+      loadFiltered();
+    }
+  }
+
+  document.querySelectorAll(".tab").forEach(function (btn) {
+    btn.addEventListener("click", function () { setView(btn.dataset.view); });
+  });
+
+  FGB.getRankMeta().then(function (data) {
+    meta = data;
+    fillSelect(gameEl, data.games || [], function (x) { return x.id; }, function (x) { return x.title; });
+    refreshTiers();
+    gameEl.addEventListener("change", function () { refreshTiers(); if (view === "filtered") loadFiltered(); });
+    modeEl.addEventListener("change", function () { if (view === "filtered") loadFiltered(); });
+    tierEl.addEventListener("change", function () { if (view === "filtered") loadFiltered(); });
+    setView("recent");
+  });
+})();
+</script>
+</body>
+</html>

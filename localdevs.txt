@@ -1,0 +1,38 @@
+local dev tools:
+python3: C:\Program Files\Python\Python312\python.exe
+nodejs: D:\node-v24.11.1-win-x64\node.exe
+chrome: D:\app\Chrome\chrome.exe
+edge: D:\app\Edge\151.0.4129.59\msedge.exe
+git: C:\Program Files\Git\bin\git.exe
+7z: C:\Program Files\7-Zip\7z.exe
+
+create build tools (save in scripts/; 一律用上面列出的本机 python/node/chrome/7z 绝对路径，不要依赖 PATH):
+
+dev tools:
+  - scripts/dev.bat
+      构建（如有需要）并启动本地开发服务。
+      失败时非 0 退出。适合日常开发。
+  - scripts/run.bat
+      不构建，只启动本地服务并打开浏览器。
+      已有可预览产物时使用。
+
+publish tools:
+  - scripts/build.bat
+      仅生产构建：校验必要数据/资源可解析，
+      整理/复制产物到 dist/。不启动服务、不打包。失败时非 0 退出。
+  - scripts/build_and_pack.bat
+      先调用 build.bat；成功后再用 7z 把 dist/ 打成发布包。
+      包名带日期（如 <project>-YYYYMMDD.zip），输出到 release/。
+      构建失败则不打包。
+
+maintenance tools:
+  - scripts/update_data.bat
+      用 python 拉取/更新项目数据，写入源数据目录。
+      失败时非 0 退出；不启动服务、不写 dist/。数据过期或需要刷新时用。
+  - scripts/validate.bat
+      只读校验源数据与构建所需资源：可解析、字段完整、统计一致。
+      失败时非 0 退出。
+  - scripts/clean.bat
+      删除 dist/、release/ 等构建与打包产物。不删除源码与数据。
+ 
+ 

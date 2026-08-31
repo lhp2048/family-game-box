@@ -448,7 +448,13 @@ SCRIPT = r"""
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
 
-  showView(views, "home");
+  if (window.__FGB_IS_DAILY__) {
+    var dq = window.__FGB_DAILY_Q__ || {};
+    if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
+    startChallenge();
+  } else {
+    showView(views, "home");
+  }
 })();
 """
 

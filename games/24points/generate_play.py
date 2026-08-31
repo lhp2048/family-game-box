@@ -1098,7 +1098,13 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   });
 
   updateDiffDesc();
-  show("home");
+  if (window.__FGB_IS_DAILY__) {
+    var dq = window.__FGB_DAILY_Q__ || {};
+    if (dq.tier) selectedTier = dq.tier;
+    startCasual();
+  } else {
+    show("home");
+  }
   } // end boot
 
   if (homeView) {

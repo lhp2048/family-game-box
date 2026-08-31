@@ -504,6 +504,30 @@ CONFIRM_HTML = """
 </div>
 """
 
+DAILY_BOOT_JS = r"""
+(function () {
+  if (!window.FGBDaily || !FGBDaily.isDaily()) return;
+  var q = FGBDaily.parseQuery();
+  FGBDaily.installMathRandom(q.seed || 1);
+  window.__FGB_DAILY_Q__ = q;
+  window.__FGB_IS_DAILY__ = true;
+  var _submit = window.fgbSubmitScore;
+  window.fgbSubmitScore = function (payload) {
+    var ms = 0;
+    if (payload && payload.metrics && payload.metrics.timeMs != null) ms = payload.metrics.timeMs | 0;
+    FGBDaily.notifyStageDone(ms);
+  };
+  document.querySelectorAll('a.linkish[href="/"]').forEach(function (a) {
+    a.textContent = "退出本关";
+    a.href = "#";
+    a.addEventListener("click", function (e) {
+      e.preventDefault();
+      FGBDaily.notifyAbort();
+    });
+  });
+})();
+"""
+
 
 def inject_standalone_overlays(html: str, *, include_fgb_client: bool = True) -> str:
     """为独立 HTML 页注入统一确认框与完成庆祝组件。"""
@@ -511,20 +535,37 @@ def inject_standalone_overlays(html: str, *, include_fgb_client: bool = True) ->
         html = html.replace("</style>", OVERLAY_CSS + "\n</style>", 1)
     if 'id="confirm-mask"' not in html:
         fgb = '<script src="/js/fgb-client.js"></script>'
-        if fgb in html:
+        daily_fgb = '<script src="/js/fgb-daily.js"></script>\n' + fgb
+        if fgb in html and "/js/fgb-daily.js" not in html:
+            html = html.replace(fgb, daily_fgb, 1)
+        if daily_fgb in html or fgb in html:
+            marker = daily_fgb if daily_fgb in html else fgb
             html = html.replace(
-                fgb + "\n<script>",
-                CONFIRM_HTML + "\n" + fgb + "\n<script>",
+                marker + "\n<script>",
+                CONFIRM_HTML + "\n" + marker + "\n<script>",
                 1,
             )
         else:
             if include_fgb_client:
-                html = html.replace("<script>", fgb + "\n<script>", 1)
+                html = html.replace(
+                    "<script>",
+                    '<script src="/js/fgb-daily.js"></script>\n'
+                    '<script src="/js/fgb-client.js"></script>\n<script>',
+                    1,
+                )
             html = html.replace("</div>\n<script", "</div>\n" + CONFIRM_HTML + "\n<script", 1)
     if "function askConfirm" not in html:
         html = html.replace(
             "<script>\n(function () {",
             "<script>\n" + OVERLAY_JS + "\n(function () {",
+            1,
+        )
+    if "window.__FGB_IS_DAILY__" not in html and "fgb-daily.js" in html:
+        html = html.replace(
+            '<script src="/js/fgb-client.js"></script>\n<script>',
+            '<script src="/js/fgb-client.js"></script>\n<script>\n'
+            + DAILY_BOOT_JS
+            + "\n",
             1,
         )
     return html
@@ -550,9 +591,11 @@ def build_page(title: str, extra_css: str, body_html: str, script: str, wide: bo
         body_html,
         "</div>",
         CONFIRM_HTML,
+        '<script src="/js/fgb-daily.js"></script>',
         '<script src="/js/fgb-client.js"></script>',
         "<script>",
         COMMON_JS_UTILS,
+        DAILY_BOOT_JS,
         script,
         "</script>",
         "</body>",

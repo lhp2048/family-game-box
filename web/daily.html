@@ -1,5 +1,282 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><title>每日挑战</title></head>
-<body><p>每日挑战</p></body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>每日挑战 · 家庭游戏盒</title>
+<style>
+:root { --ink:#1a2421; --muted:#5c6b66; --paper:#f3efe6; --accent:#0f7a5a; --line:rgba(26,36,33,.12); }
+body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; background:radial-gradient(1200px 600px at 10% -10%,#fff8e8,#f3efe6); color:var(--ink); }
+main { max-width:960px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:1.6rem; margin:0 0 8px; }
+.lead { color:var(--muted); margin:0 0 20px; }
+.card { background:rgba(255,252,246,.95); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:16px; }
+button { border:0; border-radius:10px; padding:10px 14px; font:inherit; background:var(--accent); color:#fff; cursor:pointer; }
+button.ghost { background:#fffdf8; color:var(--accent); border:1px solid var(--line); }
+.hidden { display:none !important; }
+.stage-list { margin:0; padding-left:18px; }
+.stage-list li { margin:6px 0; }
+.hud { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; margin-bottom:12px; }
+.hud .timers { display:flex; gap:16px; flex-wrap:wrap; font-variant-numeric:tabular-nums; }
+.frame-wrap { border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff; min-height:70vh; }
+iframe { width:100%; height:75vh; border:0; display:block; }
+.err { color:#a33b2d; }
+a { color:var(--accent); }
+.meta { color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <p><a href="/">← 返回大厅</a> · <a href="/daily/leaderboard">挑战榜</a></p>
+
+  <section id="prep" class="card">
+    <h1>每日挑战</h1>
+    <p class="lead">按顺序通关今日组合，分关计时 + 总计时。中途退出也会记成绩。</p>
+    <div class="err" id="prep-err"></div>
+    <ol class="stage-list" id="stage-list"></ol>
+    <button type="button" id="btn-start">开始挑战</button>
+  </section>
+
+  <section id="play" class="hidden">
+    <div class="hud card">
+      <div>
+        <strong id="stage-label">第 1 / N 关</strong>
+        <div class="meta" id="stage-name">—</div>
+      </div>
+      <div class="timers">
+        <span>本关 <strong id="t-stage">00:00</strong></span>
+        <span>总计 <strong id="t-total">00:00</strong></span>
+      </div>
+      <button type="button" class="ghost" id="btn-exit">退出</button>
+    </div>
+    <div class="frame-wrap">
+      <iframe id="game-frame" title="每日挑战关卡"></iframe>
+    </div>
+  </section>
+
+  <section id="result" class="card hidden">
+    <h1 id="result-title">挑战结束</h1>
+    <p class="meta" id="result-summary"></p>
+    <ul class="stage-list" id="result-stages"></ul>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+      <button type="button" id="btn-again">再来一次</button>
+      <a href="/daily/leaderboard"><button type="button" class="ghost">查看挑战榜</button></a>
+      <a href="/"><button type="button" class="ghost">回大厅</button></a>
+    </div>
+  </section>
+</main>
+<script src="/js/fgb-client.js"></script>
+<script>
+(function () {
+  var PATHS = {
+    "24points": "/games/24points/play.html",
+    schulte: "/games/schulte/",
+    stroop: "/games/stroop/",
+    cancel: "/games/cancel/",
+    simon: "/games/simon/",
+    "spot-diff": "/games/spot-diff/",
+    maze: "/games/maze/",
+    sudoku: "/games/sudoku/",
+  };
+
+  var combo = null;
+  var run = null;
+  var stageIndex = 0;
+  var startedAt = 0;
+  var stageEnteredAt = 0;
+  var timerId = null;
+  var finishing = false;
+
+  function fmt(ms) {
+    ms = Math.max(0, ms | 0);
+    var s = Math.floor(ms / 1000);
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function show(id) {
+    ["prep", "play", "result"].forEach(function (k) {
+      document.getElementById(k).classList.toggle("hidden", k !== id);
+    });
+  }
+
+  function headers() {
+    return {
+      "Content-Type": "application/json",
+      "X-Terminal-Id": FGB.getTerminalId(),
+    };
+  }
+
+  function api(path, opts) {
+    opts = opts || {};
+    return fetch(path, {
+      method: opts.method || "GET",
+      headers: Object.assign({}, headers(), opts.headers || {}),
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) throw new Error((data && data.detail) || res.statusText || "failed");
+        return data;
+      });
+    });
+  }
+
+  function tick() {
+    var now = Date.now();
+    document.getElementById("t-total").textContent = fmt(now - startedAt);
+    document.getElementById("t-stage").textContent = fmt(now - stageEnteredAt);
+  }
+
+  function stopTimer() {
+    if (timerId) clearInterval(timerId);
+    timerId = null;
+  }
+
+  function loadPrep() {
+    show("prep");
+    api("/api/v1/daily/today").then(function (data) {
+      combo = data;
+      var ol = document.getElementById("stage-list");
+      ol.innerHTML = "";
+      (data.stages || []).forEach(function (s) {
+        var li = document.createElement("li");
+        li.textContent = s.title + " · " + (s.tierLabel || s.tier);
+        ol.appendChild(li);
+      });
+    }).catch(function (e) {
+      document.getElementById("prep-err").textContent = e.message || "加载失败";
+    });
+  }
+
+  function gameUrl(stage, idx, runId) {
+    var base = PATHS[stage.gameId];
+    if (!base) return "";
+    var q = new URLSearchParams({
+      daily: "1",
+      runId: runId,
+      tier: stage.tier,
+      seed: String(stage.seed),
+      stageIndex: String(idx),
+    });
+    return base + (base.indexOf("?") >= 0 ? "&" : "?") + q.toString();
+  }
+
+  function enterStage(idx) {
+    stageIndex = idx;
+    var stages = run.stages || [];
+    var st = stages[idx];
+    document.getElementById("stage-label").textContent = "第 " + (idx + 1) + " / " + stages.length + " 关";
+    document.getElementById("stage-name").textContent = st.title + " · " + (st.tierLabel || st.tier);
+    stageEnteredAt = Date.now();
+    document.getElementById("game-frame").src = gameUrl(st, idx, run.runId);
+  }
+
+  function totalMs() { return Date.now() - startedAt; }
+  function stageMs() { return Date.now() - stageEnteredAt; }
+
+  function patch(body) {
+    return api("/api/v1/daily/runs/" + run.runId, { method: "PATCH", body: body });
+  }
+
+  function showResult(finalRun) {
+    stopTimer();
+    document.getElementById("game-frame").src = "about:blank";
+    show("result");
+    var finished = finalRun.status === "finished";
+    document.getElementById("result-title").textContent = finished ? "全部通关！" : "挑战已退出";
+    document.getElementById("result-summary").textContent =
+      "完成 " + finalRun.stagesDone + " 关 · 总用时 " + fmt(finalRun.totalTimeMs);
+    var ul = document.getElementById("result-stages");
+    ul.innerHTML = "";
+    (finalRun.stageResults || []).forEach(function (s, i) {
+      var li = document.createElement("li");
+      li.textContent = (i + 1) + ". " + s.gameId + " · " + (s.completed ? "完成" : "未完成") + " · " + fmt(s.timeMs);
+      ul.appendChild(li);
+    });
+  }
+
+  function onStageDone(timeMs) {
+    if (finishing || !run) return;
+    var stages = run.stages || [];
+    var st = stages[stageIndex];
+    var last = stageIndex >= stages.length - 1;
+    var body = {
+      action: last ? "finish" : "stage_done",
+      stageIndex: stageIndex,
+      timeMs: timeMs,
+      totalTimeMs: totalMs(),
+      stage: { gameId: st.gameId, tier: st.tier, timeMs: timeMs, completed: true },
+    };
+    finishing = true;
+    patch(body).then(function (updated) {
+      run = updated;
+      finishing = false;
+      if (last) showResult(updated);
+      else enterStage(stageIndex + 1);
+    }).catch(function (e) {
+      finishing = false;
+      alert(e.message || "同步失败");
+    });
+  }
+
+  function doExit() {
+    if (!run || finishing) return;
+    if (!confirm("确定退出？已完成的关卡会记入挑战榜。")) return;
+    finishing = true;
+    var stages = run.stages || [];
+    var st = stages[stageIndex];
+    patch({
+      action: "exit",
+      stageIndex: stageIndex,
+      totalTimeMs: totalMs(),
+      stage: { gameId: st.gameId, tier: st.tier, timeMs: stageMs(), completed: false },
+    }).then(function (updated) {
+      finishing = false;
+      showResult(updated);
+    }).catch(function (e) {
+      finishing = false;
+      alert(e.message || "退出失败");
+    });
+  }
+
+  function startRun() {
+    document.getElementById("prep-err").textContent = "";
+    FGB.ensureRegistered().then(function (user) {
+      if (!user) {
+        document.getElementById("prep-err").textContent = "请先回大厅设置昵称";
+        return;
+      }
+      return api("/api/v1/daily/runs", { method: "POST" }).then(function (data) {
+        run = data;
+        startedAt = Date.now();
+        show("play");
+        stopTimer();
+        timerId = setInterval(tick, 250);
+        tick();
+        enterStage(0);
+      });
+    }).catch(function (e) {
+      document.getElementById("prep-err").textContent = e.message || "无法开始";
+    });
+  }
+
+  window.addEventListener("message", function (ev) {
+    var data = ev.data || {};
+    if (data.type === "fgb-daily-stage-done") onStageDone(data.timeMs | 0);
+    else if (data.type === "fgb-daily-abort") doExit();
+  });
+
+  document.getElementById("btn-start").addEventListener("click", startRun);
+  document.getElementById("btn-exit").addEventListener("click", doExit);
+  document.getElementById("btn-again").addEventListener("click", function () {
+    run = null;
+    finishing = false;
+    loadPrep();
+  });
+
+  loadPrep();
+})();
+</script>
+</body>
 </html>

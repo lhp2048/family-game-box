@@ -1,5 +1,62 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><title>每日挑战榜</title></head>
-<body><p>每日挑战榜</p></body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>每日挑战榜 · 家庭游戏盒</title>
+<style>
+:root { --ink:#1a2421; --muted:#5c6b66; --accent:#0f7a5a; --line:rgba(26,36,33,.12); }
+body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; background:radial-gradient(1200px 600px at 10% -10%,#fff8e8,#f3efe6); color:var(--ink); }
+main { max-width:800px; margin:0 auto; padding:40px 20px 64px; }
+h1 { margin:0 0 8px; }
+.lead { color:var(--muted); margin:0 0 20px; }
+table { width:100%; border-collapse:collapse; background:rgba(255,252,246,.95); border-radius:12px; overflow:hidden; }
+th, td { padding:12px 10px; text-align:left; border-bottom:1px solid var(--line); font-size:.92rem; }
+th { color:var(--muted); font-weight:600; }
+a { color:var(--accent); }
+.meta { color:var(--muted); font-size:.85rem; }
+</style>
+</head>
+<body>
+<main>
+  <p><a href="/">← 返回大厅</a> · <a href="/daily">每日挑战</a></p>
+  <h1>每日挑战榜</h1>
+  <p class="lead" id="date-label">今日成绩 · 通关优先，其次完成关数，再比总用时</p>
+  <table>
+    <thead>
+      <tr><th>#</th><th>昵称</th><th>状态</th><th>完成</th><th>总用时</th></tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+  <p class="meta" id="empty" hidden>暂无记录</p>
+</main>
+<script>
+(function () {
+  function fmt(ms) {
+    ms = Math.max(0, ms | 0);
+    var s = Math.floor(ms / 1000);
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+  }
+  fetch("/api/v1/daily/leaderboard").then(function (r) { return r.json(); }).then(function (data) {
+    document.getElementById("date-label").textContent =
+      (data.date || "今日") + " · 通关优先，其次完成关数，再比总用时";
+    var tb = document.getElementById("rows");
+    var items = data.items || [];
+    if (!items.length) {
+      document.getElementById("empty").hidden = false;
+      return;
+    }
+    items.forEach(function (it, i) {
+      var tr = document.createElement("tr");
+      var status = it.status === "finished" ? "通关" : "退出";
+      tr.innerHTML = "<td>" + (i + 1) + "</td><td>" + (it.nickname || "—") + "</td><td>" +
+        status + "</td><td>" + (it.stagesDone || 0) + "</td><td>" + fmt(it.totalTimeMs) + "</td>";
+      tb.appendChild(tr);
+    });
+  });
+})();
+</script>
+</body>
 </html>

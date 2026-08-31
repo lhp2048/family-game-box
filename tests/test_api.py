@@ -54,6 +54,10 @@ def test_lobby_html():
     assert 'href="games/stroop/"' in text
     assert 'href="/leaderboard"' in text
     assert "fgb-client.js" in text
+    assert "每日挑战" in text
+    assert 'href="/daily"' in text
+    assert 'href="/admin"' in text
+    assert 'href="/daily/leaderboard"' in text
 
 
 def test_leaderboard_page():

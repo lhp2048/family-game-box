@@ -50,10 +50,16 @@ h1 { font-size:2rem; margin:0 0 8px; }
     </div>
     <div class="topbar-actions">
       <div class="user-chip" id="user-chip" hidden>你好，<strong id="user-name">—</strong> <a href="#" id="edit-nick" style="margin-left:8px;color:var(--muted)">修改</a></div>
+      <a class="btn-link" href="/daily/leaderboard">挑战榜</a>
       <a class="btn-link" href="/leaderboard">排行榜</a>
     </div>
   </div>
   <div class="grid" id="game-grid">
+    <a class="card" data-game-id="daily" href="/daily" style="border-color:rgba(15,122,90,.35);box-shadow:0 18px 50px rgba(15,122,90,.12)">
+      <h2>每日挑战</h2>
+      <p>串联多款游戏的当日闯关，题面固定，比总用时。</p>
+      <div class="meta">今日组合</div>
+    </a>
     <a class="card" data-game-id="24points" href="games/24points/play.html">
       <h2>24 点挑战</h2>
       <p>休闲或计时挑战，练心算与整数四则。</p>
@@ -100,6 +106,9 @@ h1 { font-size:2rem; margin:0 0 8px; }
       <div class="meta">查阅</div>
     </a>
   </div>
+  <p style="margin-top:28px;text-align:center;color:var(--muted);font-size:.85rem">
+    <a href="/admin" style="color:var(--muted);text-decoration:none">管理</a>
+  </p>
 </main>
 <script src="/js/fgb-client.js"></script>
 <script>

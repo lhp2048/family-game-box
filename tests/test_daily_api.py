@@ -65,4 +65,7 @@ def test_leaderboard_and_pages():
     assert client.get("/daily").status_code == 200
     assert client.get("/daily/leaderboard").status_code == 200
     assert client.get("/admin").status_code == 200
-    assert "管理" in client.get("/admin").text
+    admin = client.get("/admin").text
+    assert "管理" in admin
+    assert "挑战模板" in admin
+    assert "重新生成今日挑战" in admin

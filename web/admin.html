@@ -1,5 +1,314 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><title>管理</title></head>
-<body><p>管理</p></body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>管理 · 家庭游戏盒</title>
+<style>
+:root { --ink:#1a2421; --muted:#5c6b66; --paper:#f3efe6; --accent:#0f7a5a; --line:rgba(26,36,33,.12); }
+body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; background:radial-gradient(1200px 600px at 10% -10%,#fff8e8,#f3efe6); color:var(--ink); }
+main { max-width:720px; margin:0 auto; padding:40px 20px 64px; }
+h1 { font-size:1.6rem; margin:0 0 8px; }
+.lead { color:var(--muted); margin:0 0 24px; }
+.card { background:rgba(255,252,246,.95); border:1px solid var(--line); border-radius:16px; padding:20px; margin-bottom:16px; box-shadow:0 12px 36px rgba(26,36,33,.06); }
+.card h2 { margin:0 0 12px; font-size:1.1rem; }
+label { display:block; font-size:.85rem; color:var(--muted); margin-bottom:6px; }
+input, select { width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font:inherit; margin-bottom:12px; background:#fff; }
+button, .btn { border:0; border-radius:10px; padding:10px 14px; font:inherit; background:var(--accent); color:#fff; cursor:pointer; }
+button.ghost, .btn.ghost { background:#fffdf8; color:var(--accent); border:1px solid var(--line); }
+button:disabled { opacity:.5; cursor:not-allowed; }
+.row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.err { color:#a33b2d; font-size:.85rem; min-height:1.2em; margin-bottom:8px; }
+.stage { display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:10px 0; border-bottom:1px solid var(--line); }
+.stage:last-child { border-bottom:0; }
+.stage select { width:auto; margin:0; min-width:100px; }
+.stage .title { flex:1; min-width:120px; font-weight:600; }
+.meta { color:var(--muted); font-size:.85rem; }
+.hidden { display:none !important; }
+a.link { color:var(--accent); }
+ul.hist { margin:0; padding-left:18px; color:var(--muted); font-size:.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>每日挑战 · 管理</h1>
+  <p class="lead">设置密码、编辑挑战模板、重新生成今日组合。</p>
+  <p><a class="link" href="/">← 返回大厅</a></p>
+
+  <div id="auth-card" class="card">
+    <h2 id="auth-title">登录</h2>
+    <div class="err" id="auth-err"></div>
+    <div id="setup-fields" class="hidden">
+      <label for="pw1">设置管理员密码</label>
+      <input id="pw1" type="password" autocomplete="new-password">
+      <label for="pw2">再输入一次</label>
+      <input id="pw2" type="password" autocomplete="new-password">
+      <button type="button" id="btn-setup">保存并进入</button>
+    </div>
+    <div id="login-fields" class="hidden">
+      <label for="pw-login">管理员密码</label>
+      <input id="pw-login" type="password" autocomplete="current-password">
+      <button type="button" id="btn-login">登录</button>
+    </div>
+  </div>
+
+  <div id="panel" class="hidden">
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">挑战模板</h2>
+        <button type="button" class="ghost" id="btn-logout">登出</button>
+      </div>
+      <p class="meta">保存只改模板，不会立刻重生成今日挑战。</p>
+      <div class="err" id="tpl-err"></div>
+      <div id="stage-list"></div>
+      <div class="row" style="margin-top:12px">
+        <select id="add-game"></select>
+        <button type="button" class="ghost" id="btn-add">添加游戏</button>
+        <button type="button" id="btn-save-tpl">保存模板</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>今日组合</h2>
+      <div class="err" id="combo-err"></div>
+      <div id="combo-view" class="meta">加载中…</div>
+      <div class="row" style="margin-top:12px">
+        <button type="button" id="btn-regen">重新生成今日挑战</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>历史组合（最近 20）</h2>
+      <ul class="hist" id="hist-list"></ul>
+    </div>
+  </div>
+</main>
+<script>
+(function () {
+  var TOKEN_KEY = "fgb_admin_token";
+  var TIERS = ["intro", "simple", "normal", "hard", "master", "god"];
+  var TIER_LABELS = { intro: "入门", simple: "简单", normal: "普通", hard: "困难", master: "大师", god: "大神" };
+  var GAMES = [];
+  var stages = [];
+
+  function token() { return sessionStorage.getItem(TOKEN_KEY) || ""; }
+  function setToken(t) {
+    if (t) sessionStorage.setItem(TOKEN_KEY, t);
+    else sessionStorage.removeItem(TOKEN_KEY);
+  }
+
+  function api(path, opts) {
+    opts = opts || {};
+    var headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+    if (opts.admin) headers["X-Admin-Token"] = token();
+    return fetch(path, {
+      method: opts.method || "GET",
+      headers: headers,
+      body: opts.body ? JSON.stringify(opts.body) : undefined,
+    }).then(function (res) {
+      return res.json().then(function (data) {
+        if (!res.ok) {
+          var err = new Error((data && data.detail) || res.statusText || "request failed");
+          err.status = res.status;
+          throw err;
+        }
+        return data;
+      });
+    });
+  }
+
+  function showAuth(hasPassword) {
+    document.getElementById("auth-card").classList.remove("hidden");
+    document.getElementById("panel").classList.add("hidden");
+    document.getElementById("setup-fields").classList.toggle("hidden", hasPassword);
+    document.getElementById("login-fields").classList.toggle("hidden", !hasPassword);
+    document.getElementById("auth-title").textContent = hasPassword ? "登录" : "首次设置密码";
+  }
+
+  function showPanel() {
+    document.getElementById("auth-card").classList.add("hidden");
+    document.getElementById("panel").classList.remove("hidden");
+    loadPanel();
+  }
+
+  function gameTitle(id) {
+    for (var i = 0; i < GAMES.length; i++) if (GAMES[i].id === id) return GAMES[i].title;
+    return id;
+  }
+
+  function renderStages() {
+    var box = document.getElementById("stage-list");
+    box.innerHTML = "";
+    stages.forEach(function (s, idx) {
+      var row = document.createElement("div");
+      row.className = "stage";
+      var title = document.createElement("div");
+      title.className = "title";
+      title.textContent = (idx + 1) + ". " + gameTitle(s.gameId);
+      var sel = document.createElement("select");
+      TIERS.forEach(function (t) {
+        var o = document.createElement("option");
+        o.value = t;
+        o.textContent = TIER_LABELS[t] || t;
+        if (t === s.tier) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener("change", function () { stages[idx].tier = sel.value; });
+      var up = document.createElement("button");
+      up.type = "button"; up.className = "ghost"; up.textContent = "上移";
+      up.disabled = idx === 0;
+      up.addEventListener("click", function () {
+        if (idx === 0) return;
+        var tmp = stages[idx - 1]; stages[idx - 1] = stages[idx]; stages[idx] = tmp;
+        renderStages();
+      });
+      var down = document.createElement("button");
+      down.type = "button"; down.className = "ghost"; down.textContent = "下移";
+      down.disabled = idx === stages.length - 1;
+      down.addEventListener("click", function () {
+        if (idx >= stages.length - 1) return;
+        var tmp = stages[idx + 1]; stages[idx + 1] = stages[idx]; stages[idx] = tmp;
+        renderStages();
+      });
+      var del = document.createElement("button");
+      del.type = "button"; del.className = "ghost"; del.textContent = "删除";
+      del.addEventListener("click", function () {
+        stages.splice(idx, 1);
+        renderStages();
+      });
+      row.appendChild(title);
+      row.appendChild(sel);
+      row.appendChild(up);
+      row.appendChild(down);
+      row.appendChild(del);
+      box.appendChild(row);
+    });
+  }
+
+  function fillAddGames() {
+    var sel = document.getElementById("add-game");
+    sel.innerHTML = "";
+    GAMES.forEach(function (g) {
+      if (g.extra && g.extra.kind === "reference") return;
+      var o = document.createElement("option");
+      o.value = g.id;
+      o.textContent = g.title;
+      sel.appendChild(o);
+    });
+  }
+
+  function loadPanel() {
+    Promise.all([
+      api("/api/v1/games"),
+      api("/api/v1/admin/daily/template", { admin: true }),
+      api("/api/v1/daily/today"),
+      api("/api/v1/admin/daily/history", { admin: true }),
+    ]).then(function (arr) {
+      GAMES = arr[0].games || [];
+      stages = (arr[1].stages || []).map(function (s) {
+        return { gameId: s.gameId, tier: s.tier };
+      });
+      fillAddGames();
+      renderStages();
+      var combo = arr[2];
+      var lines = ["日期 " + combo.date + " · " + combo.source + " · " + combo.comboId];
+      (combo.stages || []).forEach(function (s, i) {
+        lines.push((i + 1) + ". " + s.title + " · " + (s.tierLabel || s.tier) + " · seed " + s.seed);
+      });
+      document.getElementById("combo-view").textContent = lines.join("\n");
+      var ul = document.getElementById("hist-list");
+      ul.innerHTML = "";
+      (arr[3].history || []).forEach(function (h) {
+        var li = document.createElement("li");
+        li.textContent = h.date + " · " + (h.source || "") + " · " + (h.stages || []).length + " 关 · " + h.comboId;
+        ul.appendChild(li);
+      });
+      if (!(arr[3].history || []).length) {
+        var empty = document.createElement("li");
+        empty.textContent = "暂无";
+        ul.appendChild(empty);
+      }
+    }).catch(function (err) {
+      document.getElementById("tpl-err").textContent = err.message || "加载失败";
+      if (err.status === 401) {
+        setToken("");
+        boot();
+      }
+    });
+  }
+
+  function boot() {
+    api("/api/v1/admin/status", { headers: { "X-Admin-Token": token() } }).then(function (st) {
+      if (st.authenticated) showPanel();
+      else showAuth(!!st.hasPassword);
+    }).catch(function () { showAuth(false); });
+  }
+
+  document.getElementById("btn-setup").addEventListener("click", function () {
+    var err = document.getElementById("auth-err");
+    err.textContent = "";
+    var a = document.getElementById("pw1").value;
+    var b = document.getElementById("pw2").value;
+    if (!a || a.length < 4) { err.textContent = "密码至少 4 位"; return; }
+    if (a !== b) { err.textContent = "两次密码不一致"; return; }
+    api("/api/v1/admin/setup", { method: "POST", body: { password: a } }).then(function (data) {
+      setToken(data.token);
+      showPanel();
+    }).catch(function (e) { err.textContent = e.message || "设置失败"; });
+  });
+
+  document.getElementById("btn-login").addEventListener("click", function () {
+    var err = document.getElementById("auth-err");
+    err.textContent = "";
+    api("/api/v1/admin/login", { method: "POST", body: { password: document.getElementById("pw-login").value } }).then(function (data) {
+      setToken(data.token);
+      showPanel();
+    }).catch(function (e) { err.textContent = e.message || "登录失败"; });
+  });
+
+  document.getElementById("btn-logout").addEventListener("click", function () {
+    api("/api/v1/admin/logout", { method: "POST", admin: true }).finally(function () {
+      setToken("");
+      boot();
+    });
+  });
+
+  document.getElementById("btn-add").addEventListener("click", function () {
+    var id = document.getElementById("add-game").value;
+    if (!id) return;
+    stages.push({ gameId: id, tier: "normal" });
+    renderStages();
+  });
+
+  document.getElementById("btn-save-tpl").addEventListener("click", function () {
+    var err = document.getElementById("tpl-err");
+    err.textContent = "";
+    api("/api/v1/admin/daily/template", {
+      method: "PUT",
+      admin: true,
+      body: { stages: stages },
+    }).then(function () {
+      err.textContent = "";
+      err.style.color = "var(--accent)";
+      err.textContent = "已保存";
+      setTimeout(function () { err.textContent = ""; err.style.color = ""; }, 1500);
+    }).catch(function (e) {
+      err.style.color = "";
+      err.textContent = e.message || "保存失败";
+    });
+  });
+
+  document.getElementById("btn-regen").addEventListener("click", function () {
+    if (!confirm("重新生成今日挑战？旧组合会进入历史，成绩不会清空。")) return;
+    var err = document.getElementById("combo-err");
+    err.textContent = "";
+    api("/api/v1/admin/daily/regenerate", { method: "POST", admin: true }).then(function () {
+      loadPanel();
+    }).catch(function (e) { err.textContent = e.message || "重生成失败"; });
+  });
+
+  boot();
+})();
+</script>
+</body>
 </html>

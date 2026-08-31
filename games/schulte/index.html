@@ -321,9 +321,14 @@ h1 {
   </section>
 
 </div>
+<script src="/js/fgb-daily.js"></script>
 <script src="/js/fgb-client.js"></script>
 <script>
 (function () {
+  var dailyQ = (window.FGBDaily && FGBDaily.parseQuery()) || { daily: false };
+  var isDaily = !!dailyQ.daily;
+  if (isDaily && window.FGBDaily) FGBDaily.installMathRandom(dailyQ.seed || 1);
+
   const TIERS = {
     intro:  { size: 3, reverse: false, label: "入门" },
     simple: { size: 4, reverse: false, label: "简单" },
@@ -526,6 +531,12 @@ h1 {
 
   function onRoundComplete() {
     const elapsed = Date.now() - roundStartedAt;
+    if (isDaily) {
+      stopTimer();
+      playing = false;
+      if (window.FGBDaily) FGBDaily.notifyStageDone(elapsed);
+      return;
+    }
     if (mode === "casual") {
       stopTimer();
       document.getElementById("casual-time").textContent = fmtTime(elapsed);
@@ -651,24 +662,44 @@ h1 {
 
   document.getElementById("btn-exit-casual").addEventListener("click", function () {
     stopTimer();
+    if (isDaily && window.FGBDaily) { FGBDaily.notifyAbort(); return; }
     show("home");
   });
 
   document.getElementById("btn-defer").addEventListener("click", deferChallenge);
   document.getElementById("btn-exit-challenge").addEventListener("click", function () {
+    if (isDaily && window.FGBDaily) { askConfirm(FGB_MSG.exitConfirm, function () { FGBDaily.notifyAbort(); }); return; }
     askConfirm(FGB_MSG.exitConfirm, finishChallenge);
   });
 
   document.getElementById("btn-again").addEventListener("click", function () { openSetup("challenge"); });
   document.getElementById("btn-home").addEventListener("click", function () {
     stopTimer();
+    if (isDaily && window.FGBDaily) { FGBDaily.notifyAbort(); return; }
     show("home");
   });
   document.getElementById("btn-casual-again").addEventListener("click", function () { openSetup("casual"); });
-  document.getElementById("btn-casual-home").addEventListener("click", function () { show("home"); });
+  document.getElementById("btn-casual-home").addEventListener("click", function () {
+    if (isDaily && window.FGBDaily) { FGBDaily.notifyAbort(); return; }
+    show("home");
+  });
 
   updateDiffDesc();
-  show("home");
+  if (isDaily) {
+    selectedTier = dailyQ.tier && TIERS[dailyQ.tier] ? dailyQ.tier : "normal";
+    var lobbyLink = document.querySelector('#view-home a.linkish[href="/"]');
+    if (lobbyLink) {
+      lobbyLink.textContent = "退出本关";
+      lobbyLink.href = "#";
+      lobbyLink.addEventListener("click", function (e) {
+        e.preventDefault();
+        if (window.FGBDaily) FGBDaily.notifyAbort();
+      });
+    }
+    startCasual();
+  } else {
+    show("home");
+  }
 })();
 </script>
 </body>

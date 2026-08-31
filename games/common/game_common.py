@@ -390,6 +390,7 @@ OVERLAY_CSS = r"""
 
 COMMON_JS_CORE = r"""
 function showView(views, name) {
+  if (window.__FGB_IS_DAILY__ && name !== "play") return;
   Object.keys(views).forEach(function (k) {
     views[k].classList.toggle("hidden", k !== name);
   });
@@ -511,7 +512,21 @@ DAILY_BOOT_JS = r"""
   FGBDaily.installMathRandom(q.seed || 1);
   window.__FGB_DAILY_Q__ = q;
   window.__FGB_IS_DAILY__ = true;
-  var _submit = window.fgbSubmitScore;
+  document.documentElement.classList.add("fgb-daily-mode");
+  var st = document.createElement("style");
+  st.textContent = [
+    "html.fgb-daily-mode #view-home,",
+    "html.fgb-daily-mode #view-setup,",
+    "html.fgb-daily-mode #view-casual,",
+    "html.fgb-daily-mode #view-size,",
+    "html.fgb-daily-mode #view-result,",
+    "html.fgb-daily-mode #view-casual-done { display:none !important; }",
+    "html.fgb-daily-mode #casual-extra,",
+    "html.fgb-daily-mode #btn-next,",
+    "html.fgb-daily-mode #btn-restart,",
+    "html.fgb-daily-mode .mode-btn { display:none !important; }"
+  ].join("");
+  document.head.appendChild(st);
   window.fgbSubmitScore = function (payload) {
     var ms = 0;
     if (payload && payload.metrics && payload.metrics.timeMs != null) ms = payload.metrics.timeMs | 0;

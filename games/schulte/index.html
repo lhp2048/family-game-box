@@ -355,6 +355,7 @@ h1 {
   };
 
   function show(name) {
+    if (isDaily && name !== "play") return;
     Object.keys(views).forEach(function (k) {
       views[k].classList.toggle("hidden", k !== name);
     });
@@ -687,6 +688,7 @@ h1 {
   updateDiffDesc();
   if (isDaily) {
     selectedTier = dailyQ.tier && TIERS[dailyQ.tier] ? dailyQ.tier : "normal";
+    document.documentElement.classList.add("fgb-daily-mode");
     var lobbyLink = document.querySelector('#view-home a.linkish[href="/"]');
     if (lobbyLink) {
       lobbyLink.textContent = "退出本关";

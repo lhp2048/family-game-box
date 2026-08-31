@@ -605,6 +605,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   };
 
   function show(name) {
+    if (window.__FGB_IS_DAILY__ && name !== "play") return;
     Object.keys(views).forEach(k => views[k].classList.toggle("hidden", k !== name));
   }
 

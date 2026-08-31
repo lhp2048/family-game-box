@@ -9,6 +9,9 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from app import daily_admin as daily_admin_mod
+from app import daily_challenges as daily_challenges_mod
+from app import daily_runs as daily_runs_mod
 from app.games_catalog import list_games
 from app.rank_config import rank_meta
 from app.scores import get_global_leaderboard, get_leaderboard, get_personal_bests, get_recent_leaderboard, submit_score
@@ -44,11 +47,35 @@ class ScoreBody(BaseModel):
     metrics: Dict[str, Any] = Field(default_factory=dict)
 
 
+class PasswordBody(BaseModel):
+    password: str = Field(min_length=1, max_length=128)
+
+
+class TemplateBody(BaseModel):
+    stages: list = Field(default_factory=list)
+
+
+class DailyRunPatchBody(BaseModel):
+    action: str
+    stageIndex: int = 0
+    timeMs: int = 0
+    totalTimeMs: int = 0
+    stage: Optional[Dict[str, Any]] = None
+
+
 def _require_terminal_id(terminal_id: Optional[str]) -> str:
     tid = (terminal_id or "").strip()
     if not validate_terminal_id(tid):
         raise HTTPException(status_code=400, detail="missing or invalid X-Terminal-Id")
     return tid
+
+
+def _map_exc(exc: Exception) -> HTTPException:
+    if isinstance(exc, PermissionError):
+        return HTTPException(status_code=401, detail=str(exc))
+    if isinstance(exc, ValueError):
+        return HTTPException(status_code=400, detail=str(exc))
+    return HTTPException(status_code=500, detail="internal error")
 
 
 @app.get("/api/v1/health")
@@ -137,6 +164,111 @@ async def leaderboard(gameId: str, mode: str, tier: str, limit: int = 20):
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.get("/api/v1/daily/today")
+async def daily_today():
+    try:
+        return daily_challenges_mod.ensure_today()
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/daily/runs")
+async def daily_runs_start(x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id")):
+    tid = _require_terminal_id(x_terminal_id)
+    try:
+        return daily_runs_mod.start_run(tid)
+    except (ValueError, PermissionError) as exc:
+        raise _map_exc(exc) from exc
+
+
+@app.patch("/api/v1/daily/runs/{run_id}")
+async def daily_runs_patch(
+    run_id: str,
+    body: DailyRunPatchBody,
+    x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
+):
+    tid = _require_terminal_id(x_terminal_id)
+    try:
+        return daily_runs_mod.patch_run(tid, run_id, body.model_dump())
+    except (ValueError, PermissionError) as exc:
+        raise _map_exc(exc) from exc
+
+
+@app.get("/api/v1/daily/leaderboard")
+async def daily_leaderboard(date: Optional[str] = None, limit: int = 50):
+    return daily_runs_mod.leaderboard(date=date, limit=min(max(limit, 1), 100))
+
+
+@app.get("/api/v1/admin/status")
+async def admin_status(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
+    return daily_admin_mod.admin_status(x_admin_token)
+
+
+@app.post("/api/v1/admin/setup")
+async def admin_setup(body: PasswordBody):
+    try:
+        return daily_admin_mod.setup_password(body.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/admin/login")
+async def admin_login(body: PasswordBody):
+    try:
+        return daily_admin_mod.login(body.password)
+    except ValueError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/admin/logout")
+async def admin_logout(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
+    daily_admin_mod.logout(x_admin_token or "")
+    return {"ok": True}
+
+
+@app.get("/api/v1/admin/daily/template")
+async def admin_template_get(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
+    try:
+        daily_admin_mod.require_admin(x_admin_token)
+        return daily_admin_mod.get_template()
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+
+@app.put("/api/v1/admin/daily/template")
+async def admin_template_put(
+    body: TemplateBody,
+    x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token"),
+):
+    try:
+        daily_admin_mod.require_admin(x_admin_token)
+        return daily_admin_mod.put_template(body.stages)
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/admin/daily/regenerate")
+async def admin_regenerate(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
+    try:
+        daily_admin_mod.require_admin(x_admin_token)
+        return daily_challenges_mod.regenerate()
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/admin/daily/history")
+async def admin_history(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
+    try:
+        daily_admin_mod.require_admin(x_admin_token)
+        return {"history": daily_challenges_mod.get_history()}
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+
 @app.get("/")
 async def lobby():
     index = WEB_DIR / "index.html"
@@ -151,6 +283,30 @@ async def leaderboard_page():
     if page.is_file():
         return FileResponse(page, media_type="text/html; charset=utf-8")
     raise HTTPException(status_code=404, detail="leaderboard.html missing")
+
+
+@app.get("/daily")
+async def daily_page():
+    page = WEB_DIR / "daily.html"
+    if page.is_file():
+        return FileResponse(page, media_type="text/html; charset=utf-8")
+    raise HTTPException(status_code=404, detail="daily.html missing")
+
+
+@app.get("/daily/leaderboard")
+async def daily_leaderboard_page():
+    page = WEB_DIR / "daily-leaderboard.html"
+    if page.is_file():
+        return FileResponse(page, media_type="text/html; charset=utf-8")
+    raise HTTPException(status_code=404, detail="daily-leaderboard.html missing")
+
+
+@app.get("/admin")
+async def admin_page():
+    page = WEB_DIR / "admin.html"
+    if page.is_file():
+        return FileResponse(page, media_type="text/html; charset=utf-8")
+    raise HTTPException(status_code=404, detail="admin.html missing")
 
 
 if (WEB_DIR / "js").is_dir():

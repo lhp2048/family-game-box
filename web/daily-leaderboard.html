@@ -25,6 +25,19 @@
   background: var(--accent);
   vertical-align: middle;
 }
+.kind-tag {
+  display: inline-block;
+  margin-left: .35rem;
+  padding: .1rem .4rem;
+  border-radius: 999px;
+  font-size: .72rem;
+  font-weight: 700;
+  vertical-align: middle;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+.kind-tag.best { color: var(--gold); border-color: rgba(212,168,75,.45); }
+.kind-tag.first { color: var(--accent); border-color: rgba(62,207,142,.35); }
 .fgb-podium .spot .combo {
   margin-top: .25rem;
   font-family: Consolas, "Sarasa Mono SC", monospace;
@@ -56,7 +69,7 @@
   <div class="fgb-panel">
     <table class="fgb-table">
       <thead>
-        <tr><th class="fgb-rank">#</th><th>昵称</th><th>挑战单</th><th>状态</th><th>完成</th><th>总用时</th></tr>
+        <tr><th class="fgb-rank">#</th><th>昵称</th><th>挑战单</th><th>记录</th><th>状态</th><th>完成</th><th>总用时</th></tr>
       </thead>
       <tbody id="rows"><tr><td colspan="6" class="fgb-empty">加载中…</td></tr></tbody>
     </table>
@@ -95,6 +108,13 @@
     return cls;
   }
 
+  function kindLabel(kind) {
+    if (kind === "first+best") return '<span class="kind-tag first">首次·最佳</span>';
+    if (kind === "best") return '<span class="kind-tag best">最佳</span>';
+    if (kind === "first") return '<span class="kind-tag first">首次</span>';
+    return '<span class="kind-tag">—</span>';
+  }
+
   function renderPodium(items) {
     var top = (items || []).slice(0, 3);
     if (!top.length) {
@@ -111,9 +131,11 @@
       var r = ranks[i];
       var score = (it.status === "finished" ? "通关 · " : "退出 · ") + fmt(it.totalTimeMs);
       var combo = (it.comboNo || "") + (it.isCurrentCombo ? " · 本场" : "");
+      var kind = it.recordKind === "best" ? "最佳" : (it.recordKind === "first" ? "首次" : (it.recordKind === "first+best" ? "首次·最佳" : ""));
       return '<div class="spot fgb-podium-' + r + '"><div class="icon" aria-hidden="true">' +
         ICONS[r] + '</div><div class="title">' + TITLES[r] + '</div><div class="name">' +
         esc(it.nickname) + '</div><div class="score">' + esc(score) +
+        (kind ? (" · " + kind) : "") +
         '</div><div class="combo">' + esc(combo) + "</div></div>";
     }).join("");
   }
@@ -123,20 +145,20 @@
     document.getElementById("date-label").textContent =
       (data.date || "今日") + " · 通关优先，其次完成关数，再比总用时";
     document.getElementById("combo-hint").textContent = curNo
-      ? ("当前挑战单 " + curNo + " · 同日重生成会换单号，旧成绩仍留在榜上")
-      : "挑战单号用于区分同日不同组合（如管理员重生成）";
+      ? ("当前挑战单 " + curNo + " · 每人每单只保留「首次」与「最佳」两条")
+      : "每人每单只保留首次与最佳记录；挑战单号区分同日不同组合";
     var tb = document.getElementById("rows");
     tb.innerHTML = "";
     var items = data.items || [];
     if (!items.length) {
       document.getElementById("empty").hidden = false;
-      tb.innerHTML = '<tr><td colspan="6" class="fgb-empty">暂无记录</td></tr>';
+      tb.innerHTML = '<tr><td colspan="7" class="fgb-empty">暂无记录</td></tr>';
       return;
     }
     renderPodium(items);
     var rest = items.slice(3);
     if (!rest.length) {
-      tb.innerHTML = '<tr><td colspan="6" class="fgb-empty">仅前三名</td></tr>';
+      tb.innerHTML = '<tr><td colspan="7" class="fgb-empty">仅前三名</td></tr>';
       return;
     }
     rest.forEach(function (it, i) {
@@ -146,13 +168,14 @@
       var status = it.status === "finished" ? "通关" : "退出";
       tr.innerHTML =
         '<td class="' + rankClass(rank - 1) + '">' + rank + "</td><td>" + esc(it.nickname || "—") +
-        "</td><td>" + comboCell(it) + "</td><td>" + status + "</td><td>" + (it.stagesDone || 0) +
+        "</td><td>" + comboCell(it) + "</td><td>" + kindLabel(it.recordKind) +
+        "</td><td>" + status + "</td><td>" + (it.stagesDone || 0) +
         "</td><td>" + fmt(it.totalTimeMs) + "</td>";
       tb.appendChild(tr);
     });
   }).catch(function () {
     document.getElementById("rows").innerHTML =
-      '<tr><td colspan="6" class="fgb-empty">加载失败</td></tr>';
+      '<tr><td colspan="7" class="fgb-empty">加载失败</td></tr>';
   });
 })();
 </script>

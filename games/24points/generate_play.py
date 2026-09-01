@@ -1139,6 +1139,10 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   });
 
   document.getElementById("btn-exit").addEventListener("click", () => {
+    if (window.__FGB_IS_DAILY__ || (window.FGBDaily && FGBDaily.isDaily && FGBDaily.isDaily())) {
+      if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
+      return;
+    }
     if (mode === "challenge") {
       askConfirm(FGB_MSG.exitConfirm, finishChallenge);
       return;

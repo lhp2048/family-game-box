@@ -553,7 +553,12 @@ DAILY_BOOT_JS = r"""
       window.parent.postMessage({ type: "fgb-daily-stage-done", timeMs: ms }, "*");
     }
   };
-  function abortDaily() {
+  function abortDaily(e) {
+    if (e) {
+      e.preventDefault();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      else e.stopPropagation();
+    }
     if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
     else if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: "fgb-daily-abort" }, "*");
@@ -562,10 +567,13 @@ DAILY_BOOT_JS = r"""
   document.querySelectorAll('a.linkish[href="/"], a[href="/"]').forEach(function (a) {
     a.textContent = "退出本关";
     a.href = "#";
-    a.addEventListener("click", function (e) {
-      e.preventDefault();
-      abortDaily();
-    });
+    a.addEventListener("click", abortDaily);
+  });
+  // 游戏内退出按钮：每日模式禁止 show(home)，须通知父页结束挑战
+  ["btn-exit", "btn-exit-casual", "btn-exit-challenge"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", abortDaily, true);
   });
 })();
 """

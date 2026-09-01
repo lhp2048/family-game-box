@@ -22,6 +22,29 @@ h1 { font-size:2rem; margin:0 0 8px; }
 .card p { margin:0; color:var(--muted); font-size:.92rem; }
 .card .meta { margin-top:12px; color:var(--accent); font-size:.85rem; }
 .card.is-locked { opacity:.55; pointer-events:none; }
+.card-daily {
+  background: linear-gradient(145deg, #fff4e0 0%, #ffe8c8 55%, #ffd9a8 100%);
+  border: 1.5px solid rgba(196, 110, 28, .45);
+  box-shadow: 0 18px 50px rgba(196, 110, 28, .18);
+  position: relative;
+}
+.card-daily::before {
+  content: "今日";
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: #fff;
+  background: #c46e1c;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.card-daily h2 { color: #8a4a12; }
+.card-daily p { color: #7a5a3a; }
+.card-daily .meta { color: #c46e1c; font-weight: 600; }
+.card-daily:hover { border-color: rgba(196, 110, 28, .7); transform: translateY(-1px); }
 .modal { position:fixed; inset:0; background:rgba(26,36,33,.45); display:flex; align-items:center; justify-content:center; padding:20px; z-index:20; }
 .modal.hidden { display:none; }
 .modal-card { width:min(420px,100%); background:#fffdf8; border-radius:18px; padding:24px; box-shadow:0 24px 60px rgba(26,36,33,.18); }
@@ -55,10 +78,10 @@ h1 { font-size:2rem; margin:0 0 8px; }
     </div>
   </div>
   <div class="grid" id="game-grid">
-    <a class="card" data-game-id="daily" href="/daily" style="border-color:rgba(15,122,90,.35);box-shadow:0 18px 50px rgba(15,122,90,.12)">
+    <a class="card card-daily" data-game-id="daily" href="/daily">
       <h2>每日挑战</h2>
       <p>串联多款游戏的当日闯关，题面固定，比总用时。</p>
-      <div class="meta">今日组合</div>
+      <div class="meta">今日组合 · 点此开始</div>
     </a>
     <a class="card" data-game-id="24points" href="games/24points/play.html">
       <h2>24 点挑战</h2>

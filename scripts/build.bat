@@ -104,6 +104,10 @@ if not exist "dist\web\js" mkdir "dist\web\js"
 
 xcopy /Y "web\js\*" "dist\web\js\" >nul 2>nul
 
+if not exist "dist\web\css" mkdir "dist\web\css"
+
+xcopy /Y "web\css\*" "dist\web\css\" >nul 2>nul
+
 xcopy /E /I /Y "web\games" "dist\web\games\" >nul
 
 if errorlevel 1 exit /b 1

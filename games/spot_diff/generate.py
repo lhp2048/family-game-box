@@ -59,7 +59,12 @@ EXTRA_CSS = r"""
 }
 .diff-panel.left .panel-label { color: var(--accent-deep); }
 .diff-panel.right .panel-label { color: var(--warn); }
-.grid-cells.compact button { min-height: 26px; font-size: clamp(.65rem, 2.5vw, .85rem); border-radius: 4px; }
+.grid-cells.compact button {
+  min-height: 34px;
+  font-size: clamp(.9rem, 3.2vw, 1.2rem);
+  font-weight: 700;
+  border-radius: 6px;
+}
 """
 
 BODY = r"""

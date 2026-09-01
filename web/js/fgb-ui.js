@@ -4,6 +4,7 @@
   var STYLE_ID = "fgb-ui-style";
   var _confirmCb = null;
   var _toastTimer = null;
+  var _patched = false;
 
   function ensureDom() {
     if (!document.getElementById(STYLE_ID)) {
@@ -22,8 +23,9 @@
         ".fgb-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}" +
         ".fgb-toast.err{background:rgba(163,59,45,.95)}" +
         ".fgb-toast.ok{background:rgba(15,122,90,.95)}";
-      document.head.appendChild(style);
+      (document.head || document.documentElement).appendChild(style);
     }
+    if (!document.body) return;
     if (!document.getElementById("fgb-confirm-mask")) {
       var mask = document.createElement("div");
       mask.id = "fgb-confirm-mask";
@@ -49,11 +51,11 @@
       });
     }
     if (!document.getElementById("fgb-toast")) {
-      var toast = document.createElement("div");
-      toast.id = "fgb-toast";
-      toast.className = "fgb-toast";
-      toast.setAttribute("aria-live", "polite");
-      document.body.appendChild(toast);
+      var toastEl = document.createElement("div");
+      toastEl.id = "fgb-toast";
+      toastEl.className = "fgb-toast";
+      toastEl.setAttribute("aria-live", "polite");
+      document.body.appendChild(toastEl);
     }
   }
 
@@ -68,6 +70,10 @@
   }
 
   function askConfirm(message, onYes, onNo) {
+    if (!document.body) {
+      setTimeout(function () { askConfirm(message, onYes, onNo); }, 0);
+      return;
+    }
     ensureDom();
     var mask = document.getElementById("fgb-confirm-mask");
     var msg = document.getElementById("fgb-confirm-msg");
@@ -77,6 +83,10 @@
   }
 
   function toast(message, kind) {
+    if (!document.body) {
+      setTimeout(function () { toast(message, kind); }, 0);
+      return;
+    }
     ensureDom();
     var el = document.getElementById("fgb-toast");
     el.textContent = message || "";
@@ -91,8 +101,39 @@
     }, 2200);
   }
 
+  /** 拦截浏览器原生阻塞弹窗，统一改走页面内 UI */
+  function patchNativeDialogs() {
+    if (_patched) return;
+    _patched = true;
+    try {
+      global.alert = function (message) {
+        toast(String(message == null ? "" : message), "err");
+      };
+      global.confirm = function (message) {
+        // 无法同步返回；直接拒绝并弹出非阻塞确认供人工操作
+        // 调用方若依赖返回值，应改用 FGBUI.askConfirm
+        console.warn("[FGBUI] blocked native confirm:", message);
+        askConfirm(String(message == null ? "确定？" : message), null, null);
+        return false;
+      };
+      global.prompt = function (message, defaultValue) {
+        console.warn("[FGBUI] blocked native prompt:", message);
+        toast(String(message == null ? "" : message), "err");
+        return null;
+      };
+    } catch (e) { /* ignore */ }
+  }
+
+  patchNativeDialogs();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { ensureDom(); });
+  } else {
+    ensureDom();
+  }
+
   global.FGBUI = {
     askConfirm: askConfirm,
     toast: toast,
+    patchNativeDialogs: patchNativeDialogs,
   };
 })(window);

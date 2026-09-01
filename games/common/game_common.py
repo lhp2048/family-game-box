@@ -425,6 +425,11 @@ function askConfirm(message, onYes, onNo) {
   var mask = document.getElementById("confirm-mask");
   var msg = document.getElementById("confirm-msg");
   if (!mask || !msg) {
+    // 无页面内弹层时走 FGBUI；禁止回退到浏览器 confirm/alert
+    if (window.FGBUI && FGBUI.askConfirm) {
+      FGBUI.askConfirm(message, onYes, onNo);
+      return;
+    }
     if (onYes) onYes();
     return;
   }
@@ -507,7 +512,7 @@ CONFIRM_HTML = """
 
 DAILY_HEAD = r"""
 <script>
-(function () {
+(function fgbDailyHead() {
   if (/(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
     document.documentElement.classList.add("fgb-daily-mode");
   }
@@ -581,49 +586,49 @@ DAILY_BOOT_JS = r"""
 
 def inject_standalone_overlays(html: str, *, include_fgb_client: bool = True) -> str:
     """为独立 HTML 页注入统一确认框与完成庆祝组件。"""
+    # Daily early CSS/class in <head>
     if "fgb-daily-mode #view-home" not in html:
         if "</head>" in html:
             html = html.replace("</head>", DAILY_HEAD + "\n</head>", 1)
         elif "</style>" in html:
             html = html.replace("</style>", "</style>\n" + DAILY_HEAD, 1)
+
+    # Overlay CSS: prefer last </style> before </head>, else first </style>
     if ".confirm-mask" not in html:
-        html = html.replace("</style>", OVERLAY_CSS + "\n</style>", 1)
+        head_end = html.find("</head>")
+        style_end = html.rfind("</style>", 0, head_end if head_end >= 0 else len(html))
+        if style_end < 0:
+            style_end = html.find("</style>")
+        if style_end >= 0:
+            html = html[:style_end] + OVERLAY_CSS + "\n" + html[style_end:]
+
+    scripts_block = ""
+    if include_fgb_client:
+        if "/js/fgb-daily.js" not in html:
+            scripts_block += '<script src="/js/fgb-daily.js"></script>\n'
+        if "/js/fgb-client.js" not in html:
+            scripts_block += '<script src="/js/fgb-client.js"></script>\n'
+        if "/js/fgb-ui.js" not in html:
+            scripts_block += '<script src="/js/fgb-ui.js"></script>\n'
+
+    # Confirm DOM + client scripts + overlay JS must live at end of <body>
+    # so bindConfirmUI can find #confirm-mask / buttons.
+    tail = ""
     if 'id="confirm-mask"' not in html:
-        fgb = '<script src="/js/fgb-client.js"></script>'
-        daily_fgb = '<script src="/js/fgb-daily.js"></script>\n' + fgb
-        if fgb in html and "/js/fgb-daily.js" not in html:
-            html = html.replace(fgb, daily_fgb, 1)
-        if daily_fgb in html or fgb in html:
-            marker = daily_fgb if daily_fgb in html else fgb
-            html = html.replace(
-                marker + "\n<script>",
-                CONFIRM_HTML + "\n" + marker + "\n<script>",
-                1,
-            )
-        else:
-            if include_fgb_client:
-                html = html.replace(
-                    "<script>",
-                    '<script src="/js/fgb-daily.js"></script>\n'
-                    '<script src="/js/fgb-client.js"></script>\n<script>',
-                    1,
-                )
-            html = html.replace("</div>\n<script", "</div>\n" + CONFIRM_HTML + "\n<script", 1)
+        tail += CONFIRM_HTML + "\n"
+    tail += scripts_block
     if "function askConfirm" not in html:
-        html = html.replace(
-            "<script>\n(function () {",
-            "<script>\n" + OVERLAY_JS + "\n(function () {",
-            1,
-        )
-    if "/* fgb-daily-boot */" not in html and "fgb-daily.js" in html:
-        html = html.replace(
-            '<script src="/js/fgb-client.js"></script>\n<script>',
-            '<script src="/js/fgb-client.js"></script>\n<script>\n'
-            + "/* fgb-daily-boot */\n"
-            + DAILY_BOOT_JS
-            + "\n",
-            1,
-        )
+        tail += "<script>\n" + OVERLAY_JS + "\n</script>\n"
+    if "/* fgb-daily-boot */" not in html and (
+        "/js/fgb-daily.js" in html or "/js/fgb-daily.js" in scripts_block
+    ):
+        tail += "<script>\n/* fgb-daily-boot */\n" + DAILY_BOOT_JS + "\n</script>\n"
+    if tail:
+        if "</body>" in html:
+            html = html.replace("</body>", tail + "</body>", 1)
+        else:
+            html = html + "\n" + tail
+
     return html
 
 
@@ -650,6 +655,7 @@ def build_page(title: str, extra_css: str, body_html: str, script: str, wide: bo
         CONFIRM_HTML,
         '<script src="/js/fgb-daily.js"></script>',
         '<script src="/js/fgb-client.js"></script>',
+        '<script src="/js/fgb-ui.js"></script>',
         "<script>",
         "/* fgb-daily-boot */",
         COMMON_JS_UTILS,

@@ -45,6 +45,8 @@
 
   <div class="fgb-my-best hidden" id="my-best">加载我的最佳记录…</div>
 
+  <div class="fgb-podium hidden" id="podium" aria-label="前三名"></div>
+
   <div class="fgb-panel">
     <table class="fgb-table">
       <thead id="board-head"><tr><th class="fgb-rank">#</th><th>昵称</th><th>游戏</th><th>成绩</th><th>时间</th></tr></thead>
@@ -66,6 +68,7 @@
   var myBestEl = document.getElementById("my-best");
   var filtersEl = document.getElementById("filters");
   var pageDesc = document.getElementById("page-desc");
+  var podiumEl = document.getElementById("podium");
   var myTerminal = FGB.getTerminalId();
 
   var HEADERS = {
@@ -116,7 +119,26 @@
   }
 
   function showEmpty(msg) {
-    bodyEl.innerHTML = '<tr><td colspan="' + colCount() + '" class="fgb-empty">' + esc(msg || "暂无记录") + "</td></tr>";
+    bodyEl.innerHTML = '<tr><td colspan="' + colCount() + '" class="fgb-empty">' + esc(msg || "暂无记录") + '</td></tr>';
+    podiumEl.classList.add("hidden");
+    podiumEl.innerHTML = "";
+  }
+
+  function renderPodium(items) {
+    var top = (items || []).slice(0, 3);
+    if (!top.length) {
+      podiumEl.classList.add("hidden");
+      podiumEl.innerHTML = "";
+      return;
+    }
+    podiumEl.classList.remove("hidden");
+    var order = top.length >= 3 ? [top[1], top[0], top[2]] : top;
+    var ranks = top.length >= 3 ? [2, 1, 3] : top.map(function (_, i) { return i + 1; });
+    podiumEl.innerHTML = order.map(function (item, i) {
+      var r = ranks[i];
+      return '<div class="spot fgb-podium-' + r + '"><div>#' + r + '</div><div class="name">' +
+        esc(item.nickname) + '</div><div class="score">' + esc(item.display) + "</div></div>";
+    }).join("");
   }
 
   function renderRecentRows(items) {
@@ -124,7 +146,13 @@
       showEmpty("暂无记录，快去玩游戏吧！");
       return;
     }
-    bodyEl.innerHTML = items.map(function (item) {
+    renderPodium(items);
+    var rest = items.slice(3);
+    if (!rest.length) {
+      bodyEl.innerHTML = '<tr><td colspan="5" class="fgb-empty">仅前三名 · <a href="/" style="color:var(--accent)">去大厅开玩</a></td></tr>';
+      return;
+    }
+    bodyEl.innerHTML = rest.map(function (item) {
       var cls = item.terminalId === myTerminal ? ' class="fgb-row-me"' : "";
       var sub = esc(item.modeLabel) + " · " + esc(item.tierLabel);
       return "<tr" + cls + ">" + rankCell(item.rank) + "<td>" + esc(item.nickname) + "</td><td>" +
@@ -138,7 +166,13 @@
       showEmpty("暂无记录，快去玩游戏吧！");
       return;
     }
-    bodyEl.innerHTML = items.map(function (item) {
+    renderPodium(items);
+    var rest = items.slice(3);
+    if (!rest.length) {
+      bodyEl.innerHTML = '<tr><td colspan="' + colCount() + '" class="fgb-empty">仅前三名</td></tr>';
+      return;
+    }
+    bodyEl.innerHTML = rest.map(function (item) {
       var cls = item.terminalId === myTerminal ? ' class="fgb-row-me"' : "";
       return "<tr" + cls + ">" + rankCell(item.rank) + "<td>" + esc(item.nickname) + "</td><td>" +
         esc(item.display) + "</td><td>" + fmtTime(item.playedAt) + "</td></tr>";

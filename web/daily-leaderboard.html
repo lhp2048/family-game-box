@@ -23,6 +23,8 @@
   <h1 class="fgb-page-title">每日挑战榜</h1>
   <p class="fgb-lead" id="date-label">今日成绩 · 通关优先，其次完成关数，再比总用时</p>
 
+  <div class="fgb-podium hidden" id="podium" aria-label="前三名"></div>
+
   <div class="fgb-panel">
     <table class="fgb-table">
       <thead>
@@ -31,13 +33,14 @@
       <tbody id="rows"><tr><td colspan="5" class="fgb-empty">加载中…</td></tr></tbody>
     </table>
   </div>
-  <p class="fgb-empty" id="empty" hidden>暂无记录</p>
+  <p class="fgb-empty" id="empty" hidden>暂无记录 · <a href="/daily" style="color:var(--accent)">去做每日挑战</a></p>
 </main>
 <script src="/js/fgb-client.js"></script>
 <script src="/js/fgb-ui.js"></script>
 <script>
 (function () {
   var myTerminal = (window.FGB && FGB.getTerminalId) ? FGB.getTerminalId() : "";
+  var podiumEl = document.getElementById("podium");
 
   function fmt(ms) {
     ms = Math.max(0, ms | 0);
@@ -47,11 +50,33 @@
     return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
   }
 
+  function esc(s) {
+    return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
   function rankClass(i) {
     var n = i + 1;
     var cls = "fgb-rank";
     if (n === 1 || n === 2 || n === 3) cls += " fgb-rank-" + n;
     return cls;
+  }
+
+  function renderPodium(items) {
+    var top = (items || []).slice(0, 3);
+    if (!top.length) {
+      podiumEl.classList.add("hidden");
+      podiumEl.innerHTML = "";
+      return;
+    }
+    podiumEl.classList.remove("hidden");
+    var order = top.length >= 3 ? [top[1], top[0], top[2]] : top;
+    var ranks = top.length >= 3 ? [2, 1, 3] : top.map(function (_, i) { return i + 1; });
+    podiumEl.innerHTML = order.map(function (it, i) {
+      var r = ranks[i];
+      var score = (it.status === "finished" ? "通关 · " : "退出 · ") + fmt(it.totalTimeMs);
+      return '<div class="spot fgb-podium-' + r + '"><div>#' + r + '</div><div class="name">' +
+        esc(it.nickname) + '</div><div class="score">' + esc(score) + "</div></div>";
+    }).join("");
   }
 
   fetch("/api/v1/daily/leaderboard").then(function (r) { return r.json(); }).then(function (data) {
@@ -65,12 +90,19 @@
       tb.innerHTML = '<tr><td colspan="5" class="fgb-empty">暂无记录</td></tr>';
       return;
     }
-    items.forEach(function (it, i) {
+    renderPodium(items);
+    var rest = items.slice(3);
+    if (!rest.length) {
+      tb.innerHTML = '<tr><td colspan="5" class="fgb-empty">仅前三名</td></tr>';
+      return;
+    }
+    rest.forEach(function (it, i) {
+      var rank = i + 4;
       var tr = document.createElement("tr");
       if (it.terminalId && it.terminalId === myTerminal) tr.className = "fgb-row-me";
       var status = it.status === "finished" ? "通关" : "退出";
       tr.innerHTML =
-        '<td class="' + rankClass(i) + '">' + (i + 1) + "</td><td>" + (it.nickname || "—") +
+        '<td class="' + rankClass(rank - 1) + '">' + rank + "</td><td>" + esc(it.nickname || "—") +
         "</td><td>" + status + "</td><td>" + (it.stagesDone || 0) + "</td><td>" + fmt(it.totalTimeMs) + "</td>";
       tb.appendChild(tr);
     });

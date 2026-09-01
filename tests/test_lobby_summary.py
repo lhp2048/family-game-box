@@ -91,3 +91,14 @@ def test_summary_recent_score():
     assert data["recent"] is not None
     assert data["recent"]["gameId"] == "schulte"
     assert data["recent"]["display"]
+
+
+def test_lobby_summary_http():
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    client = TestClient(app)
+    r = client.get("/api/v1/lobby/summary")
+    assert r.status_code == 200
+    body = r.json()
+    assert "podium" in body and "daily" in body and "me" in body

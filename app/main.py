@@ -13,6 +13,7 @@ from app import daily_admin as daily_admin_mod
 from app import daily_challenges as daily_challenges_mod
 from app import daily_runs as daily_runs_mod
 from app import difficulty as difficulty_mod
+from app import lobby as lobby_mod
 from app.games_catalog import list_games
 from app.rank_config import rank_meta
 from app.scores import get_global_leaderboard, get_leaderboard, get_personal_bests, get_recent_leaderboard, submit_score
@@ -206,6 +207,12 @@ async def daily_runs_patch(
 @app.get("/api/v1/daily/leaderboard")
 async def daily_leaderboard(date: Optional[str] = None, limit: int = 50):
     return daily_runs_mod.leaderboard(date=date, limit=min(max(limit, 1), 100))
+
+
+@app.get("/api/v1/lobby/summary")
+async def lobby_summary(x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id")):
+    tid = (x_terminal_id or "").strip() or None
+    return lobby_mod.get_lobby_summary(tid)
 
 
 @app.get("/api/v1/admin/status")

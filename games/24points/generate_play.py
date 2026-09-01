@@ -649,6 +649,62 @@ h1 em { font-style: italic; color: var(--accent-deep); }
     intro: "入门", simple: "简单", normal: "普通",
     hard: "困难", master: "大师", god: "大神",
   };
+  let tierCuts = [0.12, 0.28, 0.50, 0.72, 0.88, 1.01];
+  let tierRanges = {};
+  TIER_ORDER.forEach(function (tid) {
+    tierRanges[tid] = { minNum: 1, maxNum: 24 };
+  });
+  let rankedBank = BANK.slice();
+
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg) return;
+    if (Array.isArray(cfg.cuts) && cfg.cuts.length === 6) tierCuts = cfg.cuts.slice();
+    if (cfg.tiers) {
+      Object.keys(cfg.tiers).forEach(function (k) {
+        var t = cfg.tiers[k];
+        if (!t) return;
+        if (t.label) TIER_LABELS[k] = t.label;
+        if (t.desc) TIER_DESCS[k] = t.desc;
+        var mn = t.minNum != null ? Number(t.minNum) : 1;
+        var mx = t.maxNum != null ? Number(t.maxNum) : 24;
+        tierRanges[k] = { minNum: mn, maxNum: mx };
+      });
+    }
+  }
+
+  function assignTierByCuts(puzzles, cuts) {
+    var n = puzzles.length;
+    return puzzles.map(function (p, i) {
+      var frac = (i + 1) / n;
+      var tier = "god";
+      for (var c = 0; c < cuts.length; c++) {
+        if (frac <= cuts[c]) { tier = TIER_ORDER[c]; break; }
+      }
+      return Object.assign({}, p, { t: tier });
+    });
+  }
+
+  function inNumRange(p, minN, maxN) {
+    return (p.n || []).every(function (x) { return x >= minN && x <= maxN; });
+  }
+
+  function rebuildRankedBank() {
+    var sorted = BANK.slice().sort(function (a, b) { return (a.h || 0) - (b.h || 0); });
+    rankedBank = assignTierByCuts(sorted, tierCuts);
+  }
+
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) {
+      rebuildRankedBank();
+      thenFn();
+      return;
+    }
+    FGB.loadDifficulty("24points").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      rebuildRankedBank();
+      thenFn();
+    });
+  }
 
   let mode = "casual"; // casual | challenge
   let selectedTier = "normal";
@@ -702,11 +758,19 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   function poolForTier(tierIds) {
     const set = {};
     tierIds.forEach(t => { set[t] = true; });
-    return BANK.filter(p => set[p.t || "normal"]);
+    return rankedBank.filter(function (p) {
+      var tid = p.t || "normal";
+      if (!set[tid]) return false;
+      var range = tierRanges[tid] || { minNum: 1, maxNum: 24 };
+      return inNumRange(p, range.minNum, range.maxNum);
+    });
   }
 
   function resolvePool(tier) {
     let pool = poolForTier([tier]);
+    if (pool.length) return { pool: pool, tier: tier };
+    // Fallback: same tier without num filter
+    pool = rankedBank.filter(function (p) { return (p.t || "normal") === tier; });
     if (pool.length) return { pool: pool, tier: tier };
     const idx = TIER_ORDER.indexOf(tier);
     const normalIdx = TIER_ORDER.indexOf("normal");
@@ -726,7 +790,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
       pool = poolForTier([order[i]]);
       if (pool.length) return { pool: pool, tier: order[i] };
     }
-    return { pool: BANK.slice(), tier: tier };
+    return { pool: rankedBank.slice(), tier: tier };
   }
 
   function updateExprBoard() {
@@ -956,29 +1020,33 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   }
 
   function startCasual() {
-    mode = "casual";
-    show("play");
-    updatePlayChrome();
-    resetRound(pickRandomPuzzle());
+    ensureDifficulty(function () {
+      mode = "casual";
+      show("play");
+      updatePlayChrome();
+      resetRound(pickRandomPuzzle());
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    done = 0;
-    deferred = 0;
-    const resolved = resolvePool(selectedTier);
-    const pool = resolved.pool;
-    const take = Math.min(challengeCount, pool.length);
-    remaining = shuffle(pool).slice(0, take).map(p => ({
-      n: p.n.slice(),
-      h: p.h,
-      t: p.t,
-    }));
-    challengeTotal = remaining.length;
-    show("play");
-    updatePlayChrome();
-    startTimer();
-    resetRound(remaining[0]);
+    ensureDifficulty(function () {
+      mode = "challenge";
+      done = 0;
+      deferred = 0;
+      const resolved = resolvePool(selectedTier);
+      const pool = resolved.pool;
+      const take = Math.min(challengeCount, pool.length);
+      remaining = shuffle(pool).slice(0, take).map(p => ({
+        n: p.n.slice(),
+        h: p.h,
+        t: p.t,
+      }));
+      challengeTotal = remaining.length;
+      show("play");
+      updatePlayChrome();
+      startTimer();
+      resetRound(remaining[0]);
+    });
   }
 
   function startFromSetup() {
@@ -1099,14 +1167,17 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   });
 
   updateDiffDesc();
-  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
-    var dq = window.__FGB_DAILY_Q__ || {};
-    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
-    if (dq.tier) selectedTier = dq.tier;
-    startCasual();
-  } else {
-    show("home");
-  }
+  ensureDifficulty(function () {
+    updateDiffDesc();
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier) selectedTier = dq.tier;
+      startCasual();
+    } else {
+      show("home");
+    }
+  });
   } // end boot
 
   if (homeView) {

@@ -38,7 +38,7 @@ EXTRA_CSS = r"""
   padding: .65rem;
   margin: 0 0 .7rem;
   border-radius: 14px;
-  background: #f0f4f2;
+  background: rgba(255,255,255,.04);
 }
 .sudoku-wrap { width: 100%; max-width: min(100%, 400px); margin: 0 auto; }
 .sudoku {
@@ -49,7 +49,7 @@ EXTRA_CSS = r"""
   border: 2.5px solid #1a2420;
   border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(26,36,33,.1);
+  box-shadow: 0 4px 16px rgba(0,0,0,.35);
 }
 .sudoku button {
   box-sizing: border-box;
@@ -65,29 +65,29 @@ EXTRA_CSS = r"""
   margin: 0;
   padding: 0;
   line-height: 1;
-  background: #fffcf8;
+  background: rgba(232,242,236,.1);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-variant-numeric: tabular-nums;
   font-size: clamp(.9rem, 4.2vw, 1.35rem);
   font-weight: 600;
-  color: #1a5c48;
+  color: var(--accent);
   cursor: pointer;
   transition: background .1s ease, color .1s ease;
 }
-.sudoku button.box-alt { background: #f0f5f2; }
-.sudoku button.bdr-r-thin { border-right: 1px solid #c5d5cd; }
-.sudoku button.bdr-r-thick { border-right: 2px solid #1a2420; }
-.sudoku button.bdr-b-thin { border-bottom: 1px solid #c5d5cd; }
-.sudoku button.bdr-b-thick { border-bottom: 2px solid #1a2420; }
-.sudoku button:not(.given):hover { background: #e8f3ee; }
+.sudoku button.box-alt { background: rgba(232,242,236,.06); }
+.sudoku button.bdr-r-thin { border-right: 1px solid rgba(232,242,236,.14); }
+.sudoku button.bdr-r-thick { border-right: 2px solid #0a1210; }
+.sudoku button.bdr-b-thin { border-bottom: 1px solid rgba(232,242,236,.14); }
+.sudoku button.bdr-b-thick { border-bottom: 2px solid #0a1210; }
+.sudoku button:not(.given):hover { background: rgba(62,207,142,.14); }
 .sudoku button.given {
-  background: #f5f8f6;
-  color: #1a2420;
+  background: rgba(232,242,236,.14);
+  color: var(--ink);
   font-weight: 700;
   cursor: default;
 }
-.sudoku button.given.box-alt { background: #e8eeeb; }
-.sudoku button.related { background: #dceee6 !important; }
+.sudoku button.given.box-alt { background: rgba(232,242,236,.1); }
+.sudoku button.related { background: rgba(62,207,142,.16) !important; }
 .sudoku button.given.related { background: #d0e4db !important; }
 .sudoku button.same-num {
   color: #0a5240;
@@ -137,10 +137,10 @@ EXTRA_CSS = r"""
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 1.15rem;
   font-weight: 700;
-  color: #0a5240;
-  background: #fff;
+  color: var(--accent-deep);
+  background: rgba(255,255,255,.92);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(26,36,33,.08);
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
   transition: background .1s ease, transform .08s ease;
 }
 .numpad.grid-9 button { max-width: none; height: 2.5rem; font-size: 1rem; }
@@ -156,9 +156,9 @@ EXTRA_CSS = r"""
   color: var(--muted);
   background: transparent;
   box-shadow: none;
-  border: 1px dashed #c5d5cd;
+  border: 1px dashed var(--line);
 }
-.numpad button.clear:hover { background: #fff; }
+.numpad button.clear:hover { background: rgba(255,255,255,.08); }
 
 .tool-row {
   display: grid;
@@ -175,16 +175,16 @@ EXTRA_CSS = r"""
   font: inherit;
   font-size: .84rem;
   font-weight: 600;
-  background: #fff;
+  background: rgba(255,255,255,.08);
   color: var(--ink);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(26,36,33,.06);
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
   transition: background .1s ease;
 }
-.tool-row button:hover { background: #eef5f1; }
+.tool-row button:hover { background: rgba(62,207,142,.16); }
 .tool-row button.tool-accent {
-  color: #0a5240;
-  background: #e0f0e8;
+  color: #062016;
+  background: rgba(62,207,142,.35);
 }
 .play-actions { margin-top: .7rem; }
 """

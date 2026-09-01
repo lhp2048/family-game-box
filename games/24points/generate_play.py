@@ -153,20 +153,21 @@ _PLAY_HTML = r'''<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>24 点挑战</title>
+<link rel="stylesheet" href="/css/fgb-theme.css">
 <style>
 :root {
-  --ink: #1a2421;
-  --muted: #5c6b66;
-  --line: rgba(26, 36, 33, 0.14);
-  --paper: #f3efe6;
-  --panel: rgba(255, 252, 246, 0.9);
-  --accent: #0f7a5a;
-  --accent-deep: #0a5240;
-  --warn: #9a4a12;
-  --danger: #a33b2d;
-  --shadow: 0 16px 40px rgba(26, 36, 33, 0.1);
-  --display: Cambria, "Songti SC", "Palatino Linotype", serif;
-  --sans: "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --ink: #e8f2ec;
+  --muted: #8fa399;
+  --line: rgba(232, 242, 236, 0.12);
+  --paper: #0c1411;
+  --panel: rgba(18, 32, 28, 0.88);
+  --accent: #3ecf8e;
+  --accent-deep: #1a9f68;
+  --warn: #e8a04a;
+  --danger: #e07060;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
+  --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
@@ -174,19 +175,19 @@ body {
   font-family: var(--sans);
   color: var(--ink);
   background:
-    radial-gradient(1000px 520px at 8% -8%, rgba(15,122,90,.15), transparent 55%),
-    radial-gradient(800px 420px at 100% 0%, rgba(154,74,18,.09), transparent 50%),
-    linear-gradient(165deg, #efe8d8 0%, var(--paper) 45%, #e7eee9 100%);
+    radial-gradient(900px 480px at 12% -8%, rgba(62, 207, 142, 0.14), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.06), transparent 50%),
+    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
 }
 body::before {
   content: "";
-  position: fixed; inset: 0; pointer-events: none; opacity: .32;
+  position: fixed; inset: 0; pointer-events: none; opacity: .2;
   background-image:
-    linear-gradient(rgba(26,36,33,.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(26,36,33,.03) 1px, transparent 1px);
+    linear-gradient(rgba(232,242,236,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,242,236,.03) 1px, transparent 1px);
   background-size: 28px 28px;
 }
-.wrap { position: relative; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
+.wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
 .hidden { display: none !important; }
 h1 {
   font-family: var(--display);
@@ -195,7 +196,7 @@ h1 {
   letter-spacing: -.02em;
   line-height: .95;
 }
-h1 em { font-style: italic; color: var(--accent-deep); }
+h1 em { font-style: italic; color: var(--accent); }
 .sub { margin: 0 0 1.4rem; color: var(--muted); line-height: 1.5; }
 .card {
   background: var(--panel);
@@ -210,13 +211,13 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 1rem 1.05rem;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
   cursor: pointer;
   font: inherit;
   color: inherit;
   transition: transform .15s ease, border-color .15s ease;
 }
-.mode-btn:hover { transform: translateY(-1px); border-color: rgba(15,122,90,.35); }
+.mode-btn:hover { transform: translateY(-1px); border-color: rgba(62,207,142,.4); }
 .mode-btn strong { display: block; font-size: 1.15rem; margin-bottom: .25rem; }
 .mode-btn span { color: var(--muted); font-size: .92rem; }
 .choice-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin: 1rem 0; }
@@ -227,13 +228,13 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   padding: .9rem .4rem;
   font: inherit;
   font-weight: 700;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
   cursor: pointer;
 }
 .choice-row.tier-row button { padding: .75rem .35rem; font-size: .95rem; }
 .choice-row button.active {
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
-  color: #f7fffb;
+  color: #062016;
   border-color: transparent;
 }
 .setup-label {
@@ -247,7 +248,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   margin: 0 0 1rem;
   padding: .75rem .85rem;
   border-radius: 12px;
-  background: rgba(15, 122, 90, 0.08);
+  background: rgba(62, 207, 142, 0.08);
   color: var(--ink);
   font-size: .92rem;
   line-height: 1.55;
@@ -261,7 +262,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   padding: .85rem 1rem;
   font: inherit;
   font-weight: 700;
-  color: #f7fffb;
+  color: #062016;
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
   cursor: pointer;
 }
@@ -293,7 +294,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   font-size: .95rem;
 }
 .hint.err { color: var(--danger); }
-.hint.ok { color: var(--accent-deep); font-weight: 600; }
+.hint.ok { color: var(--accent); font-weight: 600; }
 
 .clover-wrap {
   display: flex;
@@ -313,7 +314,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   border-radius: 34% 34% 18% 34%;
   background:
     radial-gradient(circle at 30% 28%, rgba(255,255,255,.55), transparent 45%),
-    linear-gradient(145deg, #fffdf8, #e9f3ee);
+    linear-gradient(145deg, rgba(255,255,255,.06), rgba(62,207,142,.12));
   box-shadow: var(--shadow);
   font-family: var(--display);
   font-size: clamp(1.8rem, 7vw, 2.4rem);
@@ -342,7 +343,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
 .leaf:hover { transform: translateY(-2px) scale(1.02); }
 .leaf.selected {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(15,122,90,.22), var(--shadow);
+  box-shadow: 0 0 0 3px rgba(62,207,142,.22), var(--shadow);
   transform: scale(1.04);
 }
 .leaf.dim { opacity: .35; pointer-events: none; }
@@ -383,13 +384,13 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   padding: .85rem 0;
   font-family: var(--display);
   font-size: 1.45rem;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
   cursor: pointer;
 }
 .ops button.active {
-  background: rgba(15,122,90,.12);
+  background: rgba(62,207,142,.12);
   border-color: var(--accent);
-  color: var(--accent-deep);
+  color: var(--accent);
 }
 .ops button:disabled { opacity: .4; cursor: not-allowed; }
 
@@ -405,7 +406,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   padding: .7rem .3rem;
   font: inherit;
   font-weight: 600;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
   cursor: pointer;
   color: var(--ink);
 }
@@ -421,7 +422,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   margin-top: .8rem;
   padding: .75rem .9rem;
   border-radius: 12px;
-  background: rgba(15,122,90,.08);
+  background: rgba(62,207,142,.08);
   font-family: Consolas, monospace;
   font-size: .9rem;
   word-break: break-all;
@@ -444,8 +445,8 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   margin: 0 0 .75rem;
   padding: .55rem .7rem;
   border-radius: 10px;
-  background: rgba(15,122,90,.07);
-  color: var(--accent-deep);
+  background: rgba(62,207,142,.07);
+  color: var(--accent);
   font-size: .82rem;
   line-height: 1.45;
 }
@@ -460,7 +461,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
 .linkish {
   display: inline-block;
   margin-top: 1rem;
-  color: var(--accent-deep);
+  color: var(--accent);
   text-decoration: none;
   font-weight: 600;
 }

@@ -13,7 +13,7 @@ LOBBY_HREF = "/"
 
 def lobby_back_link(extra_style: str = "") -> str:
     style = (' style="%s"' % extra_style) if extra_style else ""
-    return '<a class="linkish" href="%s"%s>← 返回大厅</a>' % (LOBBY_HREF, style)
+    return '<a class="linkish fgb-nav-link" href="%s"%s>← 返回大厅</a>' % (LOBBY_HREF, style)
 
 
 def inject_lobby_link(body_html: str) -> str:
@@ -57,18 +57,18 @@ def tier_choice_row(
 
 COMMON_CSS = r"""
 :root {
-  --ink: #1a2421;
-  --muted: #5c6b66;
-  --line: rgba(26, 36, 33, 0.14);
-  --paper: #f3efe6;
-  --panel: rgba(255, 252, 246, 0.9);
-  --accent: #0f7a5a;
-  --accent-deep: #0a5240;
-  --warn: #9a4a12;
-  --danger: #a33b2d;
-  --shadow: 0 16px 40px rgba(26, 36, 33, 0.1);
-  --display: Cambria, "Songti SC", "Palatino Linotype", serif;
-  --sans: "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --ink: #e8f2ec;
+  --muted: #8fa399;
+  --line: rgba(232, 242, 236, 0.12);
+  --paper: #0c1411;
+  --panel: rgba(18, 32, 28, 0.88);
+  --accent: #3ecf8e;
+  --accent-deep: #1a9f68;
+  --warn: #e8a04a;
+  --danger: #e07060;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
+  --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
@@ -76,19 +76,19 @@ body {
   font-family: var(--sans);
   color: var(--ink);
   background:
-    radial-gradient(1000px 520px at 8% -8%, rgba(15,122,90,.15), transparent 55%),
-    radial-gradient(800px 420px at 100% 0%, rgba(154,74,18,.09), transparent 50%),
-    linear-gradient(165deg, #efe8d8 0%, var(--paper) 45%, #e7eee9 100%);
+    radial-gradient(900px 480px at 12% -8%, rgba(62, 207, 142, 0.14), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.06), transparent 50%),
+    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
 }
 body::before {
   content: "";
-  position: fixed; inset: 0; pointer-events: none; opacity: .32;
+  position: fixed; inset: 0; pointer-events: none; opacity: .2;
   background-image:
-    linear-gradient(rgba(26,36,33,.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(26,36,33,.03) 1px, transparent 1px);
+    linear-gradient(rgba(232,242,236,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,242,236,.03) 1px, transparent 1px);
   background-size: 28px 28px;
 }
-.wrap { position: relative; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
+.wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
 .wrap.wide { width: min(720px, calc(100% - 1.5rem)); }
 .hidden { display: none !important; }
 h1 {
@@ -98,7 +98,7 @@ h1 {
   letter-spacing: -.02em;
   line-height: .95;
 }
-h1 em { font-style: italic; color: var(--accent-deep); }
+h1 em { font-style: italic; color: var(--accent); }
 .sub { margin: 0 0 1.4rem; color: var(--muted); line-height: 1.5; }
 .card {
   background: var(--panel);
@@ -113,13 +113,13 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 1rem 1.05rem;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
   cursor: pointer;
   font: inherit;
   color: inherit;
   transition: transform .15s ease, border-color .15s ease;
 }
-.mode-btn:hover { transform: translateY(-1px); border-color: rgba(15,122,90,.35); }
+.mode-btn:hover { transform: translateY(-1px); border-color: rgba(62,207,142,.4); }
 .mode-btn strong { display: block; font-size: 1.15rem; margin-bottom: .25rem; }
 .mode-btn span { color: var(--muted); font-size: .92rem; }
 .choice-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin: 1rem 0; }
@@ -134,12 +134,13 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   padding: .9rem .4rem;
   font: inherit;
   font-weight: 700;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
+  color: var(--ink);
   cursor: pointer;
 }
 .choice-row button.active {
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
-  color: #f7fffb;
+  color: #062016;
   border-color: transparent;
 }
 .primary {
@@ -149,7 +150,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   padding: .85rem 1rem;
   font: inherit;
   font-weight: 700;
-  color: #f7fffb;
+  color: #062016;
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
   cursor: pointer;
 }
@@ -182,7 +183,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   font-size: .95rem;
 }
 .hint.err { color: var(--danger); }
-.hint.ok { color: var(--accent-deep); font-weight: 600; }
+.hint.ok { color: var(--accent); font-weight: 600; }
 .actions {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -196,7 +197,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   padding: .7rem .3rem;
   font: inherit;
   font-weight: 600;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
   cursor: pointer;
   color: var(--ink);
 }
@@ -213,7 +214,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
 .linkish {
   display: inline-block;
   margin-top: 1rem;
-  color: var(--accent-deep);
+  color: var(--accent);
   text-decoration: none;
   font-weight: 600;
 }
@@ -226,7 +227,8 @@ h1 em { font-style: italic; color: var(--accent-deep); }
 .grid-cells button, .grid-cells .cell {
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fffdf8;
+  background: rgba(232,242,236,.08);
+  color: var(--ink);
   font: inherit;
   font-weight: 600;
   aspect-ratio: 1;
@@ -238,27 +240,27 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   min-height: 28px;
 }
 .grid-cells button.marked {
-  background: rgba(15,122,90,.18);
-  color: var(--accent-deep);
+  background: rgba(62,207,142,.18);
+  color: var(--accent);
   text-decoration: line-through;
 }
 .grid-cells button.found {
-  background: rgba(15,122,90,.25);
+  background: rgba(62,207,142,.25);
   box-shadow: inset 0 0 0 2px var(--accent);
 }
 .grid-cells button.wrong-flash {
   animation: wrongFlash .5s ease;
 }
 @keyframes wrongFlash {
-  0%, 100% { background: #fffdf8; }
-  50% { background: rgba(163,59,45,.25); }
+  0%, 100% { background: rgba(232,242,236,.08); }
+  50% { background: rgba(163,59,45,.35); }
 }
 .task-bar {
   text-align: center;
   padding: .65rem .8rem;
   border-radius: 12px;
-  background: rgba(15,122,90,.08);
-  color: var(--accent-deep);
+  background: rgba(62,207,142,.1);
+  color: var(--accent);
   font-weight: 600;
   margin-bottom: .85rem;
 }
@@ -273,13 +275,13 @@ OVERLAY_CSS = r"""
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: rgba(26, 36, 33, 0.42);
+  background: rgba(6, 14, 12, 0.72);
   backdrop-filter: blur(2px);
 }
 .confirm-mask.hidden { display: none !important; }
 .confirm-box {
   width: min(360px, 100%);
-  background: #fffdf8;
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 18px;
   box-shadow: var(--shadow);
@@ -310,7 +312,7 @@ OVERLAY_CSS = r"""
 }
 .confirm-actions .confirm-ok {
   border: 0;
-  color: #f7fffb;
+  color: #062016;
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
 }
 /* 统一完成反馈：轻量、不挡操作 */
@@ -334,10 +336,10 @@ OVERLAY_CSS = r"""
   gap: .55rem;
   padding: .7rem 1.1rem .7rem .85rem;
   border-radius: 999px;
-  background: rgba(255, 252, 246, 0.96);
-  border: 1px solid rgba(15,122,90,.28);
-  box-shadow: 0 12px 32px rgba(26,36,33,.14);
-  color: var(--accent-deep);
+  background: var(--panel);
+  border: 1px solid rgba(62,207,142,.35);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
+  color: var(--accent);
   font-weight: 700;
   font-size: 1rem;
   white-space: nowrap;
@@ -347,14 +349,14 @@ OVERLAY_CSS = r"""
   height: 1.55rem;
   border-radius: 50%;
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
-  color: #f7fffb;
+  color: #062016;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: .95rem;
   line-height: 1;
   flex-shrink: 0;
-  box-shadow: 0 0 0 0 rgba(15,122,90,.35);
+  box-shadow: 0 0 0 0 rgba(62,207,142,.35);
   animation: celebratePulse .55s ease;
 }
 @keyframes celebratePulse {
@@ -584,8 +586,16 @@ DAILY_BOOT_JS = r"""
 """
 
 
+THEME_LINK = '<link rel="stylesheet" href="/css/fgb-theme.css">'
+
+
 def inject_standalone_overlays(html: str, *, include_fgb_client: bool = True) -> str:
     """为独立 HTML 页注入统一确认框与完成庆祝组件。"""
+    if 'href="/css/fgb-theme.css"' not in html:
+        if "</title>" in html:
+            html = html.replace("</title>", "</title>\n" + THEME_LINK, 1)
+        elif "</head>" in html:
+            html = html.replace("</head>", THEME_LINK + "\n</head>", 1)
     # Daily early CSS/class in <head>
     if "fgb-daily-mode #view-home" not in html:
         if "</head>" in html:
@@ -641,6 +651,7 @@ def build_page(title: str, extra_css: str, body_html: str, script: str, wide: bo
         '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
         "<title>" + title + "</title>",
+        THEME_LINK,
         DAILY_HEAD,
         "<style>",
         COMMON_CSS,

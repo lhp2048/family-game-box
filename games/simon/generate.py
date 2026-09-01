@@ -39,7 +39,7 @@ EXTRA_CSS = r"""
   padding: 1rem;
   margin: .5rem 0 1rem;
   border-radius: 16px;
-  background: rgba(255,253,248,.85);
+  background: rgba(255,255,255,.04);
   border: 1px dashed var(--line);
   line-height: 1.35;
 }
@@ -54,7 +54,8 @@ EXTRA_CSS = r"""
   padding: 1rem .4rem;
   font: inherit;
   font-weight: 700;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
+  color: var(--ink);
   cursor: pointer;
   min-height: 52px;
 }

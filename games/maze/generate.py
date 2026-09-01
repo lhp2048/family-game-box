@@ -50,20 +50,20 @@ EXTRA_CSS = r"""
   cursor: default;
   flex-shrink: 0;
 }
-.maze .wall { background: #2a3530; }
-.maze .path { background: #fffdf8; cursor: pointer; }
-.maze .path:hover { background: #eef6f1; }
-.maze .start { background: #9fd6bf; }
-.maze .end { background: #e8b88a; }
+.maze .wall { background: #1a2420; }
+.maze .path { background: rgba(232,242,236,.1); cursor: pointer; }
+.maze .path:hover { background: rgba(62,207,142,.16); }
+.maze .start { background: rgba(62,207,142,.45); }
+.maze .end { background: rgba(232,160,74,.45); }
 .maze .player {
   background: var(--accent);
-  box-shadow: inset 0 0 0 2px #fff;
+  box-shadow: inset 0 0 0 2px #e8f2ec;
 }
 /* 走过痕迹：浅琥珀，与深色墙明显区分 */
-.maze .path.in-trail { background: #f3e6c4; }
-.maze .path.in-trail:hover { background: #ead9a8; }
-.maze .start.in-trail { background: #8fcbb0; }
-.maze .end.in-trail { background: #dfa978; }
+.maze .path.in-trail { background: rgba(232,160,74,.28); }
+.maze .path.in-trail:hover { background: rgba(232,160,74,.38); }
+.maze .start.in-trail { background: rgba(62,207,142,.55); }
+.maze .end.in-trail { background: rgba(232,160,74,.55); }
 .stat-pills {
   display: flex;
   justify-content: center;

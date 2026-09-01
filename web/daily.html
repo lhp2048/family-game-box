@@ -155,11 +155,13 @@ a { color:var(--accent); }
     var q = new URLSearchParams({
       daily: "1",
       runId: runId,
-      tier: stage.tier,
-      seed: String(stage.seed),
+      tier: stage.tier || "normal",
+      seed: String(stage.seed || 1),
       stageIndex: String(idx),
+      _: String(Date.now()),
     });
-    return base + (base.indexOf("?") >= 0 ? "&" : "?") + q.toString();
+    var join = base.indexOf("?") >= 0 ? "&" : "?";
+    return base + join + q.toString();
   }
 
   function enterStage(idx) {

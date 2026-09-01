@@ -505,39 +505,66 @@ CONFIRM_HTML = """
 </div>
 """
 
+DAILY_HEAD = r"""
+<script>
+(function () {
+  if (/(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+    document.documentElement.classList.add("fgb-daily-mode");
+  }
+})();
+</script>
+<style>
+html.fgb-daily-mode #view-home,
+html.fgb-daily-mode #view-setup,
+html.fgb-daily-mode #view-casual,
+html.fgb-daily-mode #view-size,
+html.fgb-daily-mode #view-result,
+html.fgb-daily-mode #view-casual-done { display: none !important; }
+html.fgb-daily-mode .mode-btn,
+html.fgb-daily-mode #casual-extra,
+html.fgb-daily-mode #btn-next,
+html.fgb-daily-mode #btn-restart { display: none !important; }
+</style>
+"""
+
 DAILY_BOOT_JS = r"""
 (function () {
-  if (!window.FGBDaily || !FGBDaily.isDaily()) return;
-  var q = FGBDaily.parseQuery();
-  FGBDaily.installMathRandom(q.seed || 1);
+  var qraw = location.search || "";
+  if (!/(?:^|[?&])daily=1(?:&|$)/.test(qraw)) return;
+  var params = new URLSearchParams(qraw);
+  var q = {
+    daily: true,
+    runId: params.get("runId") || "",
+    tier: params.get("tier") || "normal",
+    seed: Number(params.get("seed") || "0") || 1,
+    stageIndex: Number(params.get("stageIndex") || "0") || 0,
+  };
   window.__FGB_DAILY_Q__ = q;
   window.__FGB_IS_DAILY__ = true;
   document.documentElement.classList.add("fgb-daily-mode");
-  var st = document.createElement("style");
-  st.textContent = [
-    "html.fgb-daily-mode #view-home,",
-    "html.fgb-daily-mode #view-setup,",
-    "html.fgb-daily-mode #view-casual,",
-    "html.fgb-daily-mode #view-size,",
-    "html.fgb-daily-mode #view-result,",
-    "html.fgb-daily-mode #view-casual-done { display:none !important; }",
-    "html.fgb-daily-mode #casual-extra,",
-    "html.fgb-daily-mode #btn-next,",
-    "html.fgb-daily-mode #btn-restart,",
-    "html.fgb-daily-mode .mode-btn { display:none !important; }"
-  ].join("");
-  document.head.appendChild(st);
+  if (window.FGBDaily && FGBDaily.installMathRandom) {
+    FGBDaily.installMathRandom(q.seed);
+  }
   window.fgbSubmitScore = function (payload) {
     var ms = 0;
     if (payload && payload.metrics && payload.metrics.timeMs != null) ms = payload.metrics.timeMs | 0;
-    FGBDaily.notifyStageDone(ms);
+    if (window.FGBDaily && FGBDaily.notifyStageDone) FGBDaily.notifyStageDone(ms);
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-stage-done", timeMs: ms }, "*");
+    }
   };
-  document.querySelectorAll('a.linkish[href="/"]').forEach(function (a) {
+  function abortDaily() {
+    if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-abort" }, "*");
+    }
+  }
+  document.querySelectorAll('a.linkish[href="/"], a[href="/"]').forEach(function (a) {
     a.textContent = "退出本关";
     a.href = "#";
     a.addEventListener("click", function (e) {
       e.preventDefault();
-      FGBDaily.notifyAbort();
+      abortDaily();
     });
   });
 })();
@@ -546,6 +573,11 @@ DAILY_BOOT_JS = r"""
 
 def inject_standalone_overlays(html: str, *, include_fgb_client: bool = True) -> str:
     """为独立 HTML 页注入统一确认框与完成庆祝组件。"""
+    if "fgb-daily-mode #view-home" not in html:
+        if "</head>" in html:
+            html = html.replace("</head>", DAILY_HEAD + "\n</head>", 1)
+        elif "</style>" in html:
+            html = html.replace("</style>", "</style>\n" + DAILY_HEAD, 1)
     if ".confirm-mask" not in html:
         html = html.replace("</style>", OVERLAY_CSS + "\n</style>", 1)
     if 'id="confirm-mask"' not in html:
@@ -575,10 +607,11 @@ def inject_standalone_overlays(html: str, *, include_fgb_client: bool = True) ->
             "<script>\n" + OVERLAY_JS + "\n(function () {",
             1,
         )
-    if "window.__FGB_IS_DAILY__" not in html and "fgb-daily.js" in html:
+    if "/* fgb-daily-boot */" not in html and "fgb-daily.js" in html:
         html = html.replace(
             '<script src="/js/fgb-client.js"></script>\n<script>',
             '<script src="/js/fgb-client.js"></script>\n<script>\n'
+            + "/* fgb-daily-boot */\n"
             + DAILY_BOOT_JS
             + "\n",
             1,
@@ -595,6 +628,7 @@ def build_page(title: str, extra_css: str, body_html: str, script: str, wide: bo
         '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
         "<title>" + title + "</title>",
+        DAILY_HEAD,
         "<style>",
         COMMON_CSS,
         OVERLAY_CSS,
@@ -609,6 +643,7 @@ def build_page(title: str, extra_css: str, body_html: str, script: str, wide: bo
         '<script src="/js/fgb-daily.js"></script>',
         '<script src="/js/fgb-client.js"></script>',
         "<script>",
+        "/* fgb-daily-boot */",
         COMMON_JS_UTILS,
         DAILY_BOOT_JS,
         script,

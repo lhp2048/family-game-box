@@ -395,8 +395,9 @@ SCRIPT_MID = r""";
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
 
-  if (window.__FGB_IS_DAILY__) {
+  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
     var dq = window.__FGB_DAILY_Q__ || {};
+    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
     if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
     startCasual();
   } else {

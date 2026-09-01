@@ -326,7 +326,14 @@ h1 {
 <script>
 (function () {
   var dailyQ = (window.FGBDaily && FGBDaily.parseQuery()) || { daily: false };
-  var isDaily = !!dailyQ.daily;
+  if (!dailyQ.daily) {
+    dailyQ = {
+      daily: /(?:^|[?&])daily=1(?:&|$)/.test(location.search || ""),
+      tier: (new URLSearchParams(location.search || "")).get("tier") || "normal",
+      seed: Number((new URLSearchParams(location.search || "")).get("seed") || "0") || 1,
+    };
+  }
+  var isDaily = !!(dailyQ.daily || window.__FGB_IS_DAILY__);
   if (isDaily && window.FGBDaily) FGBDaily.installMathRandom(dailyQ.seed || 1);
 
   const TIERS = {

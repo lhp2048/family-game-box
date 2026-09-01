@@ -118,6 +118,12 @@
     return api("/api/v1/leaderboard/recent?" + params.toString());
   }
 
+  function loadDifficulty(gameId) {
+    return api("/api/v1/difficulty?gameId=" + encodeURIComponent(gameId)).then(function (data) {
+      return (data.games && data.games[gameId]) || null;
+    }).catch(function () { return null; });
+  }
+
   global.FGB = {
     getTerminalId: getTerminalId,
     me: me,
@@ -130,6 +136,7 @@
     getRecentLeaderboard: getRecentLeaderboard,
     getRankMeta: getRankMeta,
     fgbSubmitScore: fgbSubmitScore,
+    loadDifficulty: loadDifficulty,
   };
   global.fgbSubmitScore = fgbSubmitScore;
 })(window);

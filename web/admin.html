@@ -27,12 +27,21 @@ button:disabled { opacity:.5; cursor:not-allowed; }
 .hidden { display:none !important; }
 a.link { color:var(--accent); }
 ul.hist { margin:0; padding-left:18px; color:var(--muted); font-size:.9rem; }
+.tabs { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+.tabs button { background:#fffdf8; color:var(--ink); border:1px solid var(--line); }
+.tabs button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.diff-table { width:100%; border-collapse:collapse; font-size:.85rem; margin-top:8px; }
+.diff-table th, .diff-table td { border:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:middle; }
+.diff-table th { background:rgba(15,122,90,.08); white-space:nowrap; }
+.diff-table input[type="text"], .diff-table input[type="number"] { width:100%; margin:0; padding:6px 8px; }
+.diff-table input[type="checkbox"] { width:auto; margin:0; }
+.cuts-row input { width:72px; margin:0 4px 0 0; display:inline-block; }
 </style>
 </head>
 <body>
 <main>
-  <h1>每日挑战 · 管理</h1>
-  <p class="lead">设置密码、编辑挑战模板、重新生成今日组合。</p>
+  <h1>管理 · 家庭游戏盒</h1>
+  <p class="lead">每日挑战模板、难度参数与今日组合。</p>
   <p><a class="link" href="/">← 返回大厅</a></p>
 
   <div id="auth-card" class="card">
@@ -53,33 +62,59 @@ ul.hist { margin:0; padding-left:18px; color:var(--muted); font-size:.9rem; }
   </div>
 
   <div id="panel" class="hidden">
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <h2 style="margin:0">挑战模板</h2>
-        <button type="button" class="ghost" id="btn-logout">登出</button>
+    <div class="row" style="justify-content:space-between; margin-bottom:8px">
+      <div class="tabs" id="main-tabs">
+        <button type="button" class="active" data-tab="daily">每日挑战</button>
+        <button type="button" data-tab="diff">难度参数</button>
       </div>
-      <p class="meta">保存只改模板，不会立刻重生成今日挑战。</p>
-      <div class="err" id="tpl-err"></div>
-      <div id="stage-list"></div>
-      <div class="row" style="margin-top:12px">
-        <select id="add-game"></select>
-        <button type="button" class="ghost" id="btn-add">添加游戏</button>
-        <button type="button" id="btn-save-tpl">保存模板</button>
+      <button type="button" class="ghost" id="btn-logout">登出</button>
+    </div>
+
+    <div id="tab-daily">
+      <div class="card">
+        <h2>挑战模板</h2>
+        <p class="meta">保存只改模板，不会立刻重生成今日挑战。</p>
+        <div class="err" id="tpl-err"></div>
+        <div id="stage-list"></div>
+        <div class="row" style="margin-top:12px">
+          <select id="add-game"></select>
+          <button type="button" class="ghost" id="btn-add">添加游戏</button>
+          <button type="button" id="btn-save-tpl">保存模板</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>今日组合</h2>
+        <div class="err" id="combo-err"></div>
+        <div id="combo-view" class="meta">加载中…</div>
+        <div class="row" style="margin-top:12px">
+          <button type="button" id="btn-regen">重新生成今日挑战</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>历史组合（最近 20）</h2>
+        <ul class="hist" id="hist-list"></ul>
       </div>
     </div>
 
-    <div class="card">
-      <h2>今日组合</h2>
-      <div class="err" id="combo-err"></div>
-      <div id="combo-view" class="meta">加载中…</div>
-      <div class="row" style="margin-top:12px">
-        <button type="button" id="btn-regen">重新生成今日挑战</button>
+    <div id="tab-diff" class="hidden">
+      <div class="card">
+        <h2>难度参数</h2>
+        <p class="meta">大厅与每日挑战共用。保存后仅对新开局生效。</p>
+        <div class="err" id="diff-err"></div>
+        <label for="diff-game">游戏</label>
+        <select id="diff-game"></select>
+        <div id="cuts-wrap" class="hidden">
+          <label>分位 cuts（6 项，末项 ≥ 1）</label>
+          <div class="cuts-row" id="cuts-inputs"></div>
+        </div>
+        <div id="diff-form"></div>
+        <div class="row" style="margin-top:12px">
+          <button type="button" id="btn-save-diff">保存本游戏</button>
+          <button type="button" class="ghost" id="btn-reset-diff">恢复本游戏默认</button>
+        </div>
       </div>
-    </div>
-
-    <div class="card">
-      <h2>历史组合（最近 20）</h2>
-      <ul class="hist" id="hist-list"></ul>
     </div>
   </div>
 </main>
@@ -88,8 +123,62 @@ ul.hist { margin:0; padding-left:18px; color:var(--muted); font-size:.9rem; }
   var TOKEN_KEY = "fgb_admin_token";
   var TIERS = ["intro", "simple", "normal", "hard", "master", "god"];
   var TIER_LABELS = { intro: "入门", simple: "简单", normal: "普通", hard: "困难", master: "大师", god: "大神" };
+  var DIFF_GAMES = [
+    { id: "24points", title: "24点" },
+    { id: "schulte", title: "舒尔特方格" },
+    { id: "stroop", title: "色词干扰" },
+    { id: "cancel", title: "划消测验" },
+    { id: "simon", title: "西蒙记忆" },
+    { id: "spot-diff", title: "找不同" },
+    { id: "maze", title: "迷宫" },
+    { id: "sudoku", title: "数独" },
+  ];
+  var FIELD_SCHEMA = {
+    schulte: [
+      { key: "size", type: "number", label: "size" },
+      { key: "reverse", type: "bool", label: "reverse" },
+      { key: "label", type: "text", label: "label" },
+    ],
+    sudoku: [
+      { key: "size", type: "number", label: "size" },
+      { key: "givens", type: "number", label: "givens" },
+      { key: "label", type: "text", label: "label" },
+    ],
+    stroop: [
+      { key: "trialLimit", type: "number", label: "trialLimit" },
+      { key: "timeLimitMs", type: "number", label: "timeLimitMs" },
+      { key: "congruentRate", type: "number", label: "congruentRate", step: "0.01" },
+      { key: "label", type: "text", label: "label" },
+    ],
+    cancel: [
+      { key: "size", type: "number", label: "size" },
+      { key: "pct", type: "number", label: "pct", step: "0.01" },
+      { key: "label", type: "text", label: "label" },
+    ],
+    simon: [
+      { key: "trials", type: "number", label: "trials" },
+      { key: "label", type: "text", label: "label" },
+    ],
+    "spot-diff": [
+      { key: "n", type: "number", label: "n" },
+      { key: "diffs", type: "number", label: "diffs" },
+      { key: "label", type: "text", label: "label" },
+    ],
+    maze: [
+      { key: "size", type: "number", label: "size" },
+      { key: "label", type: "text", label: "label" },
+    ],
+    "24points": [
+      { key: "minNum", type: "number", label: "minNum" },
+      { key: "maxNum", type: "number", label: "maxNum" },
+      { key: "label", type: "text", label: "label" },
+      { key: "desc", type: "text", label: "desc" },
+    ],
+  };
   var GAMES = [];
   var stages = [];
+  var diffData = null;
+  var currentTab = "daily";
 
   function token() { return sessionStorage.getItem(TOKEN_KEY) || ""; }
   function setToken(t) {
@@ -128,11 +217,23 @@ ul.hist { margin:0; padding-left:18px; color:var(--muted); font-size:.9rem; }
   function showPanel() {
     document.getElementById("auth-card").classList.add("hidden");
     document.getElementById("panel").classList.remove("hidden");
+    switchTab(currentTab);
     loadPanel();
+  }
+
+  function switchTab(name) {
+    currentTab = name;
+    document.getElementById("tab-daily").classList.toggle("hidden", name !== "daily");
+    document.getElementById("tab-diff").classList.toggle("hidden", name !== "diff");
+    Array.prototype.forEach.call(document.querySelectorAll("#main-tabs button"), function (btn) {
+      btn.classList.toggle("active", btn.getAttribute("data-tab") === name);
+    });
+    if (name === "diff") loadDifficultyPanel();
   }
 
   function gameTitle(id) {
     for (var i = 0; i < GAMES.length; i++) if (GAMES[i].id === id) return GAMES[i].title;
+    for (var j = 0; j < DIFF_GAMES.length; j++) if (DIFF_GAMES[j].id === id) return DIFF_GAMES[j].title;
     return id;
   }
 
@@ -197,6 +298,147 @@ ul.hist { margin:0; padding-left:18px; color:var(--muted); font-size:.9rem; }
     });
   }
 
+  function fillDiffGames() {
+    var sel = document.getElementById("diff-game");
+    var prev = sel.value;
+    sel.innerHTML = "";
+    DIFF_GAMES.forEach(function (g) {
+      var o = document.createElement("option");
+      o.value = g.id;
+      o.textContent = g.title;
+      sel.appendChild(o);
+    });
+    if (prev) sel.value = prev;
+  }
+
+  function renderDiffForm() {
+    var gid = document.getElementById("diff-game").value;
+    var err = document.getElementById("diff-err");
+    err.textContent = "";
+    err.style.color = "";
+    var game = diffData && diffData.games && diffData.games[gid];
+    if (!game) {
+      document.getElementById("diff-form").innerHTML = "<p class='meta'>无数据</p>";
+      document.getElementById("cuts-wrap").classList.add("hidden");
+      return;
+    }
+    var schema = FIELD_SCHEMA[gid] || [];
+    var cutsWrap = document.getElementById("cuts-wrap");
+    var cutsBox = document.getElementById("cuts-inputs");
+    if (gid === "24points") {
+      cutsWrap.classList.remove("hidden");
+      cutsBox.innerHTML = "";
+      var cuts = game.cuts || [0.12, 0.28, 0.5, 0.72, 0.88, 1.01];
+      for (var i = 0; i < 6; i++) {
+        var inp = document.createElement("input");
+        inp.type = "number";
+        inp.step = "0.01";
+        inp.value = cuts[i];
+        inp.setAttribute("data-cut", String(i));
+        cutsBox.appendChild(inp);
+      }
+    } else {
+      cutsWrap.classList.add("hidden");
+      cutsBox.innerHTML = "";
+    }
+
+    var table = document.createElement("table");
+    table.className = "diff-table";
+    var thead = document.createElement("thead");
+    var hr = document.createElement("tr");
+    hr.appendChild(document.createElement("th")).textContent = "档位";
+    schema.forEach(function (f) {
+      var th = document.createElement("th");
+      th.textContent = f.label;
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+    table.appendChild(thead);
+    var tbody = document.createElement("tbody");
+    TIERS.forEach(function (tid) {
+      var tier = (game.tiers && game.tiers[tid]) || {};
+      var tr = document.createElement("tr");
+      var td0 = document.createElement("td");
+      td0.textContent = TIER_LABELS[tid] || tid;
+      tr.appendChild(td0);
+      schema.forEach(function (f) {
+        var td = document.createElement("td");
+        if (f.type === "bool") {
+          var cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.checked = !!tier[f.key];
+          cb.setAttribute("data-tier", tid);
+          cb.setAttribute("data-key", f.key);
+          cb.setAttribute("data-type", "bool");
+          td.appendChild(cb);
+        } else {
+          var inp = document.createElement("input");
+          inp.type = f.type === "number" ? "number" : "text";
+          if (f.step) inp.step = f.step;
+          var v = tier[f.key];
+          inp.value = v === undefined || v === null ? "" : v;
+          inp.setAttribute("data-tier", tid);
+          inp.setAttribute("data-key", f.key);
+          inp.setAttribute("data-type", f.type);
+          td.appendChild(inp);
+        }
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    var box = document.getElementById("diff-form");
+    box.innerHTML = "";
+    box.appendChild(table);
+  }
+
+  function collectDiffPayload() {
+    var gid = document.getElementById("diff-game").value;
+    var schema = FIELD_SCHEMA[gid] || [];
+    var tiers = {};
+    TIERS.forEach(function (tid) {
+      tiers[tid] = {};
+      schema.forEach(function (f) {
+        var el = document.querySelector(
+          '#diff-form [data-tier="' + tid + '"][data-key="' + f.key + '"]'
+        );
+        if (!el) return;
+        if (f.type === "bool") tiers[tid][f.key] = !!el.checked;
+        else if (f.type === "number") {
+          var n = Number(el.value);
+          tiers[tid][f.key] = isNaN(n) ? el.value : n;
+        } else tiers[tid][f.key] = el.value;
+      });
+    });
+    var payload = { tiers: tiers };
+    if (gid === "24points") {
+      var cuts = [];
+      Array.prototype.forEach.call(document.querySelectorAll("#cuts-inputs input"), function (inp) {
+        cuts.push(Number(inp.value));
+      });
+      payload.cuts = cuts;
+    }
+    return { gameId: gid, games: (function () {
+      var o = {};
+      o[gid] = payload;
+      return o;
+    })() };
+  }
+
+  function loadDifficultyPanel() {
+    fillDiffGames();
+    api("/api/v1/difficulty", { admin: true }).then(function (data) {
+      diffData = data;
+      renderDiffForm();
+    }).catch(function (err) {
+      document.getElementById("diff-err").textContent = err.message || "加载失败";
+      if (err.status === 401) {
+        setToken("");
+        boot();
+      }
+    });
+  }
+
   function loadPanel() {
     Promise.all([
       api("/api/v1/games"),
@@ -228,6 +470,7 @@ ul.hist { margin:0; padding-left:18px; color:var(--muted); font-size:.9rem; }
         empty.textContent = "暂无";
         ul.appendChild(empty);
       }
+      if (currentTab === "diff") loadDifficultyPanel();
     }).catch(function (err) {
       document.getElementById("tpl-err").textContent = err.message || "加载失败";
       if (err.status === 401) {
@@ -243,6 +486,61 @@ ul.hist { margin:0; padding-left:18px; color:var(--muted); font-size:.9rem; }
       else showAuth(!!st.hasPassword);
     }).catch(function () { showAuth(false); });
   }
+
+  Array.prototype.forEach.call(document.querySelectorAll("#main-tabs button"), function (btn) {
+    btn.addEventListener("click", function () {
+      switchTab(btn.getAttribute("data-tab"));
+    });
+  });
+
+  document.getElementById("diff-game").addEventListener("change", function () {
+    if (diffData) renderDiffForm();
+    else loadDifficultyPanel();
+  });
+
+  document.getElementById("btn-save-diff").addEventListener("click", function () {
+    var err = document.getElementById("diff-err");
+    err.textContent = "";
+    err.style.color = "";
+    var packed = collectDiffPayload();
+    api("/api/v1/admin/difficulty", {
+      method: "PUT",
+      admin: true,
+      body: { games: packed.games },
+    }).then(function (data) {
+      diffData = data;
+      renderDiffForm();
+      err.style.color = "var(--accent)";
+      err.textContent = "已保存";
+      setTimeout(function () { err.textContent = ""; err.style.color = ""; }, 1500);
+    }).catch(function (e) {
+      err.style.color = "";
+      err.textContent = e.message || "保存失败";
+    });
+  });
+
+  document.getElementById("btn-reset-diff").addEventListener("click", function () {
+    var gid = document.getElementById("diff-game").value;
+    if (!confirm("恢复「" + gameTitle(gid) + "」到出厂默认？")) return;
+    var err = document.getElementById("diff-err");
+    err.textContent = "";
+    api("/api/v1/admin/difficulty/reset", {
+      method: "POST",
+      admin: true,
+      body: { gameId: gid },
+    }).then(function () {
+      return api("/api/v1/difficulty");
+    }).then(function (data) {
+      diffData = data;
+      renderDiffForm();
+      err.style.color = "var(--accent)";
+      err.textContent = "已恢复默认";
+      setTimeout(function () { err.textContent = ""; err.style.color = ""; }, 1500);
+    }).catch(function (e) {
+      err.style.color = "";
+      err.textContent = e.message || "恢复失败";
+    });
+  });
 
   document.getElementById("btn-setup").addEventListener("click", function () {
     var err = document.getElementById("auth-err");

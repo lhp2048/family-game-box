@@ -150,7 +150,11 @@
     }
     podium.forEach(function (p) {
       var li = document.createElement("li");
-      li.innerHTML = "<span>" + p.rank + ". " + (p.nickname || "—") + "</span><span>" + (p.display || "") + "</span>";
+      var medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
+      var titles = { 1: "冠军", 2: "亚军", 3: "季军" };
+      var medal = medals[p.rank] ? ('<span class="medal">' + medals[p.rank] + "</span>") : "";
+      var title = titles[p.rank] ? (titles[p.rank] + " · ") : (p.rank + ". ");
+      li.innerHTML = "<span>" + medal + title + (p.nickname || "—") + "</span><span>" + (p.display || "") + "</span>";
       ol.appendChild(li);
     });
   }

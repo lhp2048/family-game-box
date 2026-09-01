@@ -131,12 +131,15 @@
       podiumEl.innerHTML = "";
       return;
     }
+    var ICONS = { 1: "🥇", 2: "🥈", 3: "🥉" };
+    var TITLES = { 1: "冠军", 2: "亚军", 3: "季军" };
     podiumEl.classList.remove("hidden");
     var order = top.length >= 3 ? [top[1], top[0], top[2]] : top;
     var ranks = top.length >= 3 ? [2, 1, 3] : top.map(function (_, i) { return i + 1; });
     podiumEl.innerHTML = order.map(function (item, i) {
       var r = ranks[i];
-      return '<div class="spot fgb-podium-' + r + '"><div>#' + r + '</div><div class="name">' +
+      return '<div class="spot fgb-podium-' + r + '"><div class="icon" aria-hidden="true">' +
+        ICONS[r] + '</div><div class="title">' + TITLES[r] + '</div><div class="name">' +
         esc(item.nickname) + '</div><div class="score">' + esc(item.display) + "</div></div>";
     }).join("");
   }

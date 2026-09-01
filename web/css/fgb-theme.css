@@ -308,10 +308,11 @@ a:hover { color: #6fe0ab; }
 .fgb-table tr:last-child td { border-bottom: 0; }
 
 .fgb-rank {
-  width: 3rem;
+  min-width: 3.2rem;
   font-variant-numeric: tabular-nums;
   color: var(--muted);
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .fgb-rank-1 { color: var(--gold); }
@@ -515,11 +516,29 @@ a:hover { color: #6fe0ab; }
   padding: 0.75rem 0.5rem;
   background: rgba(255, 255, 255, 0.03);
 }
-.fgb-podium .spot .name { font-weight: 700; margin: 0.25rem 0; }
+.fgb-podium .spot .icon {
+  display: block;
+  font-size: 1.7rem;
+  line-height: 1.15;
+  margin-bottom: 0.15rem;
+}
+.fgb-podium .spot .title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.2rem;
+}
+.fgb-podium .spot .name { font-weight: 700; margin: 0.25rem 0; color: var(--ink); }
 .fgb-podium .spot .score { color: var(--muted); font-size: 0.85rem; }
-.fgb-podium-1 { border-color: rgba(212, 168, 75, 0.55); min-height: 7rem; color: var(--gold); }
-.fgb-podium-2 { border-color: rgba(168, 180, 188, 0.45); min-height: 5.5rem; color: var(--silver); }
-.fgb-podium-3 { border-color: rgba(196, 122, 74, 0.45); min-height: 5rem; color: var(--bronze); }
+.fgb-podium-1 { border-color: rgba(212, 168, 75, 0.55); min-height: 7.5rem; color: var(--gold); }
+.fgb-podium-2 { border-color: rgba(168, 180, 188, 0.45); min-height: 6rem; color: var(--silver); }
+.fgb-podium-3 { border-color: rgba(196, 122, 74, 0.45); min-height: 5.5rem; color: var(--bronze); }
+
+.fgb-podium-list li .medal {
+  display: inline-block;
+  min-width: 1.6rem;
+  margin-right: 0.2rem;
+}
 
 .fgb-game-row {
   display: flex;

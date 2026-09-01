@@ -87,24 +87,25 @@ EXTRA_CSS = r"""
   cursor: default;
 }
 .sudoku button.given.box-alt { background: rgba(232,242,236,.1); }
-.sudoku button.related { background: rgba(62,207,142,.16) !important; }
-.sudoku button.given.related { background: #d0e4db !important; }
+.sudoku button.related { background: rgba(62,207,142,.1) !important; }
+.sudoku button.given.related { background: rgba(232,242,236,.18) !important; }
 .sudoku button.same-num {
-  color: #0a5240;
+  color: var(--accent);
   font-weight: 700;
-  background: #c8e6d8 !important;
+  background: rgba(62,207,142,.14) !important;
 }
 .sudoku button.selected {
-  background: #0f7a5a !important;
-  color: #fff !important;
+  background: rgba(62, 207, 142, 0.28) !important;
+  color: var(--ink) !important;
   font-weight: 700;
+  box-shadow: inset 0 0 0 2px rgba(62, 207, 142, 0.75);
 }
-.sudoku button.selected.given { color: #fff !important; }
+.sudoku button.selected.given { color: var(--ink) !important; }
 .sudoku button.conflict {
-  background: #f5d4cf !important;
-  color: #a33b2d !important;
+  background: rgba(224, 112, 96, 0.28) !important;
+  color: #f0b0a4 !important;
 }
-.sudoku button.hinted { color: #9a4a12; }
+.sudoku button.hinted { color: var(--warn); }
 .sudoku.size-4 button { font-size: clamp(1.2rem, 7vw, 1.75rem); }
 .sudoku.size-6 button { font-size: clamp(1rem, 5vw, 1.35rem); }
 .sudoku.size-9 button { font-size: clamp(.85rem, 3.5vw, 1.1rem); }
@@ -113,7 +114,7 @@ EXTRA_CSS = r"""
 .play-dock {
   padding: .65rem;
   border-radius: 14px;
-  background: #f7faf8;
+  background: rgba(255,255,255,.04);
   border: 1px solid var(--line);
 }
 .numpad {
@@ -162,7 +163,7 @@ EXTRA_CSS = r"""
 
 .tool-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: .4rem;
   margin-top: .55rem;
   padding-top: .55rem;
@@ -192,7 +193,7 @@ EXTRA_CSS = r"""
 BODY = r"""
   <section id="view-home">
     <h1>数<em>独</em></h1>
-    <p class="sub">四宫格、六宫格、九宫格逻辑推理。支持检查、提示与撤销。</p>
+    <p class="sub">四宫格、六宫格、九宫格逻辑推理。支持检查、提示与上一步 / 下一步。</p>
     <div class="card mode-grid">
       <button type="button" class="mode-btn" id="btn-casual">
         <strong>休闲模式</strong>
@@ -249,7 +250,8 @@ BODY = r"""
       <div class="play-dock">
         <div class="numpad" id="numpad"></div>
         <div class="tool-row">
-          <button type="button" id="btn-undo">撤销</button>
+          <button type="button" id="btn-undo">上一步</button>
+          <button type="button" id="btn-redo">下一步</button>
           <button type="button" id="btn-check" class="tool-accent">检查</button>
           <button type="button" id="btn-hint" class="tool-accent">提示</button>
         </div>
@@ -341,6 +343,7 @@ SCRIPT = r"""
   var board = [];
   var selected = null;
   var history = [];
+  var redoStack = [];
 
   function stopTimer() {
     if (timerId) { clearInterval(timerId); timerId = null; }
@@ -599,6 +602,7 @@ SCRIPT = r"""
     board = p.puzzle.map(function (row) { return row.slice(); });
     selected = null;
     history = [];
+    redoStack = [];
     hintsUsed = 0;
     renderBoard();
     buildNumpad();
@@ -606,8 +610,13 @@ SCRIPT = r"""
     document.getElementById("play-hint").textContent = "点格选中，再点数字填入";
   }
 
+  function cloneBoard(src) {
+    return src.map(function (row) { return row.slice(); });
+  }
+
   function pushHistory() {
-    history.push(board.map(function (row) { return row.slice(); }));
+    history.push(cloneBoard(board));
+    redoStack = [];
     if (history.length > 40) history.shift();
   }
 
@@ -815,7 +824,14 @@ SCRIPT = r"""
   document.getElementById("btn-start").addEventListener("click", startChallenge);
   document.getElementById("btn-undo").addEventListener("click", function () {
     if (!history.length) return;
+    redoStack.push(cloneBoard(board));
     board = history.pop();
+    renderBoard();
+  });
+  document.getElementById("btn-redo").addEventListener("click", function () {
+    if (!redoStack.length) return;
+    history.push(cloneBoard(board));
+    board = redoStack.pop();
     renderBoard();
   });
   document.getElementById("btn-check").addEventListener("click", function () {

@@ -368,5 +368,8 @@ async def admin_page():
 if (WEB_DIR / "js").is_dir():
     app.mount("/js", StaticFiles(directory=str(WEB_DIR / "js")), name="js")
 
+if (WEB_DIR / "css").is_dir():
+    app.mount("/css", StaticFiles(directory=str(WEB_DIR / "css")), name="css")
+
 if (WEB_DIR / "games").is_dir():
     app.mount("/games", StaticFiles(directory=str(WEB_DIR / "games"), html=True), name="games")

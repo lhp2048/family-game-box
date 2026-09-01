@@ -379,18 +379,28 @@ h1 em { font-style: italic; color: var(--accent); }
   margin-bottom: .75rem;
 }
 .ops button {
-  border: 1px solid var(--line);
+  border: 1px solid rgba(232, 242, 236, 0.28);
   border-radius: 14px;
   padding: .85rem 0;
   font-family: var(--display);
-  font-size: 1.45rem;
-  background: rgba(255,255,255,.04);
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+  background: rgba(232, 242, 236, 0.1);
   cursor: pointer;
+  transition: border-color .12s ease, background .12s ease, color .12s ease;
+}
+.ops button:hover {
+  border-color: rgba(62, 207, 142, 0.55);
+  background: rgba(62, 207, 142, 0.14);
+  color: var(--accent);
 }
 .ops button.active {
-  background: rgba(62,207,142,.12);
+  background: rgba(62, 207, 142, 0.22);
   border-color: var(--accent);
   color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(62, 207, 142, 0.2);
 }
 .ops button:disabled { opacity: .4; cursor: not-allowed; }
 
@@ -429,18 +439,18 @@ h1 em { font-style: italic; color: var(--accent); }
 }
 .expr-board {
   margin: 0 0 .85rem;
-  padding: .65rem .75rem;
+  padding: .7rem .85rem;
   border-radius: 12px;
-  border: 1px dashed var(--line);
-  background: rgba(255,253,248,.7);
+  border: 1px solid rgba(62, 207, 142, 0.28);
+  background: rgba(18, 32, 28, 0.92);
   font-family: Consolas, "Sarasa Mono SC", monospace;
-  font-size: .82rem;
-  color: var(--muted);
+  font-size: .92rem;
+  color: var(--ink);
   min-height: 2.4em;
   line-height: 1.45;
   word-break: break-all;
 }
-.expr-board strong { color: var(--ink); font-weight: 600; }
+.expr-board strong { color: var(--accent); font-weight: 700; }
 .tip {
   margin: 0 0 .75rem;
   padding: .55rem .7rem;

@@ -118,6 +118,7 @@ ul.hist { margin:0; padding-left:18px; color:var(--muted); font-size:.9rem; }
     </div>
   </div>
 </main>
+<script src="/js/fgb-ui.js"></script>
 <script>
 (function () {
   var TOKEN_KEY = "fgb_admin_token";
@@ -521,24 +522,25 @@ ul.hist { margin:0; padding-left:18px; color:var(--muted); font-size:.9rem; }
 
   document.getElementById("btn-reset-diff").addEventListener("click", function () {
     var gid = document.getElementById("diff-game").value;
-    if (!confirm("恢复「" + gameTitle(gid) + "」到出厂默认？")) return;
-    var err = document.getElementById("diff-err");
-    err.textContent = "";
-    api("/api/v1/admin/difficulty/reset", {
-      method: "POST",
-      admin: true,
-      body: { gameId: gid },
-    }).then(function () {
-      return api("/api/v1/difficulty");
-    }).then(function (data) {
-      diffData = data;
-      renderDiffForm();
-      err.style.color = "var(--accent)";
-      err.textContent = "已恢复默认";
-      setTimeout(function () { err.textContent = ""; err.style.color = ""; }, 1500);
-    }).catch(function (e) {
-      err.style.color = "";
-      err.textContent = e.message || "恢复失败";
+    FGBUI.askConfirm("恢复「" + gameTitle(gid) + "」到出厂默认？", function () {
+      var err = document.getElementById("diff-err");
+      err.textContent = "";
+      api("/api/v1/admin/difficulty/reset", {
+        method: "POST",
+        admin: true,
+        body: { gameId: gid },
+      }).then(function () {
+        return api("/api/v1/difficulty");
+      }).then(function (data) {
+        diffData = data;
+        renderDiffForm();
+        err.style.color = "var(--accent)";
+        err.textContent = "已恢复默认";
+        setTimeout(function () { err.textContent = ""; err.style.color = ""; }, 1500);
+      }).catch(function (e) {
+        err.style.color = "";
+        err.textContent = e.message || "恢复失败";
+      });
     });
   });
 
@@ -597,12 +599,13 @@ ul.hist { margin:0; padding-left:18px; color:var(--muted); font-size:.9rem; }
   });
 
   document.getElementById("btn-regen").addEventListener("click", function () {
-    if (!confirm("重新生成今日挑战？旧组合会进入历史，成绩不会清空。")) return;
-    var err = document.getElementById("combo-err");
-    err.textContent = "";
-    api("/api/v1/admin/daily/regenerate", { method: "POST", admin: true }).then(function () {
-      loadPanel();
-    }).catch(function (e) { err.textContent = e.message || "重生成失败"; });
+    FGBUI.askConfirm("重新生成今日挑战？旧组合会进入历史，成绩不会清空。", function () {
+      var err = document.getElementById("combo-err");
+      err.textContent = "";
+      api("/api/v1/admin/daily/regenerate", { method: "POST", admin: true }).then(function () {
+        loadPanel();
+      }).catch(function (e) { err.textContent = e.message || "重生成失败"; });
+    });
   });
 
   boot();

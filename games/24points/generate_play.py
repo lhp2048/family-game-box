@@ -650,9 +650,17 @@ h1 em { font-style: italic; color: var(--accent-deep); }
     hard: "困难", master: "大师", god: "大神",
   };
   let tierCuts = [0.12, 0.28, 0.50, 0.72, 0.88, 1.01];
+  const DEFAULT_RANGES = {
+    intro: { minNum: 1, maxNum: 9 },
+    simple: { minNum: 1, maxNum: 10 },
+    normal: { minNum: 1, maxNum: 12 },
+    hard: { minNum: 1, maxNum: 13 },
+    master: { minNum: 1, maxNum: 16 },
+    god: { minNum: 1, maxNum: 24 },
+  };
   let tierRanges = {};
   TIER_ORDER.forEach(function (tid) {
-    tierRanges[tid] = { minNum: 1, maxNum: 24 };
+    tierRanges[tid] = Object.assign({}, DEFAULT_RANGES[tid] || { minNum: 1, maxNum: 24 });
   });
   let rankedBank = BANK.slice();
 
@@ -755,23 +763,17 @@ h1 em { font-style: italic; color: var(--accent-deep); }
     show("setup");
   }
 
-  function poolForTier(tierIds) {
+  function poolForTier(tierIds, minN, maxN) {
     const set = {};
     tierIds.forEach(t => { set[t] = true; });
     return rankedBank.filter(function (p) {
       var tid = p.t || "normal";
       if (!set[tid]) return false;
-      var range = tierRanges[tid] || { minNum: 1, maxNum: 24 };
-      return inNumRange(p, range.minNum, range.maxNum);
+      return inNumRange(p, minN, maxN);
     });
   }
 
-  function resolvePool(tier) {
-    let pool = poolForTier([tier]);
-    if (pool.length) return { pool: pool, tier: tier };
-    // Fallback: same tier without num filter
-    pool = rankedBank.filter(function (p) { return (p.t || "normal") === tier; });
-    if (pool.length) return { pool: pool, tier: tier };
+  function adjacentTier(tier) {
     const idx = TIER_ORDER.indexOf(tier);
     const normalIdx = TIER_ORDER.indexOf("normal");
     const order = [];
@@ -786,11 +788,36 @@ h1 em { font-style: italic; color: var(--accent-deep); }
         return da - db;
       });
     }
-    for (let i = 0; i < order.length; i++) {
-      pool = poolForTier([order[i]]);
+    return order;
+  }
+
+  function resolvePool(tier) {
+    var range = tierRanges[tier] || DEFAULT_RANGES[tier] || { minNum: 1, maxNum: 24 };
+    var minN = range.minNum | 0;
+    var maxN = range.maxNum | 0;
+    var pool = poolForTier([tier], minN, maxN);
+    if (pool.length) return { pool: pool, tier: tier };
+
+    // 同范围换相邻档（硬过滤不丢弃）
+    var order = adjacentTier(tier);
+    var i;
+    for (i = 0; i < order.length; i++) {
+      pool = poolForTier([order[i]], minN, maxN);
       if (pool.length) return { pool: pool, tier: order[i] };
     }
-    return { pool: rankedBank.slice(), tier: tier };
+
+    // 再放宽范围一步：max +2（不超过 24）
+    var relaxedMax = Math.min(24, maxN + 2);
+    if (relaxedMax > maxN) {
+      pool = poolForTier([tier], minN, relaxedMax);
+      if (pool.length) return { pool: pool, tier: tier, relaxed: true };
+      for (i = 0; i < order.length; i++) {
+        pool = poolForTier([order[i]], minN, relaxedMax);
+        if (pool.length) return { pool: pool, tier: order[i], relaxed: true };
+      }
+    }
+
+    return { pool: [], tier: tier, empty: true };
   }
 
   function updateExprBoard() {
@@ -821,6 +848,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   }
 
   function resetRound(puzzle) {
+    if (!puzzle || !puzzle.n) return;
     currentPuzzle = puzzle;
     casualStartedAt = Date.now();
     solved = false;
@@ -1016,15 +1044,28 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   function pickRandomPuzzle() {
     const resolved = resolvePool(selectedTier);
     const pool = resolved.pool;
+    if (!pool || !pool.length) return null;
     return pool[(Math.random() * pool.length) | 0];
+  }
+
+  function notifyEmptyPool() {
+    var msg = "该档在当前数字范围内无题，请在管理端调大 min/max";
+    setHint(msg, "err");
+    if (window.FGBUI && FGBUI.toast) FGBUI.toast(msg, "err");
   }
 
   function startCasual() {
     ensureDifficulty(function () {
+      var puzzle = pickRandomPuzzle();
+      if (!puzzle) {
+        notifyEmptyPool();
+        show("setup");
+        return;
+      }
       mode = "casual";
       show("play");
       updatePlayChrome();
-      resetRound(pickRandomPuzzle());
+      resetRound(puzzle);
     });
   }
 
@@ -1035,6 +1076,11 @@ h1 em { font-style: italic; color: var(--accent-deep); }
       deferred = 0;
       const resolved = resolvePool(selectedTier);
       const pool = resolved.pool;
+      if (!pool.length) {
+        notifyEmptyPool();
+        show("setup");
+        return;
+      }
       const take = Math.min(challengeCount, pool.length);
       remaining = shuffle(pool).slice(0, take).map(p => ({
         n: p.n.slice(),
@@ -1151,7 +1197,12 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   });
 
   document.getElementById("btn-next").addEventListener("click", () => {
-    resetRound(pickRandomPuzzle());
+    var puzzle = pickRandomPuzzle();
+    if (!puzzle) {
+      notifyEmptyPool();
+      return;
+    }
+    resetRound(puzzle);
   });
 
   document.getElementById("btn-hint").addEventListener("click", () => {

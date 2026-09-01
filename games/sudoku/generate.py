@@ -301,6 +301,21 @@ SCRIPT = r"""
     god: { size: 9, givens: 28, label: "大神" }
   };
 
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!DIFF[k]) return;
+      Object.assign(DIFF[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("sudoku").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
+
   function diffLabel(key) {
     var d = DIFF[key];
     return d ? d.label : key;
@@ -725,30 +740,34 @@ SCRIPT = r"""
   }
 
   function startCasualPlay() {
-    mode = "casual";
-    applyDiff();
-    stopTimer();
-    document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
-    document.getElementById("play-progress").textContent = "";
-    document.getElementById("timer-text").textContent = "—";
-    document.getElementById("btn-next").style.display = "";
-    showView(views, "play");
-    loadPuzzle();
+    ensureDifficulty(function () {
+      mode = "casual";
+      applyDiff();
+      stopTimer();
+      document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
+      document.getElementById("play-progress").textContent = "";
+      document.getElementById("timer-text").textContent = "—";
+      document.getElementById("btn-next").style.display = "";
+      showView(views, "play");
+      loadPuzzle();
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    applyDiff();
-    puzzleIndex = 0;
-    puzzlesDone = 0;
-    totalHints = 0;
-    startedAt = Date.now();
-    document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
-    document.getElementById("btn-next").style.display = "none";
-    showView(views, "play");
-    startTimer();
-    document.getElementById("play-progress").textContent = "1 / " + challengeTotal;
-    loadPuzzle();
+    ensureDifficulty(function () {
+      mode = "challenge";
+      applyDiff();
+      puzzleIndex = 0;
+      puzzlesDone = 0;
+      totalHints = 0;
+      startedAt = Date.now();
+      document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
+      document.getElementById("btn-next").style.display = "none";
+      showView(views, "play");
+      startTimer();
+      document.getElementById("play-progress").textContent = "1 / " + challengeTotal;
+      loadPuzzle();
+    });
   }
 
   function finishChallenge() {
@@ -838,14 +857,16 @@ SCRIPT = r"""
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
 
-  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
-    var dq = window.__FGB_DAILY_Q__ || {};
-    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
-    if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
-    startCasualPlay();
-  } else {
-    showView(views, "home");
-  }
+  ensureDifficulty(function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
+      startCasualPlay();
+    } else {
+      showView(views, "home");
+    }
+  });
 })();
 """
 

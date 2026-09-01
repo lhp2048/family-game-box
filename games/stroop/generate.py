@@ -189,6 +189,21 @@ SCRIPT = r"""
     god: { label: "大神", trialLimit: 0, timeLimitMs: 120000, congruentRate: 0.1 }
   };
 
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!DIFF[k]) return;
+      Object.assign(DIFF[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("stroop").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
+
   function diffLabel(key) {
     var d = DIFF[key];
     return d ? d.label : key;
@@ -351,31 +366,35 @@ SCRIPT = r"""
   }
 
   function startCasual() {
-    mode = "casual";
-    applyDiff();
-    stopTimer();
-    resetStats();
-    updateChrome();
-    document.getElementById("timer-text").textContent = "—";
-    showView(views, "play");
-    showTrial();
+    ensureDifficulty(function () {
+      mode = "casual";
+      applyDiff();
+      stopTimer();
+      resetStats();
+      updateChrome();
+      document.getElementById("timer-text").textContent = "—";
+      showView(views, "play");
+      showTrial();
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    applyDiff();
-    resetStats();
-    startedAt = Date.now();
-    if (timeLimitMs > 0) {
-      deadline = startedAt + timeLimitMs;
-    } else {
-      deadline = startedAt + 86400000;
-      document.getElementById("timer-text").textContent = "00:00";
-    }
-    updateChrome();
-    showView(views, "play");
-    startTimer();
-    showTrial();
+    ensureDifficulty(function () {
+      mode = "challenge";
+      applyDiff();
+      resetStats();
+      startedAt = Date.now();
+      if (timeLimitMs > 0) {
+        deadline = startedAt + timeLimitMs;
+      } else {
+        deadline = startedAt + 86400000;
+        document.getElementById("timer-text").textContent = "00:00";
+      }
+      updateChrome();
+      showView(views, "play");
+      startTimer();
+      showTrial();
+    });
   }
 
   function finishChallenge() {
@@ -448,14 +467,16 @@ SCRIPT = r"""
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
 
-  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
-    var dq = window.__FGB_DAILY_Q__ || {};
-    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
-    if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
-    startChallenge();
-  } else {
-    showView(views, "home");
-  }
+  ensureDifficulty(function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
+      startChallenge();
+    } else {
+      showView(views, "home");
+    }
+  });
 })();
 """
 

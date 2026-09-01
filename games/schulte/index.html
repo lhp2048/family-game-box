@@ -353,6 +353,21 @@ h1 {
     god: "网格大小：6×6（数字 1–36）。\n点击顺序：倒序，从 36 点到 1。\n视觉：单色格子，无额外干扰。",
   };
 
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!TIERS[k]) return;
+      Object.assign(TIERS[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("schulte").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
+
   const views = {
     home: document.getElementById("view-home"),
     setup: document.getElementById("view-setup"),
@@ -574,23 +589,27 @@ h1 {
   }
 
   function startCasual() {
-    mode = "casual";
-    show("play");
-    startTimer(false);
-    startRound();
+    ensureDifficulty(function () {
+      mode = "casual";
+      show("play");
+      startTimer(false);
+      startRound();
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    done = 0;
-    deferred = 0;
-    roundTimes = [];
-    remaining = [];
-    for (let i = 0; i < challengeCount; i++) remaining.push(i);
-    challengeTotal = remaining.length;
-    show("play");
-    startTimer(false);
-    startRound();
+    ensureDifficulty(function () {
+      mode = "challenge";
+      done = 0;
+      deferred = 0;
+      roundTimes = [];
+      remaining = [];
+      for (let i = 0; i < challengeCount; i++) remaining.push(i);
+      challengeTotal = remaining.length;
+      show("play");
+      startTimer(false);
+      startRound();
+    });
   }
 
   function deferChallenge() {
@@ -693,22 +712,25 @@ h1 {
   });
 
   updateDiffDesc();
-  if (isDaily) {
-    selectedTier = dailyQ.tier && TIERS[dailyQ.tier] ? dailyQ.tier : "normal";
-    document.documentElement.classList.add("fgb-daily-mode");
-    var lobbyLink = document.querySelector('#view-home a.linkish[href="/"]');
-    if (lobbyLink) {
-      lobbyLink.textContent = "退出本关";
-      lobbyLink.href = "#";
-      lobbyLink.addEventListener("click", function (e) {
-        e.preventDefault();
-        if (window.FGBDaily) FGBDaily.notifyAbort();
-      });
+  ensureDifficulty(function () {
+    updateDiffDesc();
+    if (isDaily) {
+      selectedTier = dailyQ.tier && TIERS[dailyQ.tier] ? dailyQ.tier : "normal";
+      document.documentElement.classList.add("fgb-daily-mode");
+      var lobbyLink = document.querySelector('#view-home a.linkish[href="/"]');
+      if (lobbyLink) {
+        lobbyLink.textContent = "退出本关";
+        lobbyLink.href = "#";
+        lobbyLink.addEventListener("click", function (e) {
+          e.preventDefault();
+          if (window.FGBDaily) FGBDaily.notifyAbort();
+        });
+      }
+      startCasual();
+    } else {
+      show("home");
     }
-    startCasual();
-  } else {
-    show("home");
-  }
+  });
 })();
 </script>
 </body>

@@ -190,6 +190,21 @@ SCRIPT_MID = r""";
     god: { n: 10, diffs: 10, label: "大神" }
   };
 
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!DIFF[k]) return;
+      Object.assign(DIFF[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("spot-diff").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
+
   function diffLabel(key) {
     var d = DIFF[key];
     return d ? d.label : key;
@@ -311,25 +326,29 @@ SCRIPT_MID = r""";
   }
 
   function startCasual() {
-    mode = "casual";
-    stopTimer();
-    document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
-    document.getElementById("timer-text").textContent = "—";
-    showView(views, "play");
-    loadRound();
+    ensureDifficulty(function () {
+      mode = "casual";
+      stopTimer();
+      document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
+      document.getElementById("timer-text").textContent = "—";
+      showView(views, "play");
+      loadRound();
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    roundIndex = 0;
-    roundsDone = 0;
-    totalWrong = 0;
-    totalHints = 0;
-    startedAt = Date.now();
-    document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
-    showView(views, "play");
-    startTimer();
-    loadRound();
+    ensureDifficulty(function () {
+      mode = "challenge";
+      roundIndex = 0;
+      roundsDone = 0;
+      totalWrong = 0;
+      totalHints = 0;
+      startedAt = Date.now();
+      document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
+      showView(views, "play");
+      startTimer();
+      loadRound();
+    });
   }
 
   function finishChallenge() {
@@ -395,14 +414,16 @@ SCRIPT_MID = r""";
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
 
-  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
-    var dq = window.__FGB_DAILY_Q__ || {};
-    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
-    if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
-    startCasual();
-  } else {
-    showView(views, "home");
-  }
+  ensureDifficulty(function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier && DIFF[dq.tier]) diffKey = dq.tier;
+      startCasual();
+    } else {
+      showView(views, "home");
+    }
+  });
 })();
 """
 

@@ -216,6 +216,21 @@ SCRIPT = r"""
     god: { size: 31, label: "大神" }
   };
 
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!DIFF[k]) return;
+      Object.assign(DIFF[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("maze").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
+
   function diffLabel(key) {
     var d = DIFF[key];
     return d ? d.label : key;
@@ -451,29 +466,33 @@ SCRIPT = r"""
   }
 
   function startCasual() {
-    mode = "casual";
-    applyDiff();
-    stopTimer();
-    document.getElementById("play-label").textContent = modeLabel();
-    document.getElementById("play-progress").textContent = "";
-    document.getElementById("timer-text").textContent = "—";
-    showView(views, "play");
-    loadLevel(mazeSize);
+    ensureDifficulty(function () {
+      mode = "casual";
+      applyDiff();
+      stopTimer();
+      document.getElementById("play-label").textContent = modeLabel();
+      document.getElementById("play-progress").textContent = "";
+      document.getElementById("timer-text").textContent = "—";
+      showView(views, "play");
+      loadLevel(mazeSize);
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    applyDiff();
-    levelIndex = 0;
-    levelsDone = 0;
-    totalSteps = 0;
-    effSum = 0;
-    startedAt = Date.now();
-    document.getElementById("play-label").textContent = modeLabel();
-    showView(views, "play");
-    startTimer();
-    document.getElementById("play-progress").textContent = "1 / " + challengeTotal;
-    loadLevel(mazeSize);
+    ensureDifficulty(function () {
+      mode = "challenge";
+      applyDiff();
+      levelIndex = 0;
+      levelsDone = 0;
+      totalSteps = 0;
+      effSum = 0;
+      startedAt = Date.now();
+      document.getElementById("play-label").textContent = modeLabel();
+      showView(views, "play");
+      startTimer();
+      document.getElementById("play-progress").textContent = "1 / " + challengeTotal;
+      loadLevel(mazeSize);
+    });
   }
 
   function finishChallenge() {
@@ -548,14 +567,16 @@ SCRIPT = r"""
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
 
-  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
-    var dq = window.__FGB_DAILY_Q__ || {};
-    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
-    if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
-    startCasual();
-  } else {
-    showView(views, "home");
-  }
+  ensureDifficulty(function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
+      startCasual();
+    } else {
+      showView(views, "home");
+    }
+  });
 })();
 """
 

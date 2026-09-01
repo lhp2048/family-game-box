@@ -195,6 +195,21 @@ SCRIPT = r"""
     god: { label: "大神", trials: 60 }
   };
 
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!DIFF[k]) return;
+      Object.assign(DIFF[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("simon").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
+
   function diffLabel(key) {
     var d = DIFF[key];
     return d ? d.label : key;
@@ -323,31 +338,35 @@ SCRIPT = r"""
   }
 
   function startCasual() {
-    mode = "casual";
-    applyDiff();
-    reverse = false;
-    useTts = true;
-    trialIndex = 0;
-    correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
-    document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
-    document.getElementById("btn-next").style.display = "";
-    updateRuleBar();
-    showView(views, "play");
-    nextTrial();
+    ensureDifficulty(function () {
+      mode = "casual";
+      applyDiff();
+      reverse = false;
+      useTts = true;
+      trialIndex = 0;
+      correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
+      document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
+      document.getElementById("btn-next").style.display = "";
+      updateRuleBar();
+      showView(views, "play");
+      nextTrial();
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    applyDiff();
-    reverse = document.getElementById("chk-reverse").checked;
-    useTts = document.getElementById("chk-tts").checked;
-    trialIndex = 0;
-    correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
-    document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
-    document.getElementById("btn-next").style.display = "none";
-    updateRuleBar();
-    showView(views, "play");
-    nextTrial();
+    ensureDifficulty(function () {
+      mode = "challenge";
+      applyDiff();
+      reverse = document.getElementById("chk-reverse").checked;
+      useTts = document.getElementById("chk-tts").checked;
+      trialIndex = 0;
+      correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
+      document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
+      document.getElementById("btn-next").style.display = "none";
+      updateRuleBar();
+      showView(views, "play");
+      nextTrial();
+    });
   }
 
   function finishChallenge() {
@@ -409,14 +428,16 @@ SCRIPT = r"""
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { showView(views, "home"); });
 
-  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
-    var dq = window.__FGB_DAILY_Q__ || {};
-    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
-    if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
-    startChallenge();
-  } else {
-    showView(views, "home");
-  }
+  ensureDifficulty(function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
+      startChallenge();
+    } else {
+      showView(views, "home");
+    }
+  });
 })();
 """
 

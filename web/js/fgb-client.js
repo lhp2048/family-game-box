@@ -4,6 +4,26 @@
   var STORAGE_ID = "fgb_terminal_id";
   var STORAGE_NICK = "fgb_nickname";
 
+  function basePath() {
+    var b = global.__FGB_BASE__;
+    if (typeof b === "string" && b) {
+      return b.replace(/\/$/, "");
+    }
+    var path = (global.location && location.pathname) || "";
+    if (path === "/game-box" || path.indexOf("/game-box/") === 0) {
+      return "/game-box";
+    }
+    return "";
+  }
+
+  function withBase(path) {
+    if (!path) return basePath() || "/";
+    if (path.charAt(0) !== "/") path = "/" + path;
+    var base = basePath();
+    if (base && (path === base || path.indexOf(base + "/") === 0)) return path;
+    return base + path;
+  }
+
   function uuid() {
     if (global.crypto && crypto.randomUUID) return crypto.randomUUID();
     return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
@@ -31,7 +51,7 @@
 
   function api(path, options) {
     options = options || {};
-    return fetch(path, {
+    return fetch(withBase(path), {
       method: options.method || "GET",
       headers: Object.assign({}, headers(), options.headers || {}),
       body: options.body ? JSON.stringify(options.body) : undefined,
@@ -129,6 +149,8 @@
   }
 
   global.FGB = {
+    basePath: basePath,
+    url: withBase,
     getTerminalId: getTerminalId,
     me: me,
     register: register,

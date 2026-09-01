@@ -589,7 +589,12 @@ DAILY_BOOT_JS = r"""
       window.parent.postMessage({ type: "fgb-daily-abort" }, "*");
     }
   }
-  document.querySelectorAll('a.linkish[href="/"], a[href="/"]').forEach(function (a) {
+  var base = (window.__FGB_BASE__ || "").replace(/\/$/, "");
+  var homeSel = 'a.linkish[href="/"], a[href="/"]';
+  if (base) {
+    homeSel += ', a.linkish[href="' + base + '/"], a[href="' + base + '/"], a.linkish[href="' + base + '"], a[href="' + base + '"]';
+  }
+  document.querySelectorAll(homeSel).forEach(function (a) {
     a.textContent = "退出本关";
     a.href = "#";
     a.addEventListener("click", abortDaily);

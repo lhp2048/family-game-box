@@ -122,7 +122,8 @@
 
   function api(path, opts) {
     opts = opts || {};
-    return fetch(path, {
+    var url = (window.FGB && FGB.url) ? FGB.url(path) : path;
+    return fetch(url, {
       method: opts.method || "GET",
       headers: Object.assign({}, headers(), opts.headers || {}),
       body: opts.body ? JSON.stringify(opts.body) : undefined,
@@ -196,7 +197,8 @@
       _: String(Date.now()),
     });
     var join = base.indexOf("?") >= 0 ? "&" : "?";
-    return base + join + q.toString();
+    var path = base + join + q.toString();
+    return (window.FGB && FGB.url) ? FGB.url(path) : path;
   }
 
   function enterStage(idx) {

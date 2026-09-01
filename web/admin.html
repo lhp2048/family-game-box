@@ -252,7 +252,8 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
     opts = opts || {};
     var headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
     if (opts.admin) headers["X-Admin-Token"] = token();
-    return fetch(path, {
+    var url = (window.FGB && FGB.url) ? FGB.url(path) : path;
+    return fetch(url, {
       method: opts.method || "GET",
       headers: headers,
       body: opts.body ? JSON.stringify(opts.body) : undefined,

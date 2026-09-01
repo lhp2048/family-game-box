@@ -15,14 +15,15 @@ if not exist "%PYTHON%" (
 
 echo Family Game Box
 echo Root: %CD%
-echo URL:  http://127.0.0.1:18029/
+echo URL:  http://127.0.0.1:18029/game-box/
+echo Health: http://127.0.0.1:18029/api/v1/health
 echo Press Ctrl+C to stop
 echo.
 
 if exist "%CHROME%" (
-  start "" "%CHROME%" "http://127.0.0.1:18029/"
+  start "" "%CHROME%" "http://127.0.0.1:18029/game-box/"
 ) else (
-  start "" "http://127.0.0.1:18029/"
+  start "" "http://127.0.0.1:18029/game-box/"
 )
 
 "%PYTHON%" -m uvicorn app.main:app --host 0.0.0.0 --port 18029

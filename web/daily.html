@@ -27,13 +27,22 @@
     </div>
   </header>
 
-  <section id="prep" class="fgb-panel fgb-panel-pad">
-    <h1 class="fgb-page-title" style="font-size:1.85rem">每日挑战</h1>
-    <p class="fgb-lead" style="margin-bottom:1rem">按顺序通关今日组合，分关计时 + 总计时。中途退出也会记成绩。</p>
-    <div class="fgb-err" id="prep-err"></div>
-    <ol class="stage-list" id="stage-list"></ol>
-    <div class="actions-row">
-      <button type="button" class="fgb-btn" id="btn-start">开始挑战</button>
+  <section id="prep">
+    <div class="fgb-arena-split">
+      <div class="fgb-panel fgb-panel-pad">
+        <h1 class="fgb-page-title" style="font-size:1.85rem">每日挑战</h1>
+        <p class="fgb-lead" style="margin-bottom:1rem">按顺序通关今日组合，分关计时 + 总计时。中途退出也会记成绩。</p>
+        <div class="fgb-err" id="prep-err"></div>
+        <ol class="stage-list" id="stage-list"></ol>
+        <div class="actions-row">
+          <button type="button" class="fgb-cta-daily" id="btn-start">开始挑战</button>
+        </div>
+      </div>
+      <div class="fgb-panel fgb-panel-pad">
+        <h3 class="fgb-page-kicker" style="margin:0 0 .5rem">今日榜前三</h3>
+        <ol class="fgb-podium-list" id="prep-podium"></ol>
+        <a class="fgb-nav-link" href="/daily/leaderboard">完整挑战榜 →</a>
+      </div>
     </div>
   </section>
 
@@ -56,10 +65,12 @@
 
   <section id="result" class="fgb-panel fgb-panel-pad hidden">
     <h1 class="fgb-page-title" style="font-size:1.85rem" id="result-title">挑战结束</h1>
+    <p id="result-time" style="font-family:var(--display);font-size:clamp(2rem,8vw,3rem);font-weight:700;margin:.35rem 0;color:var(--accent)">—</p>
     <p style="color:var(--muted)" id="result-summary"></p>
+    <p id="result-rank" style="color:var(--muted);margin:.35rem 0 0"></p>
     <ul class="stage-list" id="result-stages"></ul>
     <div class="actions-row">
-      <button type="button" class="fgb-btn" id="btn-again">再来一次</button>
+      <button type="button" class="fgb-cta-daily" id="btn-again">再来一次</button>
       <a class="fgb-btn-ghost" href="/daily/leaderboard">查看挑战榜</a>
       <a class="fgb-btn-ghost" href="/">回大厅</a>
     </div>
@@ -134,8 +145,27 @@
     timerId = null;
   }
 
+  function loadPrepPodium() {
+    var ol = document.getElementById("prep-podium");
+    if (!ol || !FGB.loadLobbySummary) return;
+    FGB.loadLobbySummary().then(function (s) {
+      ol.innerHTML = "";
+      var podium = (s && s.podium) || [];
+      if (!podium.length) {
+        ol.innerHTML = "<li style=\"color:var(--muted)\">还没有成绩</li>";
+        return;
+      }
+      podium.forEach(function (p) {
+        var li = document.createElement("li");
+        li.innerHTML = "<span>" + p.rank + ". " + (p.nickname || "—") + "</span><span>" + (p.display || "") + "</span>";
+        ol.appendChild(li);
+      });
+    });
+  }
+
   function loadPrep() {
     show("prep");
+    loadPrepPodium();
     api("/api/v1/daily/today").then(function (data) {
       combo = data;
       var ol = document.getElementById("stage-list");
@@ -188,8 +218,16 @@
     show("result");
     var finished = finalRun.status === "finished";
     document.getElementById("result-title").textContent = finished ? "全部通关！" : "挑战已退出";
+    document.getElementById("result-time").textContent = fmt(finalRun.totalTimeMs);
     document.getElementById("result-summary").textContent =
       "完成 " + finalRun.stagesDone + " 关 · 总用时 " + fmt(finalRun.totalTimeMs);
+    document.getElementById("result-rank").textContent = "";
+    if (FGB.loadLobbySummary) {
+      FGB.loadLobbySummary().then(function (s) {
+        var rank = s && s.me && s.me.dailyRank;
+        if (rank) document.getElementById("result-rank").textContent = "当前挑战榜第 " + rank + " 名";
+      });
+    }
     var ul = document.getElementById("result-stages");
     ul.innerHTML = "";
     (finalRun.stageResults || []).forEach(function (s, i) {

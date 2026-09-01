@@ -128,7 +128,6 @@ BODY = r"""
       <div class="actions">
         <button type="button" class="danger" id="btn-exit">退出</button>
         <button type="button" id="btn-next">下一题</button>
-        <button type="button" class="warn" id="btn-skip">跳过</button>
       </div>
     </div>
   </section>
@@ -361,7 +360,6 @@ SCRIPT = r"""
     var name = diffLabel(diffKey);
     labelEl.textContent = (mode === "casual" ? "休闲" : "挑战") + " · " + name;
     document.getElementById("btn-next").style.display = mode === "casual" ? "" : "none";
-    document.getElementById("btn-skip").style.display = mode === "challenge" ? "" : "none";
     progressEl.textContent = mode === "challenge" && trialLimit > 0 ? ("0 / " + trialLimit) : "";
   }
 
@@ -457,13 +455,6 @@ SCRIPT = r"""
     doExit();
   });
   document.getElementById("btn-next").addEventListener("click", showTrial);
-  document.getElementById("btn-skip").addEventListener("click", function () {
-    total++;
-    streak = 0;
-    document.getElementById("streak").textContent = "0";
-    if (trialLimit > 0 && total >= trialLimit) finishChallenge();
-    else showTrial();
-  });
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
 

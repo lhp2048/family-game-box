@@ -567,9 +567,6 @@ h1 em { font-style: italic; color: var(--accent); }
         <button type="button" class="ghost" id="btn-hint">看参考解</button>
         <button type="button" class="ghost" id="btn-next">下一题</button>
       </div>
-      <div class="extra hidden" id="challenge-extra">
-        <button type="button" class="ghost" id="btn-skip" style="grid-column:1/-1">稍后再做</button>
-      </div>
       <div class="ref hidden" id="ref-box"></div>
     </div>
   </section>
@@ -582,7 +579,6 @@ h1 em { font-style: italic; color: var(--accent); }
       <ul class="stats-list">
         <li><span>题量</span><strong id="st-total">0</strong></li>
         <li><span>完成</span><strong id="st-done">0</strong></li>
-        <li><span>延后次数</span><strong id="st-skip">0</strong></li>
         <li><span>用时</span><strong id="st-time">00:00</strong></li>
         <li><span>完成率</span><strong id="st-rate">0%</strong></li>
       </ul>
@@ -731,7 +727,6 @@ h1 em { font-style: italic; color: var(--accent); }
   let challengeTotal = 0;
   let remaining = [];
   let done = 0;
-  let deferred = 0;
   let startedAt = 0;
   let casualStartedAt = 0;
   let timerId = null;
@@ -1023,20 +1018,6 @@ h1 em { font-style: italic; color: var(--accent); }
     resetRound(remaining[0]);
   }
 
-  function deferChallenge() {
-    if (mode !== "challenge" || !remaining.length) return;
-    if (remaining.length <= 1) {
-      setHint("只剩最后一题，请完成本题", "err");
-      return;
-    }
-    const cur = remaining.shift();
-    remaining.push(cur);
-    deferred += 1;
-    updatePlayChrome();
-    resetRound(remaining[0]);
-    setHint("已放到后面，稍后再做 · 点选一个数字");
-  }
-
   function startTimer() {
     stopTimer();
     startedAt = Date.now();
@@ -1084,7 +1065,6 @@ h1 em { font-style: italic; color: var(--accent); }
     ensureDifficulty(function () {
       mode = "challenge";
       done = 0;
-      deferred = 0;
       const resolved = resolvePool(selectedTier);
       const pool = resolved.pool;
       if (!pool.length) {
@@ -1116,7 +1096,6 @@ h1 em { font-style: italic; color: var(--accent); }
     const elapsed = Date.now() - startedAt;
     document.getElementById("st-total").textContent = String(challengeTotal);
     document.getElementById("st-done").textContent = String(done);
-    document.getElementById("st-skip").textContent = String(deferred);
     document.getElementById("st-time").textContent = fmtTime(elapsed);
     const rate = challengeTotal ? Math.round((done / challengeTotal) * 100) : 0;
     document.getElementById("st-rate").textContent = rate + "%";
@@ -1127,7 +1106,7 @@ h1 em { font-style: italic; color: var(--accent); }
     if (typeof fgbSubmitScore === "function") fgbSubmitScore({
       gameId: "24points", mode: "challenge", tier: selectedTier,
       tierLabel: TIER_LABELS[selectedTier] || selectedTier,
-      metrics: { done: done, total: challengeTotal, timeMs: elapsed, skip: deferred }
+      metrics: { done: done, total: challengeTotal, timeMs: elapsed, skip: 0 }
     });
   }
 
@@ -1141,12 +1120,10 @@ h1 em { font-style: italic; color: var(--accent); }
       prog.textContent = cur + " / " + challengeTotal;
       document.getElementById("play-timer").classList.remove("hidden");
       document.getElementById("casual-extra").classList.add("hidden");
-      document.getElementById("challenge-extra").classList.remove("hidden");
     } else {
       prog.textContent = "";
       document.getElementById("play-timer").classList.add("hidden");
       document.getElementById("casual-extra").classList.remove("hidden");
-      document.getElementById("challenge-extra").classList.add("hidden");
     }
   }
 
@@ -1220,10 +1197,6 @@ h1 em { font-style: italic; color: var(--accent); }
     if (!currentPuzzle) return;
     refBox.textContent = "参考：" + (currentPuzzle.h || "（无）");
     refBox.classList.remove("hidden");
-  });
-
-  document.getElementById("btn-skip").addEventListener("click", () => {
-    deferChallenge();
   });
 
   document.getElementById("btn-again").addEventListener("click", () => openSetup("challenge"));

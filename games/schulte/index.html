@@ -239,7 +239,7 @@ h1 {
       </button>
       <button type="button" class="mode-btn" id="btn-challenge">
         <strong>挑战模式</strong>
-        <span>多局累计计时，稍后再做仍须完成</span>
+        <span>多局累计计时，须依次完成</span>
       </button>
     </div>
     <a class="linkish" href="/">← 返回大厅</a>
@@ -289,7 +289,6 @@ h1 {
         <button type="button" class="ghost wide" id="btn-exit-casual">退出</button>
       </div>
       <div class="actions hidden" id="challenge-actions">
-        <button type="button" class="ghost wide" id="btn-defer">稍后再做</button>
         <button type="button" class="ghost wide" id="btn-exit-challenge">退出并结算</button>
       </div>
     </div>
@@ -302,7 +301,6 @@ h1 {
       <ul class="stats-list">
         <li><span>局数</span><strong id="st-total">0</strong></li>
         <li><span>完成</span><strong id="st-done">0</strong></li>
-        <li><span>延后次数</span><strong id="st-defer">0</strong></li>
         <li><span>总用时</span><strong id="st-time">00:00</strong></li>
         <li><span>平均每局</span><strong id="st-avg">00:00</strong></li>
       </ul>
@@ -408,7 +406,6 @@ h1 {
   let challengeTotal = 0;
   let remaining = [];
   let done = 0;
-  let deferred = 0;
   let roundTimes = [];
   let startedAt = 0;
   let roundStartedAt = 0;
@@ -604,7 +601,6 @@ h1 {
     ensureDifficulty(function () {
       mode = "challenge";
       done = 0;
-      deferred = 0;
       roundTimes = [];
       remaining = [];
       for (let i = 0; i < challengeCount; i++) remaining.push(i);
@@ -615,25 +611,11 @@ h1 {
     });
   }
 
-  function deferChallenge() {
-    if (mode !== "challenge" || !remaining.length) return;
-    if (remaining.length <= 1) {
-      setHint("只剩最后一局，请完成本局", "err");
-      return;
-    }
-    const cur = remaining.shift();
-    remaining.push(cur);
-    deferred += 1;
-    setHint("已放到后面，稍后再做");
-    startRound();
-  }
-
   function finishChallenge() {
     stopTimer();
     const elapsed = Date.now() - startedAt;
     document.getElementById("st-total").textContent = String(challengeTotal);
     document.getElementById("st-done").textContent = String(done);
-    document.getElementById("st-defer").textContent = String(deferred);
     document.getElementById("st-time").textContent = fmtTime(elapsed);
     const avg = roundTimes.length
       ? Math.round(roundTimes.reduce(function (a, b) { return a + b; }, 0) / roundTimes.length)
@@ -646,7 +628,7 @@ h1 {
     if (typeof fgbSubmitScore === "function") fgbSubmitScore({
       gameId: "schulte", mode: "challenge", tier: selectedTier,
       tierLabel: (TIERS[selectedTier] || {}).label || selectedTier,
-      metrics: { done: done, total: challengeTotal, timeMs: elapsed, skip: deferred }
+      metrics: { done: done, total: challengeTotal, timeMs: elapsed, skip: 0 }
     });
   }
 
@@ -696,7 +678,6 @@ h1 {
     show("home");
   });
 
-  document.getElementById("btn-defer").addEventListener("click", deferChallenge);
   document.getElementById("btn-exit-challenge").addEventListener("click", function () {
     if (isDaily && window.FGBDaily) { askConfirm(FGB_MSG.exitConfirm, function () { FGBDaily.notifyAbort(); }); return; }
     askConfirm(FGB_MSG.exitConfirm, finishChallenge);

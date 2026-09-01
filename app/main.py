@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 from app import daily_admin as daily_admin_mod
 from app import daily_challenges as daily_challenges_mod
 from app import daily_runs as daily_runs_mod
+from app import difficulty as difficulty_mod
 from app.games_catalog import list_games
 from app.rank_config import rank_meta
 from app.scores import get_global_leaderboard, get_leaderboard, get_personal_bests, get_recent_leaderboard, submit_score
@@ -61,6 +62,14 @@ class DailyRunPatchBody(BaseModel):
     timeMs: int = 0
     totalTimeMs: int = 0
     stage: Optional[Dict[str, Any]] = None
+
+
+class DifficultyPutBody(BaseModel):
+    games: Dict[str, Any] = Field(default_factory=dict)
+
+
+class DifficultyResetBody(BaseModel):
+    gameId: str = ""
 
 
 def _require_terminal_id(terminal_id: Optional[str]) -> str:
@@ -267,6 +276,53 @@ async def admin_history(x_admin_token: Optional[str] = Header(default=None, alia
         return {"history": daily_challenges_mod.get_history()}
     except PermissionError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/difficulty")
+async def difficulty_get(gameId: Optional[str] = None):
+    try:
+        return difficulty_mod.get_difficulty(gameId)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/v1/difficulty/defaults")
+async def difficulty_defaults(gameId: Optional[str] = None):
+    data = difficulty_mod.default_difficulty()
+    if gameId:
+        if gameId not in data["games"]:
+            raise HTTPException(status_code=400, detail="unknown gameId")
+        return {"version": 1, "updatedAt": "", "games": {gameId: data["games"][gameId]}}
+    return data
+
+
+@app.put("/api/v1/admin/difficulty")
+async def difficulty_put(
+    body: DifficultyPutBody,
+    x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token"),
+):
+    try:
+        daily_admin_mod.require_admin(x_admin_token)
+        return difficulty_mod.put_difficulty(body.games)
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.post("/api/v1/admin/difficulty/reset")
+async def difficulty_reset(
+    body: DifficultyResetBody,
+    x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token"),
+):
+    try:
+        daily_admin_mod.require_admin(x_admin_token)
+        gid = (body.gameId or "").strip() or None
+        return difficulty_mod.reset_difficulty(gid)
+    except PermissionError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.get("/")

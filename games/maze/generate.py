@@ -196,6 +196,7 @@ SCRIPT = r"""
   var steps = 0;
   var bumps = 0;
   var trail = {};
+  var trailPath = [];
 
   function stopTimer() {
     if (timerId) { clearInterval(timerId); timerId = null; }
@@ -357,6 +358,22 @@ SCRIPT = r"""
 
   var levelStart = 0;
 
+  function syncTrailFromPath() {
+    trail = {};
+    for (var i = 0; i < trailPath.length; i++) {
+      trail[trailPath[i][0] + "," + trailPath[i][1]] = true;
+    }
+  }
+
+  function recountSteps() {
+    steps = 0;
+    for (var i = 1; i < trailPath.length; i++) {
+      steps += Math.abs(trailPath[i][0] - trailPath[i - 1][0]) +
+        Math.abs(trailPath[i][1] - trailPath[i - 1][1]);
+    }
+    document.getElementById("steps").textContent = String(steps);
+  }
+
   function loadLevel(size) {
     levelStart = Date.now();
     maze = generateMaze(size);
@@ -364,8 +381,8 @@ SCRIPT = r"""
     player = maze.start.slice();
     steps = 0;
     bumps = 0;
-    trail = {};
-    trail[player[0] + "," + player[1]] = true;
+    trailPath = [player.slice()];
+    syncTrailFromPath();
     document.getElementById("steps").textContent = "0";
     document.getElementById("bumps").textContent = "0";
     document.getElementById("shortest").textContent = String(maze.shortest);
@@ -430,14 +447,32 @@ SCRIPT = r"""
       document.getElementById("play-hint").textContent = "只能沿同一方向、无墙阻挡移动";
       return;
     }
-    for (var i = 0; i < path.length; i++) {
-      trail[path[i][0] + "," + path[i][1]] = true;
+
+    // 返回已走过的格子：截断轨迹，前方路径颜色恢复
+    var backIdx = -1;
+    for (var i = 0; i < trailPath.length; i++) {
+      if (trailPath[i][0] === r && trailPath[i][1] === c) backIdx = i;
+    }
+    if (backIdx >= 0) {
+      trailPath = trailPath.slice(0, backIdx + 1);
+      player = [r, c];
+      syncTrailFromPath();
+      recountSteps();
+      document.getElementById("play-hint").className = "hint";
+      document.getElementById("play-hint").textContent = "已返回，前方路径已清除";
+      renderMaze();
+      return;
+    }
+
+    for (var j = 0; j < path.length; j++) {
+      trailPath.push([path[j][0], path[j][1]]);
     }
     player = [r, c];
+    syncTrailFromPath();
     steps += path.length;
     document.getElementById("steps").textContent = String(steps);
     document.getElementById("play-hint").className = "hint";
-    document.getElementById("play-hint").textContent = "点击同行或同列、路径畅通的格子移动";
+    document.getElementById("play-hint").textContent = "点击同行或同列、路径畅通的格子移动；点回轨迹可返回";
     renderMaze();
     if (r === maze.end[0] && c === maze.end[1]) onComplete();
   }
@@ -556,9 +591,13 @@ SCRIPT = r"""
   document.getElementById("btn-restart").addEventListener("click", function () {
     player = maze.start.slice();
     steps = 0;
-    trail = {};
-    trail[player[0] + "," + player[1]] = true;
+    bumps = 0;
+    trailPath = [player.slice()];
+    syncTrailFromPath();
     document.getElementById("steps").textContent = "0";
+    document.getElementById("bumps").textContent = "0";
+    document.getElementById("play-hint").className = "hint";
+    document.getElementById("play-hint").textContent = "点击同行或同列、路径畅通的格子移动；点回轨迹可返回";
     renderMaze();
   });
   document.getElementById("btn-new").addEventListener("click", function () {

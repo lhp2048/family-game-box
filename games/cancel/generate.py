@@ -50,7 +50,14 @@ EXTRA_CSS = r"""
   color: var(--accent-deep);
 }
 .grid-wrap { overflow-x: auto; }
-.grid-cells.dense button { min-height: 32px; font-size: clamp(.72rem, 2.8vw, .95rem); }
+.grid-cells.dense button {
+  min-height: 40px;
+  font-size: clamp(1rem, 3.6vw, 1.35rem);
+  font-weight: 700;
+}
+.target-bar strong {
+  color: var(--accent);
+}
 """
 
 BODY = r"""

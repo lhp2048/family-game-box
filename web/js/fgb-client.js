@@ -124,6 +124,10 @@
     }).catch(function () { return null; });
   }
 
+  function loadLobbySummary() {
+    return api("/api/v1/lobby/summary").catch(function () { return null; });
+  }
+
   global.FGB = {
     getTerminalId: getTerminalId,
     me: me,
@@ -137,6 +141,7 @@
     getRankMeta: getRankMeta,
     fgbSubmitScore: fgbSubmitScore,
     loadDifficulty: loadDifficulty,
+    loadLobbySummary: loadLobbySummary,
   };
   global.fgbSubmitScore = fgbSubmitScore;
 })(window);

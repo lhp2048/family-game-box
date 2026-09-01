@@ -20,7 +20,7 @@
   <header class="fgb-topbar">
     <div>
       <h1 class="fgb-brand">家庭<em>游戏盒</em></h1>
-      <span class="fgb-page-kicker">大厅</span>
+      <span class="fgb-page-kicker">竞技厅</span>
     </div>
     <div class="fgb-nav">
       <div class="fgb-chip" id="user-chip" hidden>你好，<strong id="user-name">—</strong>
@@ -31,59 +31,64 @@
     </div>
   </header>
 
-  <h2 class="fgb-page-title">选一款，开玩</h2>
-  <p class="fgb-lead">家里的小游戏站。同一 Wi‑Fi 下用浏览器打开，比比谁更强。</p>
+  <section class="fgb-stat-strip" id="stat-strip" aria-label="我的战绩">
+    <div class="cell">
+      <div class="label">今日挑战名次</div>
+      <div class="value" id="stat-rank">—</div>
+    </div>
+    <div class="cell">
+      <div class="label">与第 1 名</div>
+      <div class="value" id="stat-gap">—</div>
+    </div>
+    <div class="cell">
+      <div class="label">最近一局</div>
+      <div class="value" id="stat-recent">—</div>
+    </div>
+  </section>
 
-  <div class="fgb-grid" id="game-grid">
-    <a class="fgb-card fgb-card-daily" data-game-id="daily" href="/daily">
+  <section class="fgb-arena-split">
+    <a class="fgb-card fgb-card-daily" href="/daily" id="daily-card">
+      <div class="tag">今日对决</div>
       <h2>每日挑战</h2>
-      <p>串联多款游戏的当日闯关，题面固定，比总用时。</p>
-      <div class="meta">今日组合 · 点此开始</div>
+      <p id="daily-progress">加载中…</p>
+      <span class="fgb-cta-daily" id="daily-cta">开始挑战</span>
     </a>
-    <a class="fgb-card" data-game-id="24points" href="games/24points/play.html">
-      <h2>24 点挑战</h2>
-      <p>休闲或计时挑战，练心算与整数四则。</p>
-      <div class="meta">可玩</div>
+    <div class="fgb-panel fgb-panel-pad">
+      <h3 class="fgb-page-kicker" style="margin:0 0 .5rem">今日挑战榜</h3>
+      <ol class="fgb-podium-list" id="podium-list"></ol>
+      <a class="fgb-nav-link" href="/daily/leaderboard">完整榜 →</a>
+    </div>
+  </section>
+
+  <h2 class="fgb-page-title" style="font-size:1.65rem;margin-bottom:.35rem">自由训练</h2>
+  <p class="fgb-lead" style="margin-bottom:.85rem">单机练习，冲击个人最佳。</p>
+  <div id="game-list">
+    <a class="fgb-game-row" data-game-id="24points" href="games/24points/play.html">
+      <div><strong>24 点挑战</strong><p class="meta">心算与整数四则</p></div><span class="go">进入</span>
     </a>
-    <a class="fgb-card" data-game-id="schulte" href="games/schulte/">
-      <h2>舒尔特挑战</h2>
-      <p>注意力训练格子挑战。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-game-row" data-game-id="schulte" href="games/schulte/">
+      <div><strong>舒尔特挑战</strong><p class="meta">注意力训练</p></div><span class="go">进入</span>
     </a>
-    <a class="fgb-card" data-game-id="stroop" href="games/stroop/">
-      <h2>Stroop 色字</h2>
-      <p>抗干扰训练，选颜色不读字。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-game-row" data-game-id="stroop" href="games/stroop/">
+      <div><strong>Stroop 色字</strong><p class="meta">抗干扰训练</p></div><span class="go">进入</span>
     </a>
-    <a class="fgb-card" data-game-id="cancel" href="games/cancel/">
-      <h2>划销训练</h2>
-      <p>数字与汉字视觉搜索。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-game-row" data-game-id="cancel" href="games/cancel/">
+      <div><strong>划销训练</strong><p class="meta">视觉搜索</p></div><span class="go">进入</span>
     </a>
-    <a class="fgb-card" data-game-id="simon" href="games/simon/">
-      <h2>Simon Says</h2>
-      <p>老师说，练听觉专注与冲动控制。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-game-row" data-game-id="simon" href="games/simon/">
+      <div><strong>Simon Says</strong><p class="meta">听觉专注</p></div><span class="go">进入</span>
     </a>
-    <a class="fgb-card" data-game-id="spot-diff" href="games/spot-diff/">
-      <h2>找不同</h2>
-      <p>符号矩阵细节观察。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-game-row" data-game-id="spot-diff" href="games/spot-diff/">
+      <div><strong>找不同</strong><p class="meta">细节观察</p></div><span class="go">进入</span>
     </a>
-    <a class="fgb-card" data-game-id="maze" href="games/maze/">
-      <h2>迷宫追踪</h2>
-      <p>路径预判与视觉追踪。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-game-row" data-game-id="maze" href="games/maze/">
+      <div><strong>迷宫追踪</strong><p class="meta">路径预判</p></div><span class="go">进入</span>
     </a>
-    <a class="fgb-card" data-game-id="sudoku" href="games/sudoku/">
-      <h2>数独</h2>
-      <p>四/六/九宫逻辑推理。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-game-row" data-game-id="sudoku" href="games/sudoku/">
+      <div><strong>数独</strong><p class="meta">逻辑推理</p></div><span class="go">进入</span>
     </a>
-    <a class="fgb-card" data-game-id="24points-library" href="games/24points/library.html">
-      <h2>24 点 · 解法库</h2>
-      <p>浏览整数解与题型，按四数查询或通览有解组合。</p>
-      <div class="meta">查阅</div>
+    <a class="fgb-game-row is-muted" data-game-id="24points-library" href="games/24points/library.html">
+      <div><strong>24 点 · 解法库</strong><p class="meta">查阅整数解</p></div><span class="go">查阅</span>
     </a>
   </div>
   <p class="fgb-footer-link"><a href="/admin">管理</a></p>
@@ -97,12 +102,14 @@
   var input = document.getElementById("nickname-input");
   var userChip = document.getElementById("user-chip");
   var userName = document.getElementById("user-name");
-  var grid = document.getElementById("game-grid");
+  var list = document.getElementById("game-list");
 
   function setLocked(locked) {
-    grid.querySelectorAll(".fgb-card").forEach(function (card) {
-      if (card.dataset.gameId === "24points-library") return;
-      card.classList.toggle("is-locked", locked);
+    list.querySelectorAll(".fgb-game-row").forEach(function (row) {
+      if (row.dataset.gameId === "24points-library") return;
+      row.classList.toggle("is-locked", locked);
+      if (locked) row.style.pointerEvents = "none";
+      else row.style.pointerEvents = "";
     });
   }
 
@@ -121,6 +128,37 @@
     setLocked(true);
   }
 
+  function renderSummary(s) {
+    if (!s) return;
+    var me = s.me || {};
+    document.getElementById("stat-rank").textContent = me.dailyRank ? ("#" + me.dailyRank) : "未上榜";
+    document.getElementById("stat-gap").textContent = me.gapLabel || "—";
+    var recent = s.recent;
+    document.getElementById("stat-recent").textContent = recent
+      ? ((recent.gameTitle || "") + " · " + (recent.display || ""))
+      : "暂无";
+    document.getElementById("daily-progress").textContent = (s.daily && s.daily.myProgressLabel) || "—";
+    var cta = document.getElementById("daily-cta");
+    var c = (s.daily && s.daily.cta) || "start";
+    cta.textContent = c === "view" ? "查看挑战" : (c === "continue" ? "继续挑战" : "开始挑战");
+    var ol = document.getElementById("podium-list");
+    ol.innerHTML = "";
+    var podium = s.podium || [];
+    if (!podium.length) {
+      ol.innerHTML = "<li style=\"color:var(--muted)\">还没有成绩，去做每日挑战吧</li>";
+      return;
+    }
+    podium.forEach(function (p) {
+      var li = document.createElement("li");
+      li.innerHTML = "<span>" + p.rank + ". " + (p.nickname || "—") + "</span><span>" + (p.display || "") + "</span>";
+      ol.appendChild(li);
+    });
+  }
+
+  function refreshSummary() {
+    return FGB.loadLobbySummary().then(renderSummary);
+  }
+
   function doRegister() {
     var nick = (input.value || "").trim();
     if (!nick) {
@@ -129,6 +167,7 @@
     }
     FGB.register(nick).then(function (data) {
       showUser(data.nickname || nick);
+      refreshSummary();
     }).catch(function (err) {
       errEl.textContent = (err && err.message) || "注册失败";
     });
@@ -148,19 +187,14 @@
     else openRegister(localStorage.getItem("fgb_nickname") || "");
   }).catch(function () {
     openRegister("");
-  });
+  }).then(refreshSummary);
 
   fetch("/api/v1/games").then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
     if (!data || !data.games) return;
     data.games.forEach(function (g) {
-      var card = grid.querySelector('[data-game-id="' + g.id + '"]');
-      if (!card || !g.path) return;
-      card.href = (g.path || "").replace(/^\//, "");
-      var meta = card.querySelector(".meta");
-      if (!meta) return;
-      if (g.extra && g.extra.kind === "reference") meta.textContent = "查阅";
-      else if (g.status === "ready") meta.textContent = "可玩";
-      else if (g.status === "coming_soon") meta.textContent = "即将上线";
+      var row = list.querySelector('[data-game-id="' + g.id + '"]');
+      if (!row || !g.path) return;
+      row.href = (g.path || "").replace(/^\//, "");
     });
   }).catch(function () {});
 })();

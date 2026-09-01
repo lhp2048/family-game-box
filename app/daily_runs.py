@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from app.daily_challenges import ensure_today, local_today
+from app.daily_challenges import ensure_today, get_current, local_today
 from app.storage import load_json, save_json
 from app.terminals import get_terminal
 
@@ -105,8 +105,23 @@ def patch_run(terminal_id: str, run_id: str, body: Dict[str, Any]) -> Dict[str, 
     return run
 
 
+def _combo_no(combo_id: str) -> str:
+    """短单号：去掉横线后取前 8 位大写，便于同榜区分不同挑战组合。"""
+    raw = str(combo_id or "").replace("-", "")
+    if not raw:
+        return ""
+    return raw[:8].upper()
+
+
 def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
     day = date or local_today()
+    cur = get_current()
+    if isinstance(cur, dict) and cur.get("date") == day and cur.get("comboId"):
+        current_combo = str(cur.get("comboId") or "")
+    elif day == local_today():
+        current_combo = str(ensure_today().get("comboId") or "")
+    else:
+        current_combo = ""
     items: List[Dict[str, Any]] = []
     for run in (_load().get("runs") or {}).values():
         if not isinstance(run, dict):
@@ -115,10 +130,13 @@ def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
             continue
         if run.get("status") == "running":
             continue
+        cid = str(run.get("comboId") or "")
         items.append(
             {
                 "runId": run.get("runId"),
-                "comboId": run.get("comboId"),
+                "comboId": cid,
+                "comboNo": _combo_no(cid),
+                "isCurrentCombo": bool(cid and cid == current_combo),
                 "nickname": run.get("nickname"),
                 "status": run.get("status"),
                 "stagesDone": int(run.get("stagesDone") or 0),
@@ -133,4 +151,9 @@ def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
         return (finished, -it["stagesDone"], it["totalTimeMs"])
 
     items.sort(key=_key)
-    return {"date": day, "items": items[: max(1, min(limit, 100))]}
+    return {
+        "date": day,
+        "currentComboId": current_combo,
+        "currentComboNo": _combo_no(current_combo),
+        "items": items[: max(1, min(limit, 100))],
+    }

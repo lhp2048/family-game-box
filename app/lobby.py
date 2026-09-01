@@ -20,11 +20,17 @@ def _fmt_daily_display(it: Dict[str, Any]) -> str:
     status = it.get("status")
     done = int(it.get("stagesDone") or 0)
     total_ms = int(it.get("totalTimeMs") or 0)
+    combo = str(it.get("comboNo") or "")
+    base = ""
     if status == "finished":
-        return _fmt_ms(total_ms)
-    if status == "exited":
-        return "退出 · %d 关 · %s" % (done, _fmt_ms(total_ms))
-    return str(status or "")
+        base = _fmt_ms(total_ms)
+    elif status == "exited":
+        base = "退出 · %d 关 · %s" % (done, _fmt_ms(total_ms))
+    else:
+        base = str(status or "")
+    if combo:
+        return "%s · %s" % (base, combo)
+    return base
 
 
 def _load_runs() -> Dict[str, Any]:

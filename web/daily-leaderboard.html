@@ -5,6 +5,33 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>每日挑战榜 · 家庭游戏盒</title>
 <link rel="stylesheet" href="/css/fgb-theme.css">
+<style>
+.combo-no {
+  font-family: Consolas, "Sarasa Mono SC", monospace;
+  font-size: .88rem;
+  letter-spacing: .04em;
+  color: var(--muted);
+}
+.combo-no .now {
+  display: inline-block;
+  margin-left: .35rem;
+  padding: .1rem .4rem;
+  border-radius: 999px;
+  font-family: var(--sans);
+  font-size: .72rem;
+  letter-spacing: 0;
+  font-weight: 700;
+  color: #062016;
+  background: var(--accent);
+  vertical-align: middle;
+}
+.fgb-podium .spot .combo {
+  margin-top: .25rem;
+  font-family: Consolas, "Sarasa Mono SC", monospace;
+  font-size: .72rem;
+  color: var(--muted);
+}
+</style>
 </head>
 <body>
 <main class="fgb-shell">
@@ -22,15 +49,16 @@
 
   <h1 class="fgb-page-title">每日挑战榜</h1>
   <p class="fgb-lead" id="date-label">今日成绩 · 通关优先，其次完成关数，再比总用时</p>
+  <p class="fgb-lead" id="combo-hint" style="margin-top:-.5rem;font-size:.9rem">挑战单号用于区分同日不同组合（如管理员重生成）。</p>
 
   <div class="fgb-podium hidden" id="podium" aria-label="前三名"></div>
 
   <div class="fgb-panel">
     <table class="fgb-table">
       <thead>
-        <tr><th class="fgb-rank">#</th><th>昵称</th><th>状态</th><th>完成</th><th>总用时</th></tr>
+        <tr><th class="fgb-rank">#</th><th>昵称</th><th>挑战单</th><th>状态</th><th>完成</th><th>总用时</th></tr>
       </thead>
-      <tbody id="rows"><tr><td colspan="5" class="fgb-empty">加载中…</td></tr></tbody>
+      <tbody id="rows"><tr><td colspan="6" class="fgb-empty">加载中…</td></tr></tbody>
     </table>
   </div>
   <p class="fgb-empty" id="empty" hidden>暂无记录 · <a href="/daily" style="color:var(--accent)">去做每日挑战</a></p>
@@ -54,6 +82,12 @@
     return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   }
 
+  function comboCell(it) {
+    var no = it.comboNo || "—";
+    var badge = it.isCurrentCombo ? '<span class="now">本场</span>' : "";
+    return '<span class="combo-no">' + esc(no) + badge + "</span>";
+  }
+
   function rankClass(i) {
     var n = i + 1;
     var cls = "fgb-rank";
@@ -74,26 +108,32 @@
     podiumEl.innerHTML = order.map(function (it, i) {
       var r = ranks[i];
       var score = (it.status === "finished" ? "通关 · " : "退出 · ") + fmt(it.totalTimeMs);
+      var combo = (it.comboNo || "") + (it.isCurrentCombo ? " · 本场" : "");
       return '<div class="spot fgb-podium-' + r + '"><div>#' + r + '</div><div class="name">' +
-        esc(it.nickname) + '</div><div class="score">' + esc(score) + "</div></div>";
+        esc(it.nickname) + '</div><div class="score">' + esc(score) +
+        '</div><div class="combo">' + esc(combo) + "</div></div>";
     }).join("");
   }
 
   fetch("/api/v1/daily/leaderboard").then(function (r) { return r.json(); }).then(function (data) {
+    var curNo = data.currentComboNo || "";
     document.getElementById("date-label").textContent =
       (data.date || "今日") + " · 通关优先，其次完成关数，再比总用时";
+    document.getElementById("combo-hint").textContent = curNo
+      ? ("当前挑战单 " + curNo + " · 同日重生成会换单号，旧成绩仍留在榜上")
+      : "挑战单号用于区分同日不同组合（如管理员重生成）";
     var tb = document.getElementById("rows");
     tb.innerHTML = "";
     var items = data.items || [];
     if (!items.length) {
       document.getElementById("empty").hidden = false;
-      tb.innerHTML = '<tr><td colspan="5" class="fgb-empty">暂无记录</td></tr>';
+      tb.innerHTML = '<tr><td colspan="6" class="fgb-empty">暂无记录</td></tr>';
       return;
     }
     renderPodium(items);
     var rest = items.slice(3);
     if (!rest.length) {
-      tb.innerHTML = '<tr><td colspan="5" class="fgb-empty">仅前三名</td></tr>';
+      tb.innerHTML = '<tr><td colspan="6" class="fgb-empty">仅前三名</td></tr>';
       return;
     }
     rest.forEach(function (it, i) {
@@ -103,12 +143,13 @@
       var status = it.status === "finished" ? "通关" : "退出";
       tr.innerHTML =
         '<td class="' + rankClass(rank - 1) + '">' + rank + "</td><td>" + esc(it.nickname || "—") +
-        "</td><td>" + status + "</td><td>" + (it.stagesDone || 0) + "</td><td>" + fmt(it.totalTimeMs) + "</td>";
+        "</td><td>" + comboCell(it) + "</td><td>" + status + "</td><td>" + (it.stagesDone || 0) +
+        "</td><td>" + fmt(it.totalTimeMs) + "</td>";
       tb.appendChild(tr);
     });
   }).catch(function () {
     document.getElementById("rows").innerHTML =
-      '<tr><td colspan="5" class="fgb-empty">加载失败</td></tr>';
+      '<tr><td colspan="6" class="fgb-empty">加载失败</td></tr>';
   });
 })();
 </script>

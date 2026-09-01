@@ -35,6 +35,7 @@ EXTRA_CSS = r"""
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: .65rem;
+  align-items: start;
 }
 @media (max-width: 520px) {
   .diff-panels { grid-template-columns: 1fr; }
@@ -42,6 +43,7 @@ EXTRA_CSS = r"""
 .diff-panel {
   border-radius: 14px;
   padding: .55rem .5rem .65rem;
+  min-width: 0;
 }
 .diff-panel.left {
   background: rgba(15, 122, 90, 0.1);
@@ -59,11 +61,23 @@ EXTRA_CSS = r"""
 }
 .diff-panel.left .panel-label { color: var(--accent-deep); }
 .diff-panel.right .panel-label { color: var(--warn); }
+.diff-panel .grid-cells.compact {
+  width: min(100%, 48dvh, 360px);
+  margin: 0 auto;
+  container-type: inline-size;
+}
 .grid-cells.compact button {
-  min-height: 34px;
-  font-size: clamp(.9rem, 3.2vw, 1.2rem);
+  min-height: 0;
+  aspect-ratio: 1;
+  font-size: clamp(.7rem, 8cqi, 1.15rem);
   font-weight: 700;
   border-radius: 6px;
+}
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .diff-panels { gap: .45rem; }
+  .diff-panel { padding: .35rem .35rem .45rem; }
+  .panel-label { margin-bottom: .25rem; font-size: .78rem; }
+  .diff-panel .grid-cells.compact { width: min(100%, 52dvh, 420px); }
 }
 """
 

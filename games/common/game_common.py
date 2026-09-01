@@ -91,6 +91,22 @@ body::before {
 .wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
 .wrap.wide { width: min(720px, calc(100% - 1.5rem)); }
 .hidden { display: none !important; }
+/* 平板横屏 / 矮视口：压缩边距，棋盘交给各游戏用 dvh 限高 */
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .wrap { padding: .55rem 0 1rem; width: min(560px, calc(100% - 1rem)); }
+  .wrap.wide { width: min(960px, calc(100% - 1rem)); }
+  h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); margin-bottom: .2rem; }
+  .sub { margin: 0 0 .65rem; font-size: .88rem; }
+  .card { padding: .75rem; border-radius: 14px; }
+  .topbar { margin-bottom: .45rem; }
+  .hint { margin: 0 0 .4rem; min-height: 1.1em; font-size: .88rem; }
+  .actions { margin-top: .45rem; }
+  .actions button { padding: .55rem .25rem; }
+  .task-bar { padding: .45rem .65rem; margin-bottom: .5rem; }
+  .mode-btn { padding: .75rem .85rem; }
+  .choice-row { margin: .65rem 0; }
+  .choice-row button { padding: .65rem .3rem; }
+}
 h1 {
   font-family: var(--display);
   font-size: clamp(2rem, 8vw, 3rem);
@@ -224,6 +240,7 @@ h1 em { font-style: italic; color: var(--accent); }
   margin: .5rem 0;
   user-select: none;
 }
+.grid-wrap { overflow: auto; max-height: min(64dvh, 640px); }
 .grid-cells button, .grid-cells .cell {
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -237,7 +254,8 @@ h1 em { font-style: italic; color: var(--accent); }
   justify-content: center;
   cursor: pointer;
   padding: 0;
-  min-height: 28px;
+  min-height: 0;
+  min-width: 0;
 }
 .grid-cells button.marked {
   background: rgba(62,207,142,.18);

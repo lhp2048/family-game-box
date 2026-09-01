@@ -49,14 +49,31 @@ EXTRA_CSS = r"""
   font-size: 1.6rem;
   color: var(--accent-deep);
 }
-.grid-wrap { overflow-x: auto; }
+.grid-wrap {
+  overflow: auto;
+  max-height: min(62dvh, 640px);
+  display: flex;
+  justify-content: center;
+}
+.grid-cells.dense {
+  width: min(100%, 62dvh, 560px);
+  margin: 0;
+}
 .grid-cells.dense button {
-  min-height: 40px;
-  font-size: clamp(1rem, 3.6vw, 1.35rem);
+  min-height: 0;
+  aspect-ratio: 1;
+  font-size: clamp(.72rem, 2.6cqi, 1.25rem);
   font-weight: 700;
 }
+.grid-cells.dense { container-type: inline-size; }
 .target-bar strong {
   color: var(--accent);
+}
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .target-bar { margin-bottom: .35rem; font-size: 1rem; }
+  .target-bar strong { font-size: 1.25rem; }
+  .grid-wrap { max-height: min(58dvh, 520px); }
+  .grid-cells.dense { width: min(100%, 58dvh, 640px); }
 }
 """
 

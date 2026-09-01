@@ -33,17 +33,19 @@ EXTRA_CSS = r"""
   justify-content: center;
   margin: .5rem 0;
   overflow: auto;
-  max-height: min(70vh, 720px);
+  max-height: min(58dvh, 640px);
+  width: 100%;
 }
 .maze {
   display: grid;
   gap: 0;
   border: 2px solid #e8f2ec;
   background: #050a08;
+  --cell: 18px;
 }
 .maze .cell {
-  width: 18px;
-  height: 18px;
+  width: var(--cell);
+  height: var(--cell);
   border-radius: 0;
   aspect-ratio: auto;
   min-height: 0;
@@ -81,12 +83,16 @@ EXTRA_CSS = r"""
   margin-top: .15rem;
   opacity: .85;
 }
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .maze-wrap { max-height: min(54dvh, 520px); margin: .3rem 0; }
+  .stat-pills { margin-bottom: .3rem; gap: .65rem; font-size: .82rem; }
+}
 """
 
 BODY = r"""
   <section id="view-home">
     <h1>迷宫<em>追踪</em></h1>
-    <p class="sub">从起点走到终点。同一方向无墙阻挡时，可一次走到该方向上的任意格。难度由迷宫整体规模控制，单格大小固定。</p>
+    <p class="sub">从起点走到终点。同一方向无墙阻挡时，可一次走到该方向上的任意格。难度由迷宫整体规模控制，单格大小随视口缩放。</p>
     <div class="card mode-grid">
       <button type="button" class="mode-btn" id="btn-casual">
         <strong>休闲模式</strong>
@@ -102,7 +108,7 @@ BODY = r"""
 
   <section id="view-casual" class="hidden">
     <h1>休闲</h1>
-    <p class="sub">选择难度（迷宫规模，单格固定 18px）。</p>
+    <p class="sub">选择难度（迷宫规模）。</p>
     <div class="card">
       <p style="margin:0 0 .5rem;color:var(--muted);font-size:.9rem">难度</p>
       """ + tier_choice_row("casual-diff", MAZE_TIER_SUB) + r"""
@@ -391,24 +397,32 @@ SCRIPT = r"""
 
   function renderMaze() {
     var el = document.getElementById("maze");
-    el.style.gridTemplateColumns = "repeat(" + maze.size + ", 18px)";
+    var wrap = document.querySelector(".maze-wrap");
+    var availW = (wrap && wrap.clientWidth) ? wrap.clientWidth - 8 : 480;
+    var availH = Math.min(
+      (wrap && wrap.clientHeight) ? wrap.clientHeight - 8 : 480,
+      Math.floor((window.innerHeight || 700) * 0.54)
+    );
+    var cell = Math.max(8, Math.min(18, Math.floor(Math.min(availW, availH) / maze.size)));
+    el.style.setProperty("--cell", cell + "px");
+    el.style.gridTemplateColumns = "repeat(" + maze.size + ", var(--cell))";
     el.innerHTML = "";
     for (var r = 0; r < maze.size; r++) {
       for (var c = 0; c < maze.size; c++) {
-        var cell = document.createElement("div");
-        cell.className = "cell";
-        if (maze.grid[r][c] === 1) cell.classList.add("wall");
+        var cellEl = document.createElement("div");
+        cellEl.className = "cell";
+        if (maze.grid[r][c] === 1) cellEl.classList.add("wall");
         else {
-          cell.classList.add("path");
-          if (r === maze.start[0] && c === maze.start[1]) cell.classList.add("start");
-          if (r === maze.end[0] && c === maze.end[1]) cell.classList.add("end");
-          if (trail[r + "," + c]) cell.classList.add("in-trail");
-          if (r === player[0] && c === player[1]) cell.classList.add("player");
-          cell.dataset.r = String(r);
-          cell.dataset.c = String(c);
-          cell.addEventListener("click", onCellClick);
+          cellEl.classList.add("path");
+          if (r === maze.start[0] && c === maze.start[1]) cellEl.classList.add("start");
+          if (r === maze.end[0] && c === maze.end[1]) cellEl.classList.add("end");
+          if (trail[r + "," + c]) cellEl.classList.add("in-trail");
+          if (r === player[0] && c === player[1]) cellEl.classList.add("player");
+          cellEl.dataset.r = String(r);
+          cellEl.dataset.c = String(c);
+          cellEl.addEventListener("click", onCellClick);
         }
-        el.appendChild(cell);
+        el.appendChild(cellEl);
       }
     }
   }
@@ -605,6 +619,13 @@ SCRIPT = r"""
   });
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
+
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    if (!maze) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { renderMaze(); }, 120);
+  });
 
   ensureDifficulty(function () {
     if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {

@@ -66,6 +66,14 @@ EXTRA_CSS = r"""
   margin-top: .75rem;
 }
 .stat-row strong { color: var(--ink); }
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .stroop-word {
+    font-size: clamp(2.2rem, 8vw, 3.2rem);
+    margin: .55rem 0 .7rem;
+  }
+  .color-grid button { padding: .6rem .15rem; min-height: 42px; }
+  .stat-row { margin-top: .4rem; gap: .65rem; font-size: .82rem; }
+}
 """
 
 BODY = r"""

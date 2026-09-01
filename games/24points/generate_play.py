@@ -189,6 +189,22 @@ body::before {
 }
 .wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
 .hidden { display: none !important; }
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .wrap { padding: .55rem 0 1rem; width: min(560px, calc(100% - 1rem)); }
+  h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); }
+  .sub { margin: 0 0 .65rem; font-size: .88rem; }
+  .card { padding: .75rem; border-radius: 14px; }
+  .topbar { margin-bottom: .45rem; }
+  .hint { margin: 0 0 .4rem; min-height: 1.1em; }
+  .clover-wrap { margin: .2rem 0 .55rem; }
+  .clover { width: min(240px, 52vw, 36dvh); height: min(240px, 52vw, 36dvh); }
+  .leaf { font-size: clamp(1.35rem, 5vw, 1.85rem); }
+  .ops { gap: .35rem; margin-bottom: .45rem; }
+  .ops button { padding: .55rem 0; font-size: 1.15rem; }
+  .actions button { padding: .55rem .25rem; }
+  .expr-board { margin: 0 0 .5rem; padding: .5rem .65rem; min-height: 2em; font-size: .85rem; }
+  .tip { margin: 0 0 .45rem; padding: .4rem .55rem; font-size: .78rem; }
+}
 h1 {
   font-family: var(--display);
   font-size: clamp(2.4rem, 9vw, 3.4rem);
@@ -303,8 +319,8 @@ h1 em { font-style: italic; color: var(--accent); }
 }
 .clover {
   position: relative;
-  width: min(300px, 78vw);
-  height: min(300px, 78vw);
+  width: min(300px, 78vw, 42dvh);
+  height: min(300px, 78vw, 42dvh);
 }
 .leaf {
   position: absolute;

@@ -40,11 +40,12 @@ EXTRA_CSS = r"""
   border-radius: 14px;
   background: rgba(255,255,255,.04);
 }
-.sudoku-wrap { width: 100%; max-width: min(100%, 400px); margin: 0 auto; }
+.sudoku-wrap { width: min(100%, 400px, 52dvh); margin: 0 auto; }
 .sudoku {
   display: grid;
   width: 100%;
   aspect-ratio: 1;
+  max-height: min(52dvh, 400px);
   background: #1a2420;
   border: 2.5px solid #1a2420;
   border-radius: 6px;
@@ -188,6 +189,18 @@ EXTRA_CSS = r"""
   background: rgba(62,207,142,.35);
 }
 .play-actions { margin-top: .7rem; }
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .play-card { padding: .55rem .55rem .7rem; }
+  .sudoku-stage { padding: .35rem; margin: 0 0 .4rem; }
+  .sudoku-wrap { width: min(100%, 400px, 46dvh); }
+  .sudoku { max-height: min(46dvh, 400px); }
+  .play-dock { padding: .45rem; }
+  .numpad button { height: 2.15rem; font-size: 1rem; }
+  .numpad.grid-9 button { height: 1.95rem; font-size: .92rem; }
+  .tool-row { margin-top: .4rem; padding-top: .4rem; gap: .3rem; }
+  .tool-row button { padding: .4rem .2rem; font-size: .76rem; }
+  .play-actions { margin-top: .45rem; }
+}
 """
 
 BODY = r"""

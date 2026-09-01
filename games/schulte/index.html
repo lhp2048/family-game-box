@@ -40,6 +40,19 @@ body::before {
 }
 .wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
 .hidden { display: none !important; }
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .wrap { padding: .55rem 0 1rem; width: min(560px, calc(100% - 1rem)); }
+  h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); }
+  .sub { margin: 0 0 .65rem; font-size: .88rem; }
+  .card { padding: .75rem; border-radius: 14px; }
+  .topbar { margin-bottom: .4rem; }
+  .target-banner { margin: 0 0 .45rem; font-size: .95rem; }
+  .target-banner em { font-size: 1.25rem; }
+  .hint { margin: 0 0 .4rem; min-height: 1.1em; }
+  .board { width: min(100%, 420px, 46dvh); max-height: min(46dvh, 420px); gap: clamp(.18rem, .8vw, .35rem); }
+  .cell { font-size: clamp(.75rem, 2.8vw, 1.15rem); border-radius: 8px; }
+  .actions button { padding: .55rem .25rem; }
+}
 h1 {
   font-family: var(--display);
   font-size: clamp(2.2rem, 8vw, 3.2rem);
@@ -158,8 +171,8 @@ h1 {
   display: grid;
   gap: clamp(.28rem, 1.2vw, .45rem);
   margin: 0 auto;
-  width: min(100%, 420px);
-  max-height: min(58vh, 420px);
+  width: min(100%, 420px, 52dvh);
+  max-height: min(52dvh, 420px);
   aspect-ratio: 1 / 1;
   flex: 0 0 auto;
 }

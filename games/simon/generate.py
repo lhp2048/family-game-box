@@ -72,6 +72,16 @@ EXTRA_CSS = r"""
   display: flex; align-items: center; gap: .35rem;
   font-size: .9rem; color: var(--muted);
 }
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .command-box {
+    min-height: 2.4em;
+    padding: .65rem;
+    margin: .25rem 0 .55rem;
+    font-size: clamp(1.15rem, 3.5vw, 1.55rem);
+  }
+  .action-grid button { padding: .7rem .3rem; min-height: 44px; }
+  .feedback { margin-top: .4rem; min-height: 1.2em; }
+}
 """
 
 BODY = r"""

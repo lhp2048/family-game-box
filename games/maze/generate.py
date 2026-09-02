@@ -33,7 +33,7 @@ EXTRA_CSS = r"""
   justify-content: center;
   margin: .5rem 0;
   overflow: auto;
-  max-height: min(58dvh, 640px);
+  max-height: min(82vmin, 720px);
   width: 100%;
 }
 .maze {
@@ -41,7 +41,7 @@ EXTRA_CSS = r"""
   gap: 0;
   border: 2px solid #e8f2ec;
   background: #050a08;
-  --cell: 18px;
+  --cell: 24px;
 }
 .maze .cell {
   width: var(--cell);
@@ -84,7 +84,7 @@ EXTRA_CSS = r"""
   opacity: .85;
 }
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
-  .maze-wrap { max-height: min(54dvh, 520px); margin: .3rem 0; }
+  .maze-wrap { max-height: min(86vmin, 720px); margin: .3rem 0; }
   .stat-pills { margin-bottom: .3rem; gap: .65rem; font-size: .82rem; }
 }
 """
@@ -400,10 +400,10 @@ SCRIPT = r"""
     var wrap = document.querySelector(".maze-wrap");
     var availW = (wrap && wrap.clientWidth) ? wrap.clientWidth - 8 : 480;
     var availH = Math.min(
-      (wrap && wrap.clientHeight) ? wrap.clientHeight - 8 : 480,
-      Math.floor((window.innerHeight || 700) * 0.54)
+      (wrap && wrap.clientHeight) ? wrap.clientHeight - 8 : 560,
+      Math.floor(Math.min(window.innerWidth || 900, window.innerHeight || 700) * 0.86)
     );
-    var cell = Math.max(8, Math.min(18, Math.floor(Math.min(availW, availH) / maze.size)));
+    var cell = Math.max(10, Math.min(32, Math.floor(Math.min(availW, availH) / maze.size)));
     el.style.setProperty("--cell", cell + "px");
     el.style.gridTemplateColumns = "repeat(" + maze.size + ", var(--cell))";
     el.innerHTML = "";

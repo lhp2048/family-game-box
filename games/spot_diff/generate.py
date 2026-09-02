@@ -62,7 +62,7 @@ EXTRA_CSS = r"""
 .diff-panel.left .panel-label { color: var(--accent-deep); }
 .diff-panel.right .panel-label { color: var(--warn); }
 .diff-panel .grid-cells.compact {
-  width: min(100%, 48dvh, 360px);
+  width: min(100%, 42vmin, 420px);
   margin: 0 auto;
   container-type: inline-size;
 }
@@ -77,7 +77,8 @@ EXTRA_CSS = r"""
   .diff-panels { gap: .45rem; }
   .diff-panel { padding: .35rem .35rem .45rem; }
   .panel-label { margin-bottom: .25rem; font-size: .78rem; }
-  .diff-panel .grid-cells.compact { width: min(100%, 52dvh, 420px); }
+  /* 双栏各占短边约四成，横屏放宽上限而不是再压小 */
+  .diff-panel .grid-cells.compact { width: min(100%, 44vmin, 460px); }
 }
 """
 

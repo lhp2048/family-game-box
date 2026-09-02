@@ -31,6 +31,7 @@
     <div class="fgb-arena-split">
       <div class="fgb-panel fgb-panel-pad">
         <h1 class="fgb-page-title" style="font-size:1.85rem">每日挑战</h1>
+        <p class="fgb-lead" id="prep-combo-label" style="margin-bottom:.35rem;color:var(--accent);font-weight:600">—</p>
         <p class="fgb-lead" style="margin-bottom:1rem">按顺序通关今日组合，分关计时 + 总计时。中途退出也会记成绩。</p>
         <div class="fgb-err" id="prep-err"></div>
         <ol class="stage-list" id="stage-list"></ol>
@@ -107,10 +108,55 @@
     return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
   }
 
+  function layoutPlayFrame() {
+    var frame = document.querySelector(".fgb-frame");
+    var iframe = document.getElementById("game-frame");
+    if (!frame || !iframe) return;
+    var playing = document.body.classList.contains("fgb-daily-playing");
+    if (!playing) {
+      frame.style.height = "";
+      frame.style.flex = "";
+      iframe.style.position = "";
+      iframe.style.top = "";
+      iframe.style.right = "";
+      iframe.style.bottom = "";
+      iframe.style.left = "";
+      iframe.style.width = "";
+      iframe.style.height = "";
+      return;
+    }
+    /* 钉钉等旧 WebView：flex+百分比高度不可靠，用像素把 iframe 框钉满剩余视口 */
+    var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+    var top = frame.getBoundingClientRect().top;
+    var h = Math.max(240, Math.floor(vh - top - 6));
+    frame.style.flex = "none";
+    frame.style.height = h + "px";
+    frame.style.position = "relative";
+    iframe.style.position = "absolute";
+    iframe.style.top = "0";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.left = "0";
+    iframe.style.width = "100%";
+    iframe.style.height = "100%";
+  }
+
   function show(id) {
     ["prep", "play", "result"].forEach(function (k) {
       document.getElementById(k).classList.toggle("hidden", k !== id);
     });
+    var playing = id === "play";
+    document.body.classList.toggle("fgb-daily-playing", playing);
+    document.documentElement.classList.toggle("fgb-daily-playing", playing);
+    if (playing) {
+      requestAnimationFrame(function () {
+        layoutPlayFrame();
+        setTimeout(layoutPlayFrame, 50);
+        setTimeout(layoutPlayFrame, 250);
+      });
+    } else {
+      layoutPlayFrame();
+    }
   }
 
   function headers() {
@@ -120,10 +166,24 @@
     };
   }
 
+  function apiUrl(path) {
+    if (window.FGB && FGB.url) return FGB.url(path);
+    var base = "";
+    if (typeof window.__FGB_BASE__ === "string" && window.__FGB_BASE__) {
+      base = window.__FGB_BASE__.replace(/\/$/, "");
+    } else {
+      var p = (location.pathname || "");
+      if (p === "/game-box" || p.indexOf("/game-box/") === 0) base = "/game-box";
+    }
+    if (!path) return base || "/";
+    if (path.charAt(0) !== "/") path = "/" + path;
+    if (base && (path === base || path.indexOf(base + "/") === 0)) return path;
+    return base + path;
+  }
+
   function api(path, opts) {
     opts = opts || {};
-    var url = (window.FGB && FGB.url) ? FGB.url(path) : path;
-    return fetch(url, {
+    return fetch(apiUrl(path), {
       method: opts.method || "GET",
       headers: Object.assign({}, headers(), opts.headers || {}),
       body: opts.body ? JSON.stringify(opts.body) : undefined,
@@ -173,6 +233,10 @@
     loadPrepPodium();
     api("/api/v1/daily/today").then(function (data) {
       combo = data;
+      var nameEl = document.getElementById("prep-combo-label");
+      if (nameEl) {
+        nameEl.textContent = data.label || (data.daySeq ? ("今日挑战#" + data.daySeq) : "今日挑战");
+      }
       var ol = document.getElementById("stage-list");
       ol.innerHTML = "";
       (data.stages || []).forEach(function (s) {
@@ -198,7 +262,7 @@
     });
     var join = base.indexOf("?") >= 0 ? "&" : "?";
     var path = base + join + q.toString();
-    return (window.FGB && FGB.url) ? FGB.url(path) : path;
+    return apiUrl(path);
   }
 
   function enterStage(idx) {
@@ -209,6 +273,8 @@
     document.getElementById("stage-name").textContent = st.title + " · " + (st.tierLabel || st.tier);
     stageEnteredAt = Date.now();
     document.getElementById("game-frame").src = gameUrl(st, idx, run.runId);
+    setTimeout(layoutPlayFrame, 30);
+    setTimeout(layoutPlayFrame, 200);
   }
 
   function totalMs() { return Date.now() - startedAt; }
@@ -322,6 +388,19 @@
     finishing = false;
     loadPrep();
   });
+
+  window.addEventListener("resize", function () {
+    if (document.body.classList.contains("fgb-daily-playing")) layoutPlayFrame();
+  });
+  window.addEventListener("orientationchange", function () {
+    setTimeout(layoutPlayFrame, 100);
+    setTimeout(layoutPlayFrame, 400);
+  });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", function () {
+      if (document.body.classList.contains("fgb-daily-playing")) layoutPlayFrame();
+    });
+  }
 
   loadPrep();
 })();

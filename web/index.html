@@ -62,33 +62,51 @@
 
   <h2 class="fgb-page-title" style="font-size:1.65rem;margin-bottom:.35rem">自由训练</h2>
   <p class="fgb-lead" style="margin-bottom:.85rem">单机练习，冲击个人最佳。</p>
-  <div id="game-list">
-    <a class="fgb-game-row" data-game-id="24points" href="games/24points/play.html">
-      <div><strong>24 点挑战</strong><p class="meta">心算与整数四则</p></div><span class="go">进入</span>
+  <div id="game-list" class="fgb-grid-train">
+    <a class="fgb-train-card" data-game-id="24points" href="games/24points/play.html">
+      <strong>24 点挑战</strong>
+      <p class="meta">心算与整数四则</p>
+      <span class="go">进入</span>
     </a>
-    <a class="fgb-game-row" data-game-id="schulte" href="games/schulte/">
-      <div><strong>舒尔特挑战</strong><p class="meta">注意力训练</p></div><span class="go">进入</span>
+    <a class="fgb-train-card" data-game-id="schulte" href="games/schulte/">
+      <strong>舒尔特挑战</strong>
+      <p class="meta">注意力训练</p>
+      <span class="go">进入</span>
     </a>
-    <a class="fgb-game-row" data-game-id="stroop" href="games/stroop/">
-      <div><strong>Stroop 色字</strong><p class="meta">抗干扰训练</p></div><span class="go">进入</span>
+    <a class="fgb-train-card" data-game-id="stroop" href="games/stroop/">
+      <strong>Stroop 色字</strong>
+      <p class="meta">抗干扰训练</p>
+      <span class="go">进入</span>
     </a>
-    <a class="fgb-game-row" data-game-id="cancel" href="games/cancel/">
-      <div><strong>划销训练</strong><p class="meta">视觉搜索</p></div><span class="go">进入</span>
+    <a class="fgb-train-card" data-game-id="cancel" href="games/cancel/">
+      <strong>划销训练</strong>
+      <p class="meta">视觉搜索</p>
+      <span class="go">进入</span>
     </a>
-    <a class="fgb-game-row" data-game-id="simon" href="games/simon/">
-      <div><strong>Simon Says</strong><p class="meta">听觉专注</p></div><span class="go">进入</span>
+    <a class="fgb-train-card" data-game-id="simon" href="games/simon/">
+      <strong>Simon Says</strong>
+      <p class="meta">听觉专注</p>
+      <span class="go">进入</span>
     </a>
-    <a class="fgb-game-row" data-game-id="spot-diff" href="games/spot-diff/">
-      <div><strong>找不同</strong><p class="meta">细节观察</p></div><span class="go">进入</span>
+    <a class="fgb-train-card" data-game-id="spot-diff" href="games/spot-diff/">
+      <strong>找不同</strong>
+      <p class="meta">细节观察</p>
+      <span class="go">进入</span>
     </a>
-    <a class="fgb-game-row" data-game-id="maze" href="games/maze/">
-      <div><strong>迷宫追踪</strong><p class="meta">路径预判</p></div><span class="go">进入</span>
+    <a class="fgb-train-card" data-game-id="maze" href="games/maze/">
+      <strong>迷宫追踪</strong>
+      <p class="meta">路径预判</p>
+      <span class="go">进入</span>
     </a>
-    <a class="fgb-game-row" data-game-id="sudoku" href="games/sudoku/">
-      <div><strong>数独</strong><p class="meta">逻辑推理</p></div><span class="go">进入</span>
+    <a class="fgb-train-card" data-game-id="sudoku" href="games/sudoku/">
+      <strong>数独</strong>
+      <p class="meta">逻辑推理</p>
+      <span class="go">进入</span>
     </a>
-    <a class="fgb-game-row is-muted" data-game-id="24points-library" href="games/24points/library.html">
-      <div><strong>24 点 · 解法库</strong><p class="meta">查阅整数解</p></div><span class="go">查阅</span>
+    <a class="fgb-train-card is-ref" data-game-id="24points-library" href="games/24points/library.html">
+      <strong>24 点 · 解法库</strong>
+      <p class="meta">工具 · 不是对局</p>
+      <span class="go">查阅</span>
     </a>
   </div>
   <p class="fgb-footer-link"><a href="/admin">管理</a></p>
@@ -105,7 +123,7 @@
   var list = document.getElementById("game-list");
 
   function setLocked(locked) {
-    list.querySelectorAll(".fgb-game-row").forEach(function (row) {
+    list.querySelectorAll(".fgb-train-card, .fgb-game-row").forEach(function (row) {
       if (row.dataset.gameId === "24points-library") return;
       row.classList.toggle("is-locked", locked);
       if (locked) row.style.pointerEvents = "none";
@@ -193,12 +211,13 @@
     openRegister("");
   }).then(refreshSummary);
 
-  fetch("/api/v1/games").then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
+  fetch(FGB.url("/api/v1/games")).then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
     if (!data || !data.games) return;
     data.games.forEach(function (g) {
       var row = list.querySelector('[data-game-id="' + g.id + '"]');
       if (!row || !g.path) return;
-      row.href = (g.path || "").replace(/^\//, "");
+      var path = g.path || "";
+      row.href = FGB.url(path.charAt(0) === "/" ? path : "/" + path);
     });
   }).catch(function () {});
 })();

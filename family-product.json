@@ -3,7 +3,7 @@
   "id": "family_game_box",
   "title": "家庭游戏盒",
   "subtitle": "家用小游戏在线网站",
-  "version": "26.901.2152",
+  "version": "26.902.2006",
   "port": 18029,
   "defaultInstallDir": "~/family_game_box",
   "zipNameHint": "family_game_box.zip",

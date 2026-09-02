@@ -91,7 +91,7 @@ body::before {
 .wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
 .wrap.wide { width: min(720px, calc(100% - 1.5rem)); }
 .hidden { display: none !important; }
-/* 平板横屏 / 矮视口：压缩边距，棋盘交给各游戏用 dvh 限高 */
+/* 平板横屏 / 矮视口：压缩边距；棋盘尺寸由各游戏用 vmin 吃满短边 */
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
   .wrap { padding: .55rem 0 1rem; width: min(560px, calc(100% - 1rem)); }
   .wrap.wide { width: min(960px, calc(100% - 1rem)); }
@@ -100,8 +100,8 @@ body::before {
   .card { padding: .75rem; border-radius: 14px; }
   .topbar { margin-bottom: .45rem; }
   .hint { margin: 0 0 .4rem; min-height: 1.1em; font-size: .88rem; }
-  .actions { margin-top: .45rem; }
-  .actions button { padding: .55rem .25rem; }
+  .actions { margin-top: .3rem; gap: .35rem; }
+  .actions button { padding: .35rem .2rem; font-size: .82rem; border-radius: 10px; }
   .task-bar { padding: .45rem .65rem; margin-bottom: .5rem; }
   .mode-btn { padding: .75rem .85rem; }
   .choice-row { margin: .65rem 0; }
@@ -240,7 +240,7 @@ h1 em { font-style: italic; color: var(--accent); }
   margin: .5rem 0;
   user-select: none;
 }
-.grid-wrap { overflow: auto; max-height: min(64dvh, 640px); }
+.grid-wrap { overflow: auto; max-height: min(82vmin, 720px); }
 .grid-cells button, .grid-cells .cell {
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -549,6 +549,39 @@ html.fgb-daily-mode .mode-btn,
 html.fgb-daily-mode #casual-extra,
 html.fgb-daily-mode #btn-next,
 html.fgb-daily-mode #btn-restart { display: none !important; }
+/* 闯关 iframe 内：收掉重复顶栏/长说明；棋盘边长由 --fgb-board 动态计算 */
+html.fgb-daily-mode {
+  --fgb-board: 280px;
+  height: 100%;
+}
+html.fgb-daily-mode body { height: 100%; }
+html.fgb-daily-mode:not(.fgb-play-scroll),
+html.fgb-daily-mode:not(.fgb-play-scroll) body { overflow: hidden; }
+html.fgb-daily-mode.fgb-play-scroll,
+html.fgb-daily-mode.fgb-play-scroll body { overflow: auto; }
+html.fgb-daily-mode .wrap {
+  width: min(720px, calc(100% - 0.75rem));
+  padding: 0.35rem 0 0.4rem;
+  box-sizing: border-box;
+}
+html.fgb-daily-mode #view-play > .topbar { display: none !important; }
+html.fgb-daily-mode #view-play > .hint { margin: 0 0 0.3rem; min-height: 1.05em; font-size: 0.88rem; }
+html.fgb-daily-mode #view-play .tip { display: none !important; }
+html.fgb-daily-mode .clover {
+  width: var(--fgb-board) !important;
+  height: var(--fgb-board) !important;
+}
+html.fgb-daily-mode .clover-wrap { margin: 0.1rem 0 0.3rem; }
+html.fgb-daily-mode .leaf { font-size: calc(var(--fgb-board) * 0.11) !important; }
+html.fgb-daily-mode .sudoku-wrap { width: min(100%, var(--fgb-board)) !important; }
+html.fgb-daily-mode .sudoku { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .maze-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .grid-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .diff-panels { max-height: var(--fgb-board) !important; overflow: auto; }
+html.fgb-daily-mode .board {
+  width: min(100%, var(--fgb-board)) !important;
+  max-height: var(--fgb-board) !important;
+}
 </style>
 """
 
@@ -569,6 +602,9 @@ DAILY_BOOT_JS = r"""
   document.documentElement.classList.add("fgb-daily-mode");
   if (window.FGBDaily && FGBDaily.installMathRandom) {
     FGBDaily.installMathRandom(q.seed);
+  }
+  if (window.FGBDaily && FGBDaily.installFitPlay) {
+    FGBDaily.installFitPlay({ min: 168, max: 480, pad: 16 });
   }
   window.fgbSubmitScore = function (payload) {
     var ms = 0;

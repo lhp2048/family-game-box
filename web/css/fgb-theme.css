@@ -438,7 +438,8 @@ a:hover { color: #6fe0ab; }
   border-radius: 14px;
   overflow: hidden;
   background: rgba(0, 0, 0, 0.25);
-  /* 顶栏 + HUD 约占 9～11rem；矮屏再收一点 */
+  /* vh 兜底（钉钉/旧 Android WebView 不认 dvh） */
+  height: calc(100vh - 10.5rem);
   height: calc(100dvh - 10.5rem);
   min-height: 280px;
 }
@@ -451,11 +452,77 @@ a:hover { color: #6fe0ab; }
   background: transparent;
 }
 
+/* 每日挑战对局中：吃满视口，去掉大块空白底 */
+body.fgb-daily-playing {
+  overflow: hidden;
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+}
+/* 不用 :has()——旧 WebView 不支持；由 daily.html 同步打到 <html> */
+html.fgb-daily-playing {
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+}
+body.fgb-daily-playing .fgb-shell,
+body.fgb-daily-playing main.fgb-shell {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: min(1080px, calc(100% - 1rem));
+  height: 100%;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  padding: 0.45rem 0 0.55rem;
+}
+body.fgb-daily-playing .fgb-topbar {
+  display: none;
+}
+body.fgb-daily-playing #play {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+}
+body.fgb-daily-playing .fgb-hud {
+  flex: 0 0 auto;
+  margin-bottom: 0.45rem;
+  gap: 0.45rem;
+  padding: 0.55rem 0.75rem;
+}
+body.fgb-daily-playing .fgb-frame {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  /* height:auto 时子 iframe 的 height:100% 会失效，必须绝对铺满 */
+  position: relative;
+}
+body.fgb-daily-playing .fgb-frame iframe {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
   .fgb-shell,
   main.fgb-shell { padding: 0.85rem 0 1rem; }
   .fgb-hud { margin-bottom: 0.45rem; gap: 0.45rem; }
-  .fgb-frame { height: calc(100dvh - 7.5rem); min-height: 240px; }
+  .fgb-frame {
+    height: calc(100vh - 7.5rem);
+    height: calc(100dvh - 7.5rem);
+    min-height: 240px;
+  }
+  body.fgb-daily-playing .fgb-shell,
+  body.fgb-daily-playing main.fgb-shell { padding: 0.3rem 0 0.35rem; }
+  body.fgb-daily-playing .fgb-frame { min-height: 0; height: auto; }
 }
 
 @media (max-width: 560px) {
@@ -569,6 +636,86 @@ a:hover { color: #6fe0ab; }
 .fgb-game-row .meta { color: var(--muted); font-size: 0.85rem; margin: 0.2rem 0 0; }
 .fgb-game-row .go { color: var(--accent); font-weight: 600; font-size: 0.9rem; white-space: nowrap; }
 .fgb-game-row.is-muted { opacity: 0.72; }
+
+/* 自由训练：小卡片铺满 */
+.fgb-grid-train {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  position: relative;
+  z-index: 1;
+}
+.fgb-train-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.35rem;
+  min-height: 5.1rem;
+  padding: 0.8rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  text-decoration: none;
+  color: inherit;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.fgb-train-card:hover {
+  border-color: rgba(62, 207, 142, 0.45);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.32);
+}
+.fgb-train-card strong {
+  font-size: 0.98rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.fgb-train-card .meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+.fgb-train-card .go {
+  margin-top: auto;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+.fgb-train-card.is-muted { opacity: 0.72; }
+.fgb-train-card.is-locked {
+  opacity: 0.5;
+  pointer-events: none;
+  filter: grayscale(0.25);
+}
+.fgb-train-card.is-ref {
+  opacity: 1;
+  background: rgba(12, 20, 18, 0.55);
+  border-style: dashed;
+  border-color: rgba(232, 242, 236, 0.22);
+  box-shadow: none;
+}
+.fgb-train-card.is-ref:hover {
+  border-color: rgba(143, 163, 153, 0.55);
+  border-style: dashed;
+  box-shadow: none;
+  transform: translateY(-1px);
+}
+.fgb-train-card.is-ref strong {
+  color: var(--muted);
+  font-weight: 600;
+}
+.fgb-train-card.is-ref .meta { color: rgba(143, 163, 153, 0.9); }
+.fgb-train-card.is-ref .go {
+  color: var(--muted);
+  font-weight: 600;
+}
+@media (min-width: 900px) {
+  .fgb-grid-train { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; }
+}
+@media (max-width: 420px) {
+  .fgb-grid-train { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 .fgb-podium-list {
   list-style: none;

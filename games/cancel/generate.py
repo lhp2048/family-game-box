@@ -51,12 +51,12 @@ EXTRA_CSS = r"""
 }
 .grid-wrap {
   overflow: auto;
-  max-height: min(62dvh, 640px);
+  max-height: min(82vmin, 720px);
   display: flex;
   justify-content: center;
 }
 .grid-cells.dense {
-  width: min(100%, 62dvh, 560px);
+  width: min(100%, 82vmin, 640px);
   margin: 0;
 }
 .grid-cells.dense button {
@@ -72,8 +72,8 @@ EXTRA_CSS = r"""
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
   .target-bar { margin-bottom: .35rem; font-size: 1rem; }
   .target-bar strong { font-size: 1.25rem; }
-  .grid-wrap { max-height: min(58dvh, 520px); }
-  .grid-cells.dense { width: min(100%, 58dvh, 640px); }
+  .grid-wrap { max-height: min(86vmin, 720px); }
+  .grid-cells.dense { width: min(100%, 86vmin, 720px); }
 }
 """
 

@@ -62,14 +62,14 @@
 
   <h1 class="fgb-page-title">每日挑战榜</h1>
   <p class="fgb-lead" id="date-label">今日成绩 · 通关优先，其次完成关数，再比总用时</p>
-  <p class="fgb-lead" id="combo-hint" style="margin-top:-.5rem;font-size:.9rem">挑战单号用于区分同日不同组合（如管理员重生成）。</p>
+  <p class="fgb-lead" id="combo-hint" style="margin-top:-.5rem;font-size:.9rem">挑战名如「今日挑战#1」表示当日第几次组合（管理员重生成会递增）。</p>
 
   <div class="fgb-podium hidden" id="podium" aria-label="前三名"></div>
 
   <div class="fgb-panel">
     <table class="fgb-table">
       <thead>
-        <tr><th class="fgb-rank">#</th><th>昵称</th><th>挑战单</th><th>记录</th><th>状态</th><th>完成</th><th>总用时</th></tr>
+        <tr><th class="fgb-rank">#</th><th>昵称</th><th>挑战</th><th>记录</th><th>状态</th><th>完成</th><th>总用时</th></tr>
       </thead>
       <tbody id="rows"><tr><td colspan="6" class="fgb-empty">加载中…</td></tr></tbody>
     </table>
@@ -140,13 +140,13 @@
     }).join("");
   }
 
-  fetch("/api/v1/daily/leaderboard").then(function (r) { return r.json(); }).then(function (data) {
+  fetch(FGB.url("/api/v1/daily/leaderboard")).then(function (r) { return r.json(); }).then(function (data) {
     var curNo = data.currentComboNo || "";
     document.getElementById("date-label").textContent =
       (data.date || "今日") + " · 通关优先，其次完成关数，再比总用时";
     document.getElementById("combo-hint").textContent = curNo
-      ? ("当前挑战单 " + curNo + " · 每人每单只保留「首次」与「最佳」两条")
-      : "每人每单只保留首次与最佳记录；挑战单号区分同日不同组合";
+      ? ("当前 " + curNo + " · 每人每场只保留「首次」与「最佳」两条")
+      : "每人每场只保留首次与最佳记录；「今日挑战#N」区分同日不同组合";
     var tb = document.getElementById("rows");
     tb.innerHTML = "";
     var items = data.items || [];

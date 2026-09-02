@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from app.daily_challenges import ensure_today, get_current, local_today
+from app.daily_challenges import combo_display_name, ensure_today, get_current, local_today
 from app.storage import load_json, save_json
 from app.terminals import get_terminal
 
@@ -169,11 +169,8 @@ def patch_run(terminal_id: str, run_id: str, body: Dict[str, Any]) -> Dict[str, 
 
 
 def _combo_no(combo_id: str) -> str:
-    """短单号：去掉横线后取前 8 位大写，便于同榜区分不同挑战组合。"""
-    raw = str(combo_id or "").replace("-", "")
-    if not raw:
-        return ""
-    return raw[:8].upper()
+    """易记挑战名（今日挑战#N）；旧数据回退短单号。"""
+    return combo_display_name(combo_id)
 
 
 def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:

@@ -40,12 +40,12 @@ EXTRA_CSS = r"""
   border-radius: 14px;
   background: rgba(255,255,255,.04);
 }
-.sudoku-wrap { width: min(100%, 400px, 52dvh); margin: 0 auto; }
+.sudoku-wrap { width: min(100%, 480px, 82vmin); margin: 0 auto; }
 .sudoku {
   display: grid;
   width: 100%;
   aspect-ratio: 1;
-  max-height: min(52dvh, 400px);
+  max-height: min(82vmin, 480px);
   background: #1a2420;
   border: 2.5px solid #1a2420;
   border-radius: 6px;
@@ -162,13 +162,15 @@ EXTRA_CSS = r"""
 }
 .numpad button.clear:hover { background: rgba(255,255,255,.08); }
 
+.play-chrome {
+  margin-top: .55rem;
+  padding-top: .55rem;
+  border-top: 1px solid var(--line);
+}
 .tool-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: .4rem;
-  margin-top: .55rem;
-  padding-top: .55rem;
-  border-top: 1px solid var(--line);
 }
 .tool-row button {
   border: 0;
@@ -188,18 +190,35 @@ EXTRA_CSS = r"""
   color: #062016;
   background: rgba(62,207,142,.35);
 }
-.play-actions { margin-top: .7rem; }
+.play-actions { margin-top: .55rem; }
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
-  .play-card { padding: .55rem .55rem .7rem; }
-  .sudoku-stage { padding: .35rem; margin: 0 0 .4rem; }
-  .sudoku-wrap { width: min(100%, 400px, 46dvh); }
-  .sudoku { max-height: min(46dvh, 400px); }
-  .play-dock { padding: .45rem; }
-  .numpad button { height: 2.15rem; font-size: 1rem; }
-  .numpad.grid-9 button { height: 1.95rem; font-size: .92rem; }
-  .tool-row { margin-top: .4rem; padding-top: .4rem; gap: .3rem; }
-  .tool-row button { padding: .4rem .2rem; font-size: .76rem; }
-  .play-actions { margin-top: .45rem; }
+  .play-card { padding: .45rem .45rem .55rem; }
+  .sudoku-stage { padding: .3rem; margin: 0 0 .3rem; }
+  /* 横屏只收边距，棋盘仍按 vmin 吃满短边，避免被 dvh 再压小 */
+  .sudoku-wrap { width: min(100%, 520px, 86vmin); }
+  .sudoku { max-height: min(86vmin, 520px); }
+  .play-dock { padding: .35rem; }
+  .numpad { gap: .3rem; }
+  .numpad button { height: 1.85rem; font-size: .92rem; }
+  .numpad.grid-9 button { height: 1.7rem; font-size: .85rem; }
+  /* 工具行 + 退出行合成一行，少占一截高度 */
+  .play-chrome {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: .25rem;
+    margin-top: .3rem;
+    padding-top: .3rem;
+  }
+  .tool-row,
+  .play-actions {
+    display: contents;
+  }
+  .tool-row button,
+  .play-actions button {
+    padding: .32rem .1rem;
+    font-size: .7rem;
+    border-radius: 8px;
+  }
 }
 """
 
@@ -262,17 +281,19 @@ BODY = r"""
       </div>
       <div class="play-dock">
         <div class="numpad" id="numpad"></div>
-        <div class="tool-row">
-          <button type="button" id="btn-undo">上一步</button>
-          <button type="button" id="btn-redo">下一步</button>
-          <button type="button" id="btn-check" class="tool-accent">检查</button>
-          <button type="button" id="btn-hint" class="tool-accent">提示</button>
+        <div class="play-chrome">
+          <div class="tool-row">
+            <button type="button" id="btn-undo">上一步</button>
+            <button type="button" id="btn-redo">下一步</button>
+            <button type="button" id="btn-check" class="tool-accent">检查</button>
+            <button type="button" id="btn-hint" class="tool-accent">提示</button>
+          </div>
+          <div class="actions play-actions">
+            <button type="button" class="danger" id="btn-exit">退出</button>
+            <button type="button" id="btn-restart">重来</button>
+            <button type="button" id="btn-next">下一题</button>
+          </div>
         </div>
-      </div>
-      <div class="actions play-actions">
-        <button type="button" class="danger" id="btn-exit">退出</button>
-        <button type="button" id="btn-restart">重来</button>
-        <button type="button" id="btn-next">下一题</button>
       </div>
     </div>
   </section>

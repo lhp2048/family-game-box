@@ -49,9 +49,10 @@ body::before {
   .target-banner { margin: 0 0 .45rem; font-size: .95rem; }
   .target-banner em { font-size: 1.25rem; }
   .hint { margin: 0 0 .4rem; min-height: 1.1em; }
-  .board { width: min(100%, 420px, 46dvh); max-height: min(46dvh, 420px); gap: clamp(.18rem, .8vw, .35rem); }
+  .board { width: min(100%, 520px, 86vmin); max-height: min(86vmin, 520px); gap: clamp(.18rem, .8vw, .35rem); }
   .cell { font-size: clamp(.75rem, 2.8vw, 1.15rem); border-radius: 8px; }
-  .actions button { padding: .55rem .25rem; }
+  .actions { margin-top: .3rem; gap: .35rem; }
+  .actions button { padding: .35rem .2rem; font-size: .82rem; border-radius: 10px; }
 }
 h1 {
   font-family: var(--display);
@@ -171,8 +172,8 @@ h1 {
   display: grid;
   gap: clamp(.28rem, 1.2vw, .45rem);
   margin: 0 auto;
-  width: min(100%, 420px, 52dvh);
-  max-height: min(52dvh, 420px);
+  width: min(100%, 480px, 82vmin);
+  max-height: min(82vmin, 480px);
   aspect-ratio: 1 / 1;
   flex: 0 0 auto;
 }

@@ -179,6 +179,7 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
     </div>
   </div>
 </main>
+<script src="/js/fgb-client.js"></script>
 <script src="/js/fgb-ui.js"></script>
 <script>
 (function () {
@@ -248,12 +249,26 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
     else sessionStorage.removeItem(TOKEN_KEY);
   }
 
+  function apiUrl(path) {
+    if (window.FGB && FGB.url) return FGB.url(path);
+    var base = "";
+    if (typeof window.__FGB_BASE__ === "string" && window.__FGB_BASE__) {
+      base = window.__FGB_BASE__.replace(/\/$/, "");
+    } else {
+      var p = (location.pathname || "");
+      if (p === "/game-box" || p.indexOf("/game-box/") === 0) base = "/game-box";
+    }
+    if (!path) return base || "/";
+    if (path.charAt(0) !== "/") path = "/" + path;
+    if (base && (path === base || path.indexOf(base + "/") === 0)) return path;
+    return base + path;
+  }
+
   function api(path, opts) {
     opts = opts || {};
     var headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
     if (opts.admin) headers["X-Admin-Token"] = token();
-    var url = (window.FGB && FGB.url) ? FGB.url(path) : path;
-    return fetch(url, {
+    return fetch(apiUrl(path), {
       method: opts.method || "GET",
       headers: headers,
       body: opts.body ? JSON.stringify(opts.body) : undefined,
@@ -270,11 +285,19 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
   }
 
   function showAuth(hasPassword) {
+    document.getElementById("auth-err").textContent = "";
     document.getElementById("auth-card").classList.remove("hidden");
     document.getElementById("panel").classList.add("hidden");
     document.getElementById("setup-fields").classList.toggle("hidden", hasPassword);
     document.getElementById("login-fields").classList.toggle("hidden", !hasPassword);
     document.getElementById("auth-title").textContent = hasPassword ? "登录" : "首次设置密码";
+  }
+
+  function authFailMessage(e) {
+    var msg = (e && e.message) || "";
+    if (e && e.status === 404) return "接口未找到，请确认游戏盒服务已启动";
+    if (/^not found$/i.test(msg)) return "接口未找到，请确认游戏盒服务已启动";
+    return msg || "操作失败";
   }
 
   function showPanel() {
@@ -516,7 +539,10 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
       fillAddGames();
       renderStages();
       var combo = arr[2];
-      var lines = ["日期 " + combo.date + " · " + combo.source + " · " + combo.comboId];
+      var lines = [
+        (combo.label || ("今日挑战#" + (combo.daySeq || "?"))) +
+          " · 日期 " + combo.date + " · " + combo.source + " · " + combo.comboId
+      ];
       (combo.stages || []).forEach(function (s, i) {
         lines.push((i + 1) + ". " + s.title + " · " + (s.tierLabel || s.tier) + " · seed " + s.seed);
       });
@@ -525,7 +551,9 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
       ul.innerHTML = "";
       (arr[3].history || []).forEach(function (h) {
         var li = document.createElement("li");
-        li.textContent = h.date + " · " + (h.source || "") + " · " + (h.stages || []).length + " 关 · " + h.comboId;
+        li.textContent =
+          (h.label || ("今日挑战#" + (h.daySeq || "?"))) +
+          " · " + h.date + " · " + (h.source || "") + " · " + (h.stages || []).length + " 关 · " + h.comboId;
         ul.appendChild(li);
       });
       if (!(arr[3].history || []).length) {
@@ -616,7 +644,7 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
     api("/api/v1/admin/setup", { method: "POST", body: { password: a } }).then(function (data) {
       setToken(data.token);
       showPanel();
-    }).catch(function (e) { err.textContent = e.message || "设置失败"; });
+    }).catch(function (e) { err.textContent = authFailMessage(e); });
   });
 
   document.getElementById("btn-login").addEventListener("click", function () {
@@ -625,7 +653,7 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
     api("/api/v1/admin/login", { method: "POST", body: { password: document.getElementById("pw-login").value } }).then(function (data) {
       setToken(data.token);
       showPanel();
-    }).catch(function (e) { err.textContent = e.message || "登录失败"; });
+    }).catch(function (e) { err.textContent = authFailMessage(e); });
   });
 
   document.getElementById("btn-logout").addEventListener("click", function () {

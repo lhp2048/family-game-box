@@ -72,8 +72,8 @@ def test_start_exit_and_finish_leaderboard():
     assert board["items"][0]["nickname"] == "乙"
     assert board["items"][0]["status"] == "finished"
     assert board["items"][1]["status"] == "exited"
-    assert board["items"][0].get("comboNo")
-    assert board.get("currentComboNo")
+    assert board["items"][0].get("comboNo") == "今日挑战#1"
+    assert board.get("currentComboNo") == "今日挑战#1"
     assert board["items"][0]["isCurrentCombo"] is True
     assert board["items"][0].get("recordKind") in ("first", "best", "first+best")
 

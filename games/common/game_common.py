@@ -242,6 +242,8 @@ h1 em { font-style: italic; color: var(--accent); }
 }
 .grid-wrap { overflow: auto; max-height: min(82vmin, 720px); }
 .grid-cells button, .grid-cells .cell {
+  -webkit-appearance: none;
+  appearance: none;
   border: 1px solid var(--line);
   border-radius: 6px;
   background: rgba(232,242,236,.08);
@@ -249,13 +251,15 @@ h1 em { font-style: italic; color: var(--accent); }
   font: inherit;
   font-weight: 600;
   aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  /* Safari：button+flex 会多出一块空壳，改用 grid 居中 */
+  display: grid;
+  place-items: center;
   cursor: pointer;
   padding: 0;
+  margin: 0;
   min-height: 0;
   min-width: 0;
+  line-height: 1;
 }
 .grid-cells button.marked {
   background: rgba(62,207,142,.18);

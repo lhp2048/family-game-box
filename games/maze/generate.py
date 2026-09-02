@@ -31,9 +31,11 @@ EXTRA_CSS = r"""
 .maze-wrap {
   display: flex;
   justify-content: center;
+  align-items: center;
   margin: .5rem 0;
   overflow: auto;
-  max-height: min(82vmin, 720px);
+  max-height: min(90vmin, 920px);
+  min-height: min(62vmin, 560px);
   width: 100%;
 }
 .maze {
@@ -84,7 +86,11 @@ EXTRA_CSS = r"""
   opacity: .85;
 }
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
-  .maze-wrap { max-height: min(86vmin, 720px); margin: .3rem 0; }
+  .maze-wrap {
+    max-height: min(88vmin, 860px);
+    min-height: min(48vmin, 400px);
+    margin: .3rem 0;
+  }
   .stat-pills { margin-bottom: .3rem; gap: .65rem; font-size: .82rem; }
 }
 """
@@ -398,12 +404,26 @@ SCRIPT = r"""
   function renderMaze() {
     var el = document.getElementById("maze");
     var wrap = document.querySelector(".maze-wrap");
-    var availW = (wrap && wrap.clientWidth) ? wrap.clientWidth - 8 : 480;
-    var availH = Math.min(
-      (wrap && wrap.clientHeight) ? wrap.clientHeight - 8 : 560,
-      Math.floor(Math.min(window.innerWidth || 900, window.innerHeight || 700) * 0.86)
-    );
-    var cell = Math.max(10, Math.min(32, Math.floor(Math.min(availW, availH) / maze.size)));
+    var pad = 12;
+    var availW = (wrap && wrap.clientWidth) ? wrap.clientWidth - pad : 640;
+    // 用视口剩余高度，避免按当前小迷宫高度回算导致一直偏小
+    var vh = window.innerHeight || 700;
+    var wrapTop = wrap ? wrap.getBoundingClientRect().top : 120;
+    var actions = document.querySelector("#view-play .actions");
+    var bottom = 72;
+    if (actions) {
+      var ar = actions.getBoundingClientRect();
+      bottom = Math.max(56, Math.ceil(vh - ar.top) + 8);
+    }
+    var cssMax = Math.floor(Math.min(vh, window.innerWidth || vh) * 0.9);
+    var availH = Math.max(220, Math.min(cssMax, Math.floor(vh - wrapTop - bottom)));
+    if (wrap) {
+      var mh = parseFloat(window.getComputedStyle(wrap).maxHeight);
+      if (mh > 0) availH = Math.min(availH, Math.floor(mh) - pad);
+    }
+    var side = Math.min(availW, availH);
+    // 原上限 32px 在 Mac 大屏上会把迷宫锁得很小；按可用空间缩放，软顶 56
+    var cell = Math.max(10, Math.min(56, Math.floor(side / maze.size)));
     el.style.setProperty("--cell", cell + "px");
     el.style.gridTemplateColumns = "repeat(" + maze.size + ", var(--cell))";
     el.innerHTML = "";

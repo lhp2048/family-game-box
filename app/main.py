@@ -248,8 +248,16 @@ def _register_routes(api: APIRouter) -> None:
             raise _map_exc(exc) from exc
 
     @api.get("/api/v1/daily/leaderboard")
-    async def daily_leaderboard(date: Optional[str] = None, limit: int = 50):
-        return daily_runs_mod.leaderboard(date=date, limit=min(max(limit, 1), 100))
+    async def daily_leaderboard(
+        date: Optional[str] = None,
+        comboId: Optional[str] = None,
+        limit: int = 50,
+    ):
+        return daily_runs_mod.leaderboard(
+            date=date,
+            combo_id=comboId,
+            limit=min(max(limit, 1), 100),
+        )
 
     @api.get("/api/v1/lobby/summary")
     async def lobby_summary(x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id")):

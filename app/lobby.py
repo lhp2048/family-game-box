@@ -37,14 +37,21 @@ def _load_runs() -> Dict[str, Any]:
     return load_json("daily_runs.json", {"version": 1, "runs": {}})
 
 
-def _runs_for_terminal(day: str, terminal_id: str) -> List[Dict[str, Any]]:
+def _runs_for_terminal(
+    day: str,
+    terminal_id: str,
+    combo_id: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     out: List[Dict[str, Any]] = []
+    want = str(combo_id or "")
     for run in (_load_runs().get("runs") or {}).values():
         if not isinstance(run, dict):
             continue
         if run.get("date") != day:
             continue
         if run.get("terminalId") != terminal_id:
+            continue
+        if want and str(run.get("comboId") or "") != want:
             continue
         out.append(run)
     return out
@@ -98,6 +105,7 @@ def _build_me(
     stage_count: int,
     items: List[Dict[str, Any]],
     podium: List[Dict[str, Any]],
+    combo_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     empty = {
         "nickname": None,
@@ -112,7 +120,7 @@ def _build_me(
         return empty
     term = get_terminal(terminal_id)
     nickname = (term or {}).get("nickname") or None
-    runs = _runs_for_terminal(day, terminal_id)
+    runs = _runs_for_terminal(day, terminal_id, combo_id=combo_id)
     running = next((r for r in runs if r.get("status") == "running"), None)
     best = _best_ended_run(runs)
 
@@ -194,8 +202,9 @@ def _build_daily(
 def get_lobby_summary(terminal_id: Optional[str] = None) -> Dict[str, Any]:
     combo = ensure_today()
     day = combo["date"]
+    combo_id = str(combo.get("comboId") or "")
     stage_count = len(combo.get("stages") or [])
-    board = daily_runs.leaderboard(date=day, limit=50)
+    board = daily_runs.leaderboard(date=day, combo_id=combo_id, limit=50)
     items = board.get("items") or []
     podium: List[Dict[str, Any]] = []
     for idx, it in enumerate(items[:3], start=1):
@@ -209,7 +218,7 @@ def get_lobby_summary(terminal_id: Optional[str] = None) -> Dict[str, Any]:
                 "display": _fmt_daily_display(it),
             }
         )
-    me = _build_me(terminal_id, day, stage_count, items, podium)
+    me = _build_me(terminal_id, day, stage_count, items, podium, combo_id=combo_id)
     daily = _build_daily(terminal_id, day, stage_count, me)
     recent = scores.latest_for_terminal(terminal_id) if terminal_id else None
     return {

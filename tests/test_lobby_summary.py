@@ -75,6 +75,25 @@ def test_summary_podium_and_gap():
     assert data["daily"]["myProgressLabel"] == "已通关"
 
 
+def test_summary_podium_only_current_combo():
+    first = dc.ensure_today()
+    t1, t2 = _tid(), _tid()
+    register_terminal(t1, "甲")
+    register_terminal(t2, "乙")
+    _finish_run(t1, total_base_ms=1000)
+    dc.regenerate()
+    _finish_run(t2, total_base_ms=1000)
+    data = lobby.get_lobby_summary(t2)
+    names = [p["nickname"] for p in data["podium"]]
+    assert "乙" in names
+    assert "甲" not in names
+    assert data["me"]["dailyStatus"] == "finished"
+    # 旧挑战成绩不影响当前场「我的」状态
+    data_old_player = lobby.get_lobby_summary(t1)
+    assert data_old_player["me"]["dailyStatus"] == "absent"
+    assert first["comboId"] != dc.get_current()["comboId"]
+
+
 def test_summary_recent_score():
     dc.ensure_today()
     tid = _tid()

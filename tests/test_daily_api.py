@@ -62,9 +62,13 @@ def test_admin_setup_template_regenerate():
 def test_leaderboard_and_pages():
     r = client.get(url("/api/v1/daily/leaderboard"))
     assert r.status_code == 200
-    assert "items" in r.json()
+    body = r.json()
+    assert "items" in body
+    assert "combos" in body
     assert client.get(url("/daily")).status_code == 200
     assert client.get(url("/daily/leaderboard")).status_code == 200
+    page = client.get(url("/daily/leaderboard")).text
+    assert "combo-tabs" in page
     assert client.get(url("/admin")).status_code == 200
     admin = client.get(url("/admin")).text
     assert "管理" in admin

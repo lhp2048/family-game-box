@@ -148,6 +148,34 @@ def find_combo(combo_id: str) -> Optional[Dict[str, Any]]:
     return None
 
 
+def list_combos_for_date(day: str) -> List[Dict[str, Any]]:
+    """当日挑战列表，最新（daySeq 大）在前。"""
+    day = str(day or "")
+    data = _load()
+    out: List[Dict[str, Any]] = []
+    seen = set()
+    cur = data.get("current")
+    if isinstance(cur, dict) and cur.get("date") == day and cur.get("comboId"):
+        out.append(cur)
+        seen.add(str(cur.get("comboId")))
+    for h in data.get("history") or []:
+        if not isinstance(h, dict):
+            continue
+        if h.get("date") != day:
+            continue
+        cid = str(h.get("comboId") or "")
+        if not cid or cid in seen:
+            continue
+        out.append(h)
+        seen.add(cid)
+
+    def _key(c: Dict[str, Any]):
+        return (int(c.get("daySeq") or 0), str(c.get("createdAt") or ""))
+
+    out.sort(key=_key, reverse=True)
+    return out
+
+
 def combo_display_name(combo_id: str) -> str:
     """榜单/UI 用的易记名；旧数据无 daySeq 时回退短单号。"""
     combo = find_combo(combo_id)

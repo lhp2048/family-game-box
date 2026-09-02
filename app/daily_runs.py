@@ -4,7 +4,13 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from app.daily_challenges import combo_display_name, ensure_today, get_current, local_today
+from app.daily_challenges import (
+    combo_display_name,
+    ensure_today,
+    get_current,
+    list_combos_for_date,
+    local_today,
+)
 from app.storage import load_json, save_json
 from app.terminals import get_terminal, nickname_lookup, resolve_nickname
 
@@ -173,7 +179,54 @@ def _combo_no(combo_id: str) -> str:
     return combo_display_name(combo_id)
 
 
-def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
+def _combos_payload(day: str, current_combo: str, run_combo_ids: set) -> List[Dict[str, Any]]:
+    """当日可选挑战：元数据优先，缺失的用成绩里出现过的 comboId 补齐。"""
+    known = list_combos_for_date(day)
+    seen = {str(c.get("comboId") or "") for c in known}
+    current_combo = str(current_combo or "")
+    out: List[Dict[str, Any]] = []
+    for c in known:
+        cid = str(c.get("comboId") or "")
+        if not cid:
+            continue
+        out.append(
+            {
+                "comboId": cid,
+                "comboNo": _combo_no(cid),
+                "daySeq": int(c.get("daySeq") or 0),
+                "isCurrent": bool(cid == current_combo),
+            }
+        )
+    for cid in sorted(run_combo_ids):
+        if not cid or cid in seen:
+            continue
+        out.append(
+            {
+                "comboId": cid,
+                "comboNo": _combo_no(cid),
+                "daySeq": 0,
+                "isCurrent": bool(cid == current_combo),
+            }
+        )
+        seen.add(cid)
+    if not out and current_combo:
+        out.append(
+            {
+                "comboId": current_combo,
+                "comboNo": _combo_no(current_combo),
+                "daySeq": 0,
+                "isCurrent": True,
+            }
+        )
+    return out
+
+
+def leaderboard(
+    date: Optional[str] = None,
+    combo_id: Optional[str] = None,
+    limit: int = 50,
+) -> Dict[str, Any]:
+    """按单场挑战出榜。未传 comboId 时默认当日最新（current）。"""
     day = date or local_today()
     cur = get_current()
     if isinstance(cur, dict) and cur.get("date") == day and cur.get("comboId"):
@@ -183,8 +236,8 @@ def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
     else:
         current_combo = ""
 
-    # 先按 (terminalId, comboId) 分组，标首次/最佳，再展平进榜
-    groups: Dict[str, List[Dict[str, Any]]] = {}
+    day_runs: List[Dict[str, Any]] = []
+    run_combo_ids = set()
     for run in (_load().get("runs") or {}).values():
         if not isinstance(run, dict):
             continue
@@ -192,10 +245,27 @@ def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
             continue
         if run.get("status") == "running":
             continue
-        tid = str(run.get("terminalId") or "")
         cid = str(run.get("comboId") or "")
-        key = tid + "|" + cid
-        groups.setdefault(key, []).append(run)
+        if cid:
+            run_combo_ids.add(cid)
+        day_runs.append(run)
+
+    combos = _combos_payload(day, current_combo, run_combo_ids)
+    selected = str(combo_id or "").strip()
+    if not selected:
+        selected = current_combo
+    if not selected and combos:
+        selected = str(combos[0].get("comboId") or "")
+
+    # 只排所选挑战；按 terminalId 分组标首次/最佳
+    groups: Dict[str, List[Dict[str, Any]]] = {}
+    if selected:
+        for run in day_runs:
+            cid = str(run.get("comboId") or "")
+            if cid != selected:
+                continue
+            tid = str(run.get("terminalId") or "")
+            groups.setdefault(tid, []).append(run)
 
     nicks = nickname_lookup()
     items: List[Dict[str, Any]] = []
@@ -236,7 +306,10 @@ def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
     items.sort(key=_key)
     return {
         "date": day,
+        "comboId": selected,
+        "comboNo": _combo_no(selected) if selected else "",
         "currentComboId": current_combo,
-        "currentComboNo": _combo_no(current_combo),
+        "currentComboNo": _combo_no(current_combo) if current_combo else "",
+        "combos": combos,
         "items": items[: max(1, min(limit, 100))],
     }

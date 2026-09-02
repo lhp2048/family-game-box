@@ -146,3 +146,31 @@ def test_leaderboard_nickname_follows_rename():
     board2 = dr.leaderboard()
     mine2 = [it for it in board2["items"] if it.get("terminalId") == tid]
     assert mine2 and mine2[0]["nickname"] == "新名"
+
+
+def test_leaderboard_per_combo_default_latest():
+    t1, t2 = _tid(), _tid()
+    register_terminal(t1, "甲")
+    register_terminal(t2, "乙")
+    first = dc.ensure_today()
+    first_id = first["comboId"]
+    _finish_all(t1, total_base_ms=1000)
+
+    second = dc.regenerate()
+    second_id = second["comboId"]
+    assert second_id != first_id
+    _finish_all(t2, total_base_ms=1000)
+
+    default_board = dr.leaderboard()
+    assert default_board["comboId"] == second_id
+    assert default_board["currentComboId"] == second_id
+    assert len(default_board["combos"]) >= 2
+    nicks = {it["nickname"] for it in default_board["items"]}
+    assert "乙" in nicks
+    assert "甲" not in nicks
+
+    old_board = dr.leaderboard(combo_id=first_id)
+    assert old_board["comboId"] == first_id
+    nicks_old = {it["nickname"] for it in old_board["items"]}
+    assert "甲" in nicks_old
+    assert "乙" not in nicks_old

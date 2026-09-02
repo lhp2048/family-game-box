@@ -31,7 +31,7 @@ STROOP_TIER_SUB = {
 EXTRA_CSS = r"""
 .stroop-word {
   font-family: var(--display);
-  font-size: clamp(3rem, 14vw, 4.5rem);
+  font-size: clamp(3.6rem, 16vw, 5.5rem);
   font-weight: 800;
   text-align: center;
   margin: 1.2rem 0 1.4rem;
@@ -39,19 +39,37 @@ EXTRA_CSS = r"""
   min-height: 1.2em;
   -webkit-text-stroke: 0.5px rgba(0,0,0,.12);
 }
+#view-play .task-bar {
+  font-size: clamp(1.15rem, 3.6vw, 1.45rem);
+  padding: .85rem 1rem;
+  letter-spacing: .02em;
+}
+#view-play .hint {
+  font-size: clamp(1rem, 2.8vw, 1.2rem);
+  margin: .35rem 0 .75rem;
+}
 .color-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: .55rem;
+  gap: .65rem;
+  max-width: min(100%, 520px);
+  margin: 0 auto;
 }
 .color-grid button {
   border: 2px solid var(--line);
   border-radius: 14px;
-  padding: .85rem .2rem;
+  padding: 0;
   font: inherit;
-  font-weight: 700;
+  font-size: clamp(1.25rem, 4vw, 1.65rem);
+  font-weight: 800;
   cursor: pointer;
-  min-height: 48px;
+  aspect-ratio: 1;
+  width: 100%;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  -webkit-appearance: none;
+  appearance: none;
   transition: transform .12s ease;
 }
 .color-grid button:hover { transform: translateY(-1px); }
@@ -66,12 +84,41 @@ EXTRA_CSS = r"""
   margin-top: .75rem;
 }
 .stat-row strong { color: var(--ink); }
+.voice-row {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 .35rem;
+}
+.voice-row button {
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,.04);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: .35rem .75rem;
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.voice-row button.is-on {
+  color: var(--accent);
+  border-color: rgba(62,207,142,.45);
+  background: rgba(62,207,142,.12);
+}
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
   .stroop-word {
-    font-size: clamp(2.2rem, 8vw, 3.2rem);
+    font-size: clamp(2.6rem, 10vw, 3.8rem);
     margin: .55rem 0 .7rem;
   }
-  .color-grid button { padding: .6rem .15rem; min-height: 42px; }
+  #view-play .task-bar {
+    font-size: clamp(1.05rem, 2.8vw, 1.25rem);
+    padding: .55rem .75rem;
+  }
+  .color-grid {
+    gap: .5rem;
+    max-width: min(100%, 440px);
+  }
+  .color-grid button { font-size: clamp(1.1rem, 3.2vw, 1.35rem); }
   .stat-row { margin-top: .4rem; gap: .65rem; font-size: .82rem; }
 }
 """
@@ -126,6 +173,9 @@ BODY = r"""
     <div class="task-bar" id="task-bar">请选字的颜色，不要读字</div>
     <p class="hint" id="play-hint">看颜色，点下方色块</p>
     <div class="card">
+      <div class="voice-row">
+        <button type="button" class="is-on" id="btn-voice" aria-pressed="true">语音：开</button>
+      </div>
       <div class="stroop-word" id="stroop-word">—</div>
       <div class="color-grid" id="color-grid"></div>
       <div class="stat-row">
@@ -246,6 +296,49 @@ SCRIPT = r"""
   var hintEl = document.getElementById("play-hint");
   var progressEl = document.getElementById("play-progress");
   var labelEl = document.getElementById("play-label");
+  var voiceBtn = document.getElementById("btn-voice");
+  var voiceOn = true;
+  try {
+    var savedVoice = localStorage.getItem("fgb_stroop_voice");
+    if (savedVoice === "0") voiceOn = false;
+  } catch (e) {}
+
+  function syncVoiceBtn() {
+    if (!voiceBtn) return;
+    voiceBtn.textContent = voiceOn ? "语音：开" : "语音：关";
+    voiceBtn.classList.toggle("is-on", voiceOn);
+    voiceBtn.setAttribute("aria-pressed", voiceOn ? "true" : "false");
+  }
+  syncVoiceBtn();
+
+  function stopSpeak() {
+    try {
+      if (window.speechSynthesis) speechSynthesis.cancel();
+    } catch (e) {}
+  }
+
+  /** 播报字义（如「白」→「白色」），干扰读字、强化选色任务 */
+  function speakWordLabel(label) {
+    stopSpeak();
+    if (!voiceOn || !label || !window.speechSynthesis) return;
+    try {
+      var u = new SpeechSynthesisUtterance(String(label) + "色");
+      u.lang = "zh-CN";
+      u.rate = 1.05;
+      u.pitch = 1;
+      speechSynthesis.speak(u);
+    } catch (e) {}
+  }
+
+  if (voiceBtn) {
+    voiceBtn.addEventListener("click", function () {
+      voiceOn = !voiceOn;
+      try { localStorage.setItem("fgb_stroop_voice", voiceOn ? "1" : "0"); } catch (e) {}
+      syncVoiceBtn();
+      if (!voiceOn) stopSpeak();
+      else if (currentTrial && currentTrial.word) speakWordLabel(currentTrial.word);
+    });
+  }
 
   function avg(arr) {
     if (!arr.length) return null;
@@ -321,6 +414,7 @@ SCRIPT = r"""
     hintEl.textContent = "看颜色，点下方色块";
     trialStart = performance.now();
     waiting = false;
+    speakWordLabel(currentTrial.word);
   }
 
   function setHint(text, cls) {
@@ -405,6 +499,7 @@ SCRIPT = r"""
 
   function finishChallenge() {
     stopTimer();
+    stopSpeak();
     var elapsed = Date.now() - startedAt;
     document.getElementById("st-total").textContent = String(total);
     document.getElementById("st-correct").textContent = String(correct);
@@ -447,6 +542,7 @@ SCRIPT = r"""
   document.getElementById("btn-exit").addEventListener("click", function () {
     function doExit() {
       stopTimer();
+      stopSpeak();
       if (mode === "challenge" && total > 0) finishChallenge();
       else if (mode === "casual" && total > 0 && typeof fgbSubmitScore === "function") {
         fgbSubmitScore({
@@ -463,8 +559,8 @@ SCRIPT = r"""
     doExit();
   });
   document.getElementById("btn-next").addEventListener("click", showTrial);
-  document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
-  document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
+  document.getElementById("btn-again").addEventListener("click", function () { stopSpeak(); showView(views, "setup"); });
+  document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); stopSpeak(); showView(views, "home"); });
 
   ensureDifficulty(function () {
     if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {

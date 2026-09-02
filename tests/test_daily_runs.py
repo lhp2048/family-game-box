@@ -131,3 +131,18 @@ def test_keep_first_and_best_only():
     assert len(mine_board) == 2
     kinds = {it["recordKind"] for it in mine_board}
     assert kinds == {"first", "best"}
+
+
+def test_leaderboard_nickname_follows_rename():
+    tid = _tid()
+    register_terminal(tid, "旧名")
+    dc.ensure_today()
+    _finish_all(tid, total_base_ms=1000)
+    board = dr.leaderboard()
+    mine = [it for it in board["items"] if it.get("terminalId") == tid]
+    assert mine and mine[0]["nickname"] == "旧名"
+
+    register_terminal(tid, "新名")
+    board2 = dr.leaderboard()
+    mine2 = [it for it in board2["items"] if it.get("terminalId") == tid]
+    assert mine2 and mine2[0]["nickname"] == "新名"

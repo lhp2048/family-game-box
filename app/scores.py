@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 from app.rank_config import GAME_TIERS, RANKABLE_GAMES, tier_label
 from app.score_rules import format_display, rank_score
 from app.storage import load_json, save_json
-from app.terminals import get_terminal, touch_terminal, validate_terminal_id
+from app.terminals import get_terminal, nickname_lookup, resolve_nickname, touch_terminal, validate_terminal_id
 
 _MAX_ENTRIES = 5000
 _LEADERBOARD_LIMIT = 50
@@ -162,6 +162,7 @@ def get_leaderboard(game_id: str, mode: str, tier: str, limit: int = 20) -> Dict
         raise ValueError("invalid tier for game")
     entries = _load_entries()
     board = leaderboard_entries(entries, game_id, mode, tier, limit=limit)
+    nicks = nickname_lookup()
     return {
         "gameId": game_id,
         "mode": mode,
@@ -170,7 +171,11 @@ def get_leaderboard(game_id: str, mode: str, tier: str, limit: int = 20) -> Dict
         "items": [
             {
                 "rank": idx,
-                "nickname": item.get("nickname", ""),
+                "nickname": resolve_nickname(
+                    str(item.get("terminalId", "")),
+                    fallback=str(item.get("nickname", "")),
+                    lookup=nicks,
+                ),
                 "terminalId": item.get("terminalId", ""),
                 "display": item.get("display", ""),
                 "score": item.get("score", 0),
@@ -220,12 +225,17 @@ def global_leaderboard_entries(
 def get_global_leaderboard(limit: int = 50) -> Dict[str, Any]:
     entries = _load_entries()
     board = global_leaderboard_entries(entries, limit=limit)
+    nicks = nickname_lookup()
     return {
         "kind": "global",
         "items": [
             {
                 "rank": idx,
-                "nickname": item.get("nickname", ""),
+                "nickname": resolve_nickname(
+                    str(item.get("terminalId", "")),
+                    fallback=str(item.get("nickname", "")),
+                    lookup=nicks,
+                ),
                 "terminalId": item.get("terminalId", ""),
                 "display": item.get("display", ""),
                 "playedAt": item.get("playedAt"),
@@ -238,12 +248,17 @@ def get_global_leaderboard(limit: int = 50) -> Dict[str, Any]:
 def get_recent_leaderboard(limit: int = _RECENT_LIMIT) -> Dict[str, Any]:
     entries = _load_entries()
     board = global_leaderboard_entries(entries, limit=limit)
+    nicks = nickname_lookup()
     return {
         "kind": "recent",
         "items": [
             {
                 "rank": idx,
-                "nickname": item.get("nickname", ""),
+                "nickname": resolve_nickname(
+                    str(item.get("terminalId", "")),
+                    fallback=str(item.get("nickname", "")),
+                    lookup=nicks,
+                ),
                 "terminalId": item.get("terminalId", ""),
                 "gameId": item.get("gameId", ""),
                 "gameTitle": _GAME_TITLE.get(item.get("gameId", ""), item.get("gameId", "")),

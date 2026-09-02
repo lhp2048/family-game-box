@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 
 from app.daily_challenges import combo_display_name, ensure_today, get_current, local_today
 from app.storage import load_json, save_json
-from app.terminals import get_terminal
+from app.terminals import get_terminal, nickname_lookup, resolve_nickname
 
 STORE = "daily_runs.json"
 
@@ -197,6 +197,7 @@ def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
         key = tid + "|" + cid
         groups.setdefault(key, []).append(run)
 
+    nicks = nickname_lookup()
     items: List[Dict[str, Any]] = []
     for ended in groups.values():
         kinds = _record_kinds_for_group(ended)
@@ -206,6 +207,7 @@ def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
             if not kind:
                 continue
             cid = str(run.get("comboId") or "")
+            tid = str(run.get("terminalId") or "")
             items.append(
                 {
                     "runId": rid,
@@ -213,8 +215,12 @@ def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
                     "comboNo": _combo_no(cid),
                     "isCurrentCombo": bool(cid and cid == current_combo),
                     "recordKind": kind,
-                    "nickname": run.get("nickname"),
-                    "terminalId": run.get("terminalId") or "",
+                    "nickname": resolve_nickname(
+                        tid,
+                        fallback=str(run.get("nickname") or ""),
+                        lookup=nicks,
+                    ),
+                    "terminalId": tid,
                     "status": run.get("status"),
                     "stagesDone": int(run.get("stagesDone") or 0),
                     "totalTimeMs": int(run.get("totalTimeMs") or 0),

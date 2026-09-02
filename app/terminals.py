@@ -45,6 +45,33 @@ def get_terminal(terminal_id: str) -> Optional[Dict[str, Any]]:
     return item
 
 
+def nickname_lookup() -> Dict[str, str]:
+    """terminalId -> 当前昵称（排行榜读时用，避免历史快照不同步）。"""
+    store = load_json("terminals.json", _empty_store())
+    out: Dict[str, str] = {}
+    for tid, item in (store.get("terminals") or {}).items():
+        if isinstance(item, dict):
+            nick = item.get("nickname") or ""
+            if nick:
+                out[str(tid)] = nick
+    return out
+
+
+def resolve_nickname(
+    terminal_id: str,
+    fallback: str = "",
+    lookup: Optional[Dict[str, str]] = None,
+) -> str:
+    """优先当前终端昵称；终端已删时回退成绩/挑战记录里的快照。"""
+    tid = str(terminal_id or "")
+    if lookup is not None:
+        current = lookup.get(tid) or ""
+    else:
+        term = get_terminal(tid) if tid else None
+        current = (term or {}).get("nickname") or ""
+    return current or (fallback or "")
+
+
 def get_me(terminal_id: str) -> Dict[str, Any]:
     item = get_terminal(terminal_id)
     if not item:

@@ -122,3 +122,27 @@ def test_recent_leaderboard():
     assert first["modeLabel"] == "挑战"
     assert "display" in first
     assert "playedAt" in first
+
+
+def test_leaderboard_nickname_follows_rename(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.storage.DATA_DIR", tmp_path)
+    tid = str(uuid.uuid4())
+    from app import scores
+    from app.terminals import register_terminal
+
+    register_terminal(tid, "旧名")
+    scores.submit_score(
+        tid,
+        "stroop",
+        "challenge",
+        "normal",
+        {"correct": 20, "total": 20, "timeMs": 40000},
+    )
+    board = scores.get_leaderboard("stroop", "challenge", "normal")
+    assert board["items"][0]["nickname"] == "旧名"
+
+    register_terminal(tid, "新名")
+    board2 = scores.get_leaderboard("stroop", "challenge", "normal")
+    assert board2["items"][0]["nickname"] == "新名"
+    recent = scores.get_recent_leaderboard(limit=5)
+    assert recent["items"][0]["nickname"] == "新名"

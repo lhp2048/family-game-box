@@ -4,136 +4,115 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>家庭游戏盒</title>
-<style>
-:root { --ink:#1a2421; --muted:#5c6b66; --paper:#f3efe6; --accent:#0f7a5a; --line:rgba(26,36,33,.12); }
-body { margin:0; font-family:"Segoe UI",system-ui,sans-serif; background:radial-gradient(1200px 600px at 10% -10%,#fff8e8,#f3efe6); color:var(--ink); }
-main { max-width:1080px; margin:0 auto; padding:48px 20px 64px; }
-.topbar { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
-.topbar-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-.user-chip { background:rgba(255,252,246,.95); border:1px solid var(--line); border-radius:999px; padding:8px 14px; font-size:.9rem; }
-.user-chip strong { color:var(--accent); }
-.btn-link { color:var(--accent); text-decoration:none; font-size:.9rem; border:1px solid var(--line); background:#fffdf8; padding:8px 14px; border-radius:999px; }
-.btn-link:hover { border-color:rgba(15,122,90,.35); }
-h1 { font-size:2rem; margin:0 0 8px; }
-.lead { color:var(--muted); margin:0 0 32px; }
-.grid { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
-.card { display:block; text-decoration:none; color:inherit; background:rgba(255,252,246,.9); border:1px solid var(--line); border-radius:16px; padding:20px; box-shadow:0 18px 50px rgba(26,36,33,.08); }
-.card h2 { margin:0 0 8px; font-size:1.15rem; }
-.card p { margin:0; color:var(--muted); font-size:.92rem; }
-.card .meta { margin-top:12px; color:var(--accent); font-size:.85rem; }
-.card.is-locked { opacity:.55; pointer-events:none; }
-.card-daily {
-  background: linear-gradient(145deg, #fff4e0 0%, #ffe8c8 55%, #ffd9a8 100%);
-  border: 1.5px solid rgba(196, 110, 28, .45);
-  box-shadow: 0 18px 50px rgba(196, 110, 28, .18);
-  position: relative;
-}
-.card-daily::before {
-  content: "今日";
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  font-size: .72rem;
-  font-weight: 700;
-  letter-spacing: .04em;
-  color: #fff;
-  background: #c46e1c;
-  padding: 3px 8px;
-  border-radius: 999px;
-}
-.card-daily h2 { color: #8a4a12; }
-.card-daily p { color: #7a5a3a; }
-.card-daily .meta { color: #c46e1c; font-weight: 600; }
-.card-daily:hover { border-color: rgba(196, 110, 28, .7); transform: translateY(-1px); }
-.modal { position:fixed; inset:0; background:rgba(26,36,33,.45); display:flex; align-items:center; justify-content:center; padding:20px; z-index:20; }
-.modal.hidden { display:none; }
-.modal-card { width:min(420px,100%); background:#fffdf8; border-radius:18px; padding:24px; box-shadow:0 24px 60px rgba(26,36,33,.18); }
-.modal-card h2 { margin:0 0 8px; }
-.modal-card p { margin:0 0 16px; color:var(--muted); }
-.modal-card input { width:100%; box-sizing:border-box; border:1px solid var(--line); border-radius:12px; padding:12px 14px; font:inherit; margin-bottom:12px; }
-.modal-card button { width:100%; border:0; border-radius:12px; padding:12px 14px; font:inherit; background:var(--accent); color:#fff; cursor:pointer; }
-.err { color:#a33b2d; font-size:.85rem; min-height:1.2em; margin-bottom:8px; }
-</style>
+<link rel="stylesheet" href="/css/fgb-theme.css">
 </head>
 <body>
-<div id="register-modal" class="modal hidden">
-  <div class="modal-card">
+<div id="register-modal" class="fgb-modal hidden">
+  <div class="fgb-modal-card">
     <h2>欢迎来玩</h2>
-    <p>每台设备只需设置一次昵称，用于记录你的最高成绩和排行榜展示。</p>
-    <div class="err" id="register-err"></div>
-    <input id="nickname-input" type="text" maxlength="16" placeholder="输入昵称，例如：小明" autocomplete="nickname">
-    <button type="button" id="register-btn">进入大厅</button>
+    <p>每台设备只需设置一次昵称，用于记录最高成绩和排行榜展示。</p>
+    <div class="fgb-err" id="register-err"></div>
+    <input class="fgb-input" id="nickname-input" type="text" maxlength="16" placeholder="输入昵称，例如：小明" autocomplete="nickname" style="margin-bottom:12px">
+    <button type="button" class="fgb-btn" id="register-btn" style="width:100%">进入大厅</button>
   </div>
 </div>
-<main>
-  <div class="topbar">
+<main class="fgb-shell">
+  <header class="fgb-topbar">
     <div>
-      <h1>家庭游戏盒</h1>
-      <p class="lead">家里的小游戏站，同一 Wi‑Fi 下用浏览器打开即可。</p>
+      <h1 class="fgb-brand">家庭<em>游戏盒</em></h1>
+      <span class="fgb-page-kicker">竞技厅</span>
     </div>
-    <div class="topbar-actions">
-      <div class="user-chip" id="user-chip" hidden>你好，<strong id="user-name">—</strong> <a href="#" id="edit-nick" style="margin-left:8px;color:var(--muted)">修改</a></div>
-      <a class="btn-link" href="/daily/leaderboard">挑战榜</a>
-      <a class="btn-link" href="/leaderboard">排行榜</a>
+    <div class="fgb-nav">
+      <div class="fgb-chip" id="user-chip" hidden>你好，<strong id="user-name">—</strong>
+        <a href="#" id="edit-nick" style="margin-left:6px;color:var(--muted);font-size:.85rem">修改</a>
+      </div>
+      <a class="fgb-nav-link" href="/daily/leaderboard">挑战榜</a>
+      <a class="fgb-nav-link" href="/leaderboard">排行榜</a>
     </div>
-  </div>
-  <div class="grid" id="game-grid">
-    <a class="card card-daily" data-game-id="daily" href="/daily">
+  </header>
+
+  <section class="fgb-stat-strip" id="stat-strip" aria-label="我的战绩">
+    <div class="cell">
+      <div class="label">今日挑战名次</div>
+      <div class="value" id="stat-rank">—</div>
+    </div>
+    <div class="cell">
+      <div class="label">与第 1 名</div>
+      <div class="value" id="stat-gap">—</div>
+    </div>
+    <div class="cell">
+      <div class="label">最近一局</div>
+      <div class="value" id="stat-recent">—</div>
+    </div>
+  </section>
+
+  <section class="fgb-arena-split">
+    <a class="fgb-card fgb-card-daily" href="/daily" id="daily-card">
+      <div class="tag">今日对决</div>
       <h2>每日挑战</h2>
-      <p>串联多款游戏的当日闯关，题面固定，比总用时。</p>
-      <div class="meta">今日组合 · 点此开始</div>
+      <p id="daily-progress">加载中…</p>
+      <span class="fgb-cta-daily" id="daily-cta">开始挑战</span>
     </a>
-    <a class="card" data-game-id="24points" href="games/24points/play.html">
-      <h2>24 点挑战</h2>
-      <p>休闲或计时挑战，练心算与整数四则。</p>
-      <div class="meta">可玩</div>
+    <div class="fgb-panel fgb-panel-pad">
+      <h3 class="fgb-page-kicker" style="margin:0 0 .5rem">今日挑战榜</h3>
+      <ol class="fgb-podium-list" id="podium-list"></ol>
+      <a class="fgb-nav-link" href="/daily/leaderboard">完整榜 →</a>
+    </div>
+  </section>
+
+  <h2 class="fgb-page-title" style="font-size:1.65rem;margin-bottom:.35rem">自由训练</h2>
+  <p class="fgb-lead" style="margin-bottom:.85rem">单机练习，冲击个人最佳。</p>
+  <div id="game-list" class="fgb-grid-train">
+    <a class="fgb-train-card" data-game-id="24points" href="games/24points/play.html">
+      <strong>24 点挑战</strong>
+      <p class="meta">心算与整数四则</p>
+      <span class="go">进入</span>
     </a>
-    <a class="card" data-game-id="schulte" href="games/schulte/">
-      <h2>舒尔特挑战</h2>
-      <p>注意力训练格子挑战。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-train-card" data-game-id="schulte" href="games/schulte/">
+      <strong>舒尔特挑战</strong>
+      <p class="meta">注意力训练</p>
+      <span class="go">进入</span>
     </a>
-    <a class="card" data-game-id="stroop" href="games/stroop/">
-      <h2>Stroop 色字</h2>
-      <p>抗干扰训练，选颜色不读字。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-train-card" data-game-id="stroop" href="games/stroop/">
+      <strong>Stroop 色字</strong>
+      <p class="meta">抗干扰训练</p>
+      <span class="go">进入</span>
     </a>
-    <a class="card" data-game-id="cancel" href="games/cancel/">
-      <h2>划销训练</h2>
-      <p>数字与汉字视觉搜索。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-train-card" data-game-id="cancel" href="games/cancel/">
+      <strong>划销训练</strong>
+      <p class="meta">视觉搜索</p>
+      <span class="go">进入</span>
     </a>
-    <a class="card" data-game-id="simon" href="games/simon/">
-      <h2>Simon Says</h2>
-      <p>老师说，练听觉专注与冲动控制。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-train-card" data-game-id="simon" href="games/simon/">
+      <strong>Simon Says</strong>
+      <p class="meta">听觉专注</p>
+      <span class="go">进入</span>
     </a>
-    <a class="card" data-game-id="spot-diff" href="games/spot-diff/">
-      <h2>找不同</h2>
-      <p>符号矩阵细节观察。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-train-card" data-game-id="spot-diff" href="games/spot-diff/">
+      <strong>找不同</strong>
+      <p class="meta">细节观察</p>
+      <span class="go">进入</span>
     </a>
-    <a class="card" data-game-id="maze" href="games/maze/">
-      <h2>迷宫追踪</h2>
-      <p>路径预判与视觉追踪。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-train-card" data-game-id="maze" href="games/maze/">
+      <strong>迷宫追踪</strong>
+      <p class="meta">路径预判</p>
+      <span class="go">进入</span>
     </a>
-    <a class="card" data-game-id="sudoku" href="games/sudoku/">
-      <h2>数独</h2>
-      <p>四/六/九宫逻辑推理。</p>
-      <div class="meta">可玩</div>
+    <a class="fgb-train-card" data-game-id="sudoku" href="games/sudoku/">
+      <strong>数独</strong>
+      <p class="meta">逻辑推理</p>
+      <span class="go">进入</span>
     </a>
-    <a class="card" data-game-id="24points-library" href="games/24points/library.html">
-      <h2>24 点 · 解法库</h2>
-      <p>浏览整数解与题型，按四数查询或通览有解组合。</p>
-      <div class="meta">查阅</div>
+    <a class="fgb-train-card is-ref" data-game-id="24points-library" href="games/24points/library.html">
+      <strong>24 点 · 解法库</strong>
+      <p class="meta">工具 · 不是对局</p>
+      <span class="go">查阅</span>
     </a>
   </div>
-  <p style="margin-top:28px;text-align:center;color:var(--muted);font-size:.85rem">
-    <a href="/admin" style="color:var(--muted);text-decoration:none">管理</a>
-  </p>
+  <p class="fgb-footer-link"><a href="/admin">管理</a></p>
 </main>
 <script src="/js/fgb-client.js"></script>
+<script src="/js/fgb-ui.js"></script>
 <script>
 (function () {
   var modal = document.getElementById("register-modal");
@@ -141,12 +120,14 @@ h1 { font-size:2rem; margin:0 0 8px; }
   var input = document.getElementById("nickname-input");
   var userChip = document.getElementById("user-chip");
   var userName = document.getElementById("user-name");
-  var grid = document.getElementById("game-grid");
+  var list = document.getElementById("game-list");
 
   function setLocked(locked) {
-    grid.querySelectorAll(".card").forEach(function (card) {
-      if (card.dataset.gameId === "24points-library") return;
-      card.classList.toggle("is-locked", locked);
+    list.querySelectorAll(".fgb-train-card, .fgb-game-row").forEach(function (row) {
+      if (row.dataset.gameId === "24points-library") return;
+      row.classList.toggle("is-locked", locked);
+      if (locked) row.style.pointerEvents = "none";
+      else row.style.pointerEvents = "";
     });
   }
 
@@ -165,6 +146,41 @@ h1 { font-size:2rem; margin:0 0 8px; }
     setLocked(true);
   }
 
+  function renderSummary(s) {
+    if (!s) return;
+    var me = s.me || {};
+    document.getElementById("stat-rank").textContent = me.dailyRank ? ("#" + me.dailyRank) : "未上榜";
+    document.getElementById("stat-gap").textContent = me.gapLabel || "—";
+    var recent = s.recent;
+    document.getElementById("stat-recent").textContent = recent
+      ? ((recent.gameTitle || "") + " · " + (recent.display || ""))
+      : "暂无";
+    document.getElementById("daily-progress").textContent = (s.daily && s.daily.myProgressLabel) || "—";
+    var cta = document.getElementById("daily-cta");
+    var c = (s.daily && s.daily.cta) || "start";
+    cta.textContent = c === "view" ? "查看挑战" : (c === "continue" ? "继续挑战" : "开始挑战");
+    var ol = document.getElementById("podium-list");
+    ol.innerHTML = "";
+    var podium = s.podium || [];
+    if (!podium.length) {
+      ol.innerHTML = "<li style=\"color:var(--muted)\">还没有成绩，去做每日挑战吧</li>";
+      return;
+    }
+    podium.forEach(function (p) {
+      var li = document.createElement("li");
+      var medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
+      var titles = { 1: "冠军", 2: "亚军", 3: "季军" };
+      var medal = medals[p.rank] ? ('<span class="medal">' + medals[p.rank] + "</span>") : "";
+      var title = titles[p.rank] ? (titles[p.rank] + " · ") : (p.rank + ". ");
+      li.innerHTML = "<span>" + medal + title + (p.nickname || "—") + "</span><span>" + (p.display || "") + "</span>";
+      ol.appendChild(li);
+    });
+  }
+
+  function refreshSummary() {
+    return FGB.loadLobbySummary().then(renderSummary);
+  }
+
   function doRegister() {
     var nick = (input.value || "").trim();
     if (!nick) {
@@ -173,6 +189,7 @@ h1 { font-size:2rem; margin:0 0 8px; }
     }
     FGB.register(nick).then(function (data) {
       showUser(data.nickname || nick);
+      refreshSummary();
     }).catch(function (err) {
       errEl.textContent = (err && err.message) || "注册失败";
     });
@@ -192,19 +209,15 @@ h1 { font-size:2rem; margin:0 0 8px; }
     else openRegister(localStorage.getItem("fgb_nickname") || "");
   }).catch(function () {
     openRegister("");
-  });
+  }).then(refreshSummary);
 
-  fetch("/api/v1/games").then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
+  fetch(FGB.url("/api/v1/games")).then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {
     if (!data || !data.games) return;
     data.games.forEach(function (g) {
-      var card = grid.querySelector('[data-game-id="' + g.id + '"]');
-      if (!card || !g.path) return;
-      card.href = (g.path || "").replace(/^\//, "");
-      var meta = card.querySelector(".meta");
-      if (!meta) return;
-      if (g.extra && g.extra.kind === "reference") meta.textContent = "查阅";
-      else if (g.status === "ready") meta.textContent = "可玩";
-      else if (g.status === "coming_soon") meta.textContent = "即将上线";
+      var row = list.querySelector('[data-game-id="' + g.id + '"]');
+      if (!row || !g.path) return;
+      var path = g.path || "";
+      row.href = FGB.url(path.charAt(0) === "/" ? path : "/" + path);
     });
   }).catch(function () {});
 })();

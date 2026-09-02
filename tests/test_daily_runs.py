@@ -72,3 +72,62 @@ def test_start_exit_and_finish_leaderboard():
     assert board["items"][0]["nickname"] == "乙"
     assert board["items"][0]["status"] == "finished"
     assert board["items"][1]["status"] == "exited"
+    assert board["items"][0].get("comboNo") == "今日挑战#1"
+    assert board.get("currentComboNo") == "今日挑战#1"
+    assert board["items"][0]["isCurrentCombo"] is True
+    assert board["items"][0].get("recordKind") in ("first", "best", "first+best")
+
+
+def _finish_all(tid, total_base_ms=1000):
+    run = dr.start_run(tid)
+    n = len(run["stages"])
+    for i in range(n):
+        st = run["stages"][i]
+        action = "finish" if i == n - 1 else "stage_done"
+        dr.patch_run(
+            tid,
+            run["runId"],
+            {
+                "action": action,
+                "stageIndex": i,
+                "timeMs": 800,
+                "totalTimeMs": (i + 1) * total_base_ms,
+                "stage": {
+                    "gameId": st["gameId"],
+                    "tier": st["tier"],
+                    "timeMs": 800,
+                    "completed": True,
+                },
+            },
+        )
+    return run["runId"]
+
+
+def test_keep_first_and_best_only():
+    tid = _tid()
+    register_terminal(tid, "丙")
+    dc.ensure_today()
+    # 首次：慢通关
+    first_id = _finish_all(tid, total_base_ms=3000)
+    # 中间：更快
+    mid_id = _finish_all(tid, total_base_ms=2000)
+    # 最佳：最快
+    best_id = _finish_all(tid, total_base_ms=1000)
+
+    data = dr._load()
+    mine = [
+        r
+        for r in data["runs"].values()
+        if r.get("terminalId") == tid and r.get("status") in ("finished", "exited")
+    ]
+    assert len(mine) == 2
+    ids = {r["runId"] for r in mine}
+    assert first_id in ids
+    assert best_id in ids
+    assert mid_id not in ids
+
+    board = dr.leaderboard()
+    mine_board = [it for it in board["items"] if it.get("nickname") == "丙"]
+    assert len(mine_board) == 2
+    kinds = {it["recordKind"] for it in mine_board}
+    assert kinds == {"first", "best"}

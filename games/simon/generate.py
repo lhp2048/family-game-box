@@ -39,7 +39,7 @@ EXTRA_CSS = r"""
   padding: 1rem;
   margin: .5rem 0 1rem;
   border-radius: 16px;
-  background: rgba(255,253,248,.85);
+  background: rgba(255,255,255,.04);
   border: 1px dashed var(--line);
   line-height: 1.35;
 }
@@ -54,7 +54,8 @@ EXTRA_CSS = r"""
   padding: 1rem .4rem;
   font: inherit;
   font-weight: 700;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
+  color: var(--ink);
   cursor: pointer;
   min-height: 52px;
 }
@@ -70,6 +71,16 @@ EXTRA_CSS = r"""
 .toggles label {
   display: flex; align-items: center; gap: .35rem;
   font-size: .9rem; color: var(--muted);
+}
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .command-box {
+    min-height: 2.4em;
+    padding: .65rem;
+    margin: .25rem 0 .55rem;
+    font-size: clamp(1.15rem, 3.5vw, 1.55rem);
+  }
+  .action-grid button { padding: .7rem .3rem; min-height: 44px; }
+  .feedback { margin-top: .4rem; min-height: 1.2em; }
 }
 """
 
@@ -194,6 +205,21 @@ SCRIPT = r"""
     master: { label: "大师", trials: 50 },
     god: { label: "大神", trials: 60 }
   };
+
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!DIFF[k]) return;
+      Object.assign(DIFF[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("simon").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
 
   function diffLabel(key) {
     var d = DIFF[key];
@@ -323,31 +349,35 @@ SCRIPT = r"""
   }
 
   function startCasual() {
-    mode = "casual";
-    applyDiff();
-    reverse = false;
-    useTts = true;
-    trialIndex = 0;
-    correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
-    document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
-    document.getElementById("btn-next").style.display = "";
-    updateRuleBar();
-    showView(views, "play");
-    nextTrial();
+    ensureDifficulty(function () {
+      mode = "casual";
+      applyDiff();
+      reverse = false;
+      useTts = true;
+      trialIndex = 0;
+      correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
+      document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
+      document.getElementById("btn-next").style.display = "";
+      updateRuleBar();
+      showView(views, "play");
+      nextTrial();
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    applyDiff();
-    reverse = document.getElementById("chk-reverse").checked;
-    useTts = document.getElementById("chk-tts").checked;
-    trialIndex = 0;
-    correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
-    document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
-    document.getElementById("btn-next").style.display = "none";
-    updateRuleBar();
-    showView(views, "play");
-    nextTrial();
+    ensureDifficulty(function () {
+      mode = "challenge";
+      applyDiff();
+      reverse = document.getElementById("chk-reverse").checked;
+      useTts = document.getElementById("chk-tts").checked;
+      trialIndex = 0;
+      correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
+      document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
+      document.getElementById("btn-next").style.display = "none";
+      updateRuleBar();
+      showView(views, "play");
+      nextTrial();
+    });
   }
 
   function finishChallenge() {
@@ -409,14 +439,16 @@ SCRIPT = r"""
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { showView(views, "home"); });
 
-  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
-    var dq = window.__FGB_DAILY_Q__ || {};
-    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
-    if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
-    startChallenge();
-  } else {
-    showView(views, "home");
-  }
+  ensureDifficulty(function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
+      startChallenge();
+    } else {
+      showView(views, "home");
+    }
+  });
 })();
 """
 

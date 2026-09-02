@@ -2,6 +2,7 @@ import uuid
 
 from fastapi.testclient import TestClient
 
+from helpers import url
 from app.main import app
 
 client = TestClient(app)
@@ -14,21 +15,21 @@ def _headers():
 
 def test_register_and_me():
     r = client.post(
-        "/api/v1/terminals/register",
+        url("/api/v1/terminals/register"),
         json={"terminalId": TERMINAL, "nickname": "测试玩家"},
     )
     assert r.status_code == 200
     assert r.json()["registered"] is True
     assert r.json()["nickname"] == "测试玩家"
 
-    me = client.get("/api/v1/terminals/me", headers=_headers())
+    me = client.get(url("/api/v1/terminals/me"), headers=_headers())
     assert me.status_code == 200
     assert me.json()["registered"] is True
 
 
 def test_submit_score_and_leaderboard():
     client.post(
-        "/api/v1/terminals/register",
+        url("/api/v1/terminals/register"),
         json={"terminalId": TERMINAL, "nickname": "测试玩家"},
     )
     payload = {
@@ -37,14 +38,14 @@ def test_submit_score_and_leaderboard():
         "tier": "normal",
         "metrics": {"correct": 28, "total": 30, "timeMs": 58000, "maxStreak": 8},
     }
-    r = client.post("/api/v1/scores", json=payload, headers=_headers())
+    r = client.post(url("/api/v1/scores"), json=payload, headers=_headers())
     assert r.status_code == 200
     body = r.json()
     assert body["ok"] is True
     assert body["isPersonalBest"] is True
 
     board = client.get(
-        "/api/v1/leaderboard",
+        url("/api/v1/leaderboard"),
         params={"gameId": "stroop", "mode": "challenge", "tier": "normal"},
     )
     assert board.status_code == 200
@@ -52,13 +53,13 @@ def test_submit_score_and_leaderboard():
     assert len(items) >= 1
     assert items[0]["nickname"] == "测试玩家"
 
-    bests = client.get("/api/v1/scores/me/bests", headers=_headers())
+    bests = client.get(url("/api/v1/scores/me/bests"), headers=_headers())
     assert bests.status_code == 200
     assert "stroop" in bests.json()["bests"]
 
 
 def test_rank_meta():
-    r = client.get("/api/v1/rank/meta")
+    r = client.get(url("/api/v1/rank/meta"))
     assert r.status_code == 200
     data = r.json()
     assert any(g["id"] == "24points" for g in data["games"])
@@ -70,11 +71,11 @@ def test_rank_meta():
 
 def test_global_leaderboard():
     client.post(
-        "/api/v1/terminals/register",
+        url("/api/v1/terminals/register"),
         json={"terminalId": TERMINAL, "nickname": "测试玩家"},
     )
     client.post(
-        "/api/v1/scores",
+        url("/api/v1/scores"),
         json={
             "gameId": "stroop",
             "mode": "challenge",
@@ -83,7 +84,7 @@ def test_global_leaderboard():
         },
         headers=_headers(),
     )
-    r = client.get("/api/v1/leaderboard/global", params={"limit": 10})
+    r = client.get(url("/api/v1/leaderboard/global"), params={"limit": 10})
     assert r.status_code == 200
     items = r.json()["items"]
     assert len(items) >= 1
@@ -95,11 +96,11 @@ def test_global_leaderboard():
 
 def test_recent_leaderboard():
     client.post(
-        "/api/v1/terminals/register",
+        url("/api/v1/terminals/register"),
         json={"terminalId": TERMINAL, "nickname": "测试玩家"},
     )
     client.post(
-        "/api/v1/scores",
+        url("/api/v1/scores"),
         json={
             "gameId": "stroop",
             "mode": "challenge",
@@ -108,7 +109,7 @@ def test_recent_leaderboard():
         },
         headers=_headers(),
     )
-    r = client.get("/api/v1/leaderboard/recent", params={"limit": 20})
+    r = client.get(url("/api/v1/leaderboard/recent"), params={"limit": 20})
     assert r.status_code == 200
     data = r.json()
     assert data["kind"] == "recent"

@@ -153,20 +153,21 @@ _PLAY_HTML = r'''<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>24 点挑战</title>
+<link rel="stylesheet" href="/css/fgb-theme.css">
 <style>
 :root {
-  --ink: #1a2421;
-  --muted: #5c6b66;
-  --line: rgba(26, 36, 33, 0.14);
-  --paper: #f3efe6;
-  --panel: rgba(255, 252, 246, 0.9);
-  --accent: #0f7a5a;
-  --accent-deep: #0a5240;
-  --warn: #9a4a12;
-  --danger: #a33b2d;
-  --shadow: 0 16px 40px rgba(26, 36, 33, 0.1);
-  --display: Cambria, "Songti SC", "Palatino Linotype", serif;
-  --sans: "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --ink: #e8f2ec;
+  --muted: #8fa399;
+  --line: rgba(232, 242, 236, 0.12);
+  --paper: #0c1411;
+  --panel: rgba(18, 32, 28, 0.88);
+  --accent: #3ecf8e;
+  --accent-deep: #1a9f68;
+  --warn: #e8a04a;
+  --danger: #e07060;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
+  --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
@@ -174,20 +175,37 @@ body {
   font-family: var(--sans);
   color: var(--ink);
   background:
-    radial-gradient(1000px 520px at 8% -8%, rgba(15,122,90,.15), transparent 55%),
-    radial-gradient(800px 420px at 100% 0%, rgba(154,74,18,.09), transparent 50%),
-    linear-gradient(165deg, #efe8d8 0%, var(--paper) 45%, #e7eee9 100%);
+    radial-gradient(900px 480px at 12% -8%, rgba(62, 207, 142, 0.14), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.06), transparent 50%),
+    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
 }
 body::before {
   content: "";
-  position: fixed; inset: 0; pointer-events: none; opacity: .32;
+  position: fixed; inset: 0; pointer-events: none; opacity: .2;
   background-image:
-    linear-gradient(rgba(26,36,33,.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(26,36,33,.03) 1px, transparent 1px);
+    linear-gradient(rgba(232,242,236,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,242,236,.03) 1px, transparent 1px);
   background-size: 28px 28px;
 }
-.wrap { position: relative; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
+.wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
 .hidden { display: none !important; }
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .wrap { padding: .55rem 0 1rem; width: min(560px, calc(100% - 1rem)); }
+  h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); }
+  .sub { margin: 0 0 .65rem; font-size: .88rem; }
+  .card { padding: .75rem; border-radius: 14px; }
+  .topbar { margin-bottom: .45rem; }
+  .hint { margin: 0 0 .4rem; min-height: 1.1em; }
+  .clover-wrap { margin: .15rem 0 .35rem; }
+  .clover { width: min(340px, 78vw, 62vmin); height: min(340px, 78vw, 62vmin); }
+  .leaf { font-size: clamp(1.35rem, 5vw, 1.85rem); }
+  .ops { gap: .3rem; margin-bottom: .3rem; }
+  .ops button { padding: .35rem 0; font-size: 1rem; }
+  .actions { margin-top: .3rem; gap: .35rem; }
+  .actions button { padding: .35rem .2rem; font-size: .82rem; border-radius: 10px; }
+  .expr-board { margin: 0 0 .5rem; padding: .5rem .65rem; min-height: 2em; font-size: .85rem; }
+  .tip { margin: 0 0 .45rem; padding: .4rem .55rem; font-size: .78rem; }
+}
 h1 {
   font-family: var(--display);
   font-size: clamp(2.4rem, 9vw, 3.4rem);
@@ -195,7 +213,7 @@ h1 {
   letter-spacing: -.02em;
   line-height: .95;
 }
-h1 em { font-style: italic; color: var(--accent-deep); }
+h1 em { font-style: italic; color: var(--accent); }
 .sub { margin: 0 0 1.4rem; color: var(--muted); line-height: 1.5; }
 .card {
   background: var(--panel);
@@ -210,13 +228,13 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 1rem 1.05rem;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
   cursor: pointer;
   font: inherit;
   color: inherit;
   transition: transform .15s ease, border-color .15s ease;
 }
-.mode-btn:hover { transform: translateY(-1px); border-color: rgba(15,122,90,.35); }
+.mode-btn:hover { transform: translateY(-1px); border-color: rgba(62,207,142,.4); }
 .mode-btn strong { display: block; font-size: 1.15rem; margin-bottom: .25rem; }
 .mode-btn span { color: var(--muted); font-size: .92rem; }
 .choice-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin: 1rem 0; }
@@ -227,13 +245,13 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   padding: .9rem .4rem;
   font: inherit;
   font-weight: 700;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
   cursor: pointer;
 }
 .choice-row.tier-row button { padding: .75rem .35rem; font-size: .95rem; }
 .choice-row button.active {
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
-  color: #f7fffb;
+  color: #062016;
   border-color: transparent;
 }
 .setup-label {
@@ -247,7 +265,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   margin: 0 0 1rem;
   padding: .75rem .85rem;
   border-radius: 12px;
-  background: rgba(15, 122, 90, 0.08);
+  background: rgba(62, 207, 142, 0.08);
   color: var(--ink);
   font-size: .92rem;
   line-height: 1.55;
@@ -261,7 +279,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   padding: .85rem 1rem;
   font: inherit;
   font-weight: 700;
-  color: #f7fffb;
+  color: #062016;
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
   cursor: pointer;
 }
@@ -293,7 +311,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   font-size: .95rem;
 }
 .hint.err { color: var(--danger); }
-.hint.ok { color: var(--accent-deep); font-weight: 600; }
+.hint.ok { color: var(--accent); font-weight: 600; }
 
 .clover-wrap {
   display: flex;
@@ -302,9 +320,10 @@ h1 em { font-style: italic; color: var(--accent-deep); }
 }
 .clover {
   position: relative;
-  width: min(300px, 78vw);
-  height: min(300px, 78vw);
+  width: min(320px, 78vw, 72vmin);
+  height: min(320px, 78vw, 72vmin);
 }
+/* 每日模式边长由 FGBDaily.fitPlay → --fgb-board 控制，见 game_common DAILY_HEAD */
 .leaf {
   position: absolute;
   width: 42%;
@@ -313,7 +332,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   border-radius: 34% 34% 18% 34%;
   background:
     radial-gradient(circle at 30% 28%, rgba(255,255,255,.55), transparent 45%),
-    linear-gradient(145deg, #fffdf8, #e9f3ee);
+    linear-gradient(145deg, rgba(255,255,255,.06), rgba(62,207,142,.12));
   box-shadow: var(--shadow);
   font-family: var(--display);
   font-size: clamp(1.8rem, 7vw, 2.4rem);
@@ -342,7 +361,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
 .leaf:hover { transform: translateY(-2px) scale(1.02); }
 .leaf.selected {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(15,122,90,.22), var(--shadow);
+  box-shadow: 0 0 0 3px rgba(62,207,142,.22), var(--shadow);
   transform: scale(1.04);
 }
 .leaf.dim { opacity: .35; pointer-events: none; }
@@ -378,18 +397,28 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   margin-bottom: .75rem;
 }
 .ops button {
-  border: 1px solid var(--line);
+  border: 1px solid rgba(232, 242, 236, 0.28);
   border-radius: 14px;
   padding: .85rem 0;
   font-family: var(--display);
-  font-size: 1.45rem;
-  background: #fffdf8;
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+  background: rgba(232, 242, 236, 0.1);
   cursor: pointer;
+  transition: border-color .12s ease, background .12s ease, color .12s ease;
+}
+.ops button:hover {
+  border-color: rgba(62, 207, 142, 0.55);
+  background: rgba(62, 207, 142, 0.14);
+  color: var(--accent);
 }
 .ops button.active {
-  background: rgba(15,122,90,.12);
+  background: rgba(62, 207, 142, 0.22);
   border-color: var(--accent);
-  color: var(--accent-deep);
+  color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(62, 207, 142, 0.2);
 }
 .ops button:disabled { opacity: .4; cursor: not-allowed; }
 
@@ -405,7 +434,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   padding: .7rem .3rem;
   font: inherit;
   font-weight: 600;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
   cursor: pointer;
   color: var(--ink);
 }
@@ -421,31 +450,31 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   margin-top: .8rem;
   padding: .75rem .9rem;
   border-radius: 12px;
-  background: rgba(15,122,90,.08);
+  background: rgba(62,207,142,.08);
   font-family: Consolas, monospace;
   font-size: .9rem;
   word-break: break-all;
 }
 .expr-board {
   margin: 0 0 .85rem;
-  padding: .65rem .75rem;
+  padding: .7rem .85rem;
   border-radius: 12px;
-  border: 1px dashed var(--line);
-  background: rgba(255,253,248,.7);
+  border: 1px solid rgba(62, 207, 142, 0.28);
+  background: rgba(18, 32, 28, 0.92);
   font-family: Consolas, "Sarasa Mono SC", monospace;
-  font-size: .82rem;
-  color: var(--muted);
+  font-size: .92rem;
+  color: var(--ink);
   min-height: 2.4em;
   line-height: 1.45;
   word-break: break-all;
 }
-.expr-board strong { color: var(--ink); font-weight: 600; }
+.expr-board strong { color: var(--accent); font-weight: 700; }
 .tip {
   margin: 0 0 .75rem;
   padding: .55rem .7rem;
   border-radius: 10px;
-  background: rgba(15,122,90,.07);
-  color: var(--accent-deep);
+  background: rgba(62,207,142,.07);
+  color: var(--accent);
   font-size: .82rem;
   line-height: 1.45;
 }
@@ -460,7 +489,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
 .linkish {
   display: inline-block;
   margin-top: 1rem;
-  color: var(--accent-deep);
+  color: var(--accent);
   text-decoration: none;
   font-weight: 600;
 }
@@ -556,9 +585,6 @@ h1 em { font-style: italic; color: var(--accent-deep); }
         <button type="button" class="ghost" id="btn-hint">看参考解</button>
         <button type="button" class="ghost" id="btn-next">下一题</button>
       </div>
-      <div class="extra hidden" id="challenge-extra">
-        <button type="button" class="ghost" id="btn-skip" style="grid-column:1/-1">稍后再做</button>
-      </div>
       <div class="ref hidden" id="ref-box"></div>
     </div>
   </section>
@@ -571,7 +597,6 @@ h1 em { font-style: italic; color: var(--accent-deep); }
       <ul class="stats-list">
         <li><span>题量</span><strong id="st-total">0</strong></li>
         <li><span>完成</span><strong id="st-done">0</strong></li>
-        <li><span>延后次数</span><strong id="st-skip">0</strong></li>
         <li><span>用时</span><strong id="st-time">00:00</strong></li>
         <li><span>完成率</span><strong id="st-rate">0%</strong></li>
       </ul>
@@ -649,6 +674,70 @@ h1 em { font-style: italic; color: var(--accent-deep); }
     intro: "入门", simple: "简单", normal: "普通",
     hard: "困难", master: "大师", god: "大神",
   };
+  let tierCuts = [0.12, 0.28, 0.50, 0.72, 0.88, 1.01];
+  const DEFAULT_RANGES = {
+    intro: { minNum: 1, maxNum: 9 },
+    simple: { minNum: 1, maxNum: 10 },
+    normal: { minNum: 1, maxNum: 12 },
+    hard: { minNum: 1, maxNum: 13 },
+    master: { minNum: 1, maxNum: 16 },
+    god: { minNum: 1, maxNum: 24 },
+  };
+  let tierRanges = {};
+  TIER_ORDER.forEach(function (tid) {
+    tierRanges[tid] = Object.assign({}, DEFAULT_RANGES[tid] || { minNum: 1, maxNum: 24 });
+  });
+  let rankedBank = BANK.slice();
+
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg) return;
+    if (Array.isArray(cfg.cuts) && cfg.cuts.length === 6) tierCuts = cfg.cuts.slice();
+    if (cfg.tiers) {
+      Object.keys(cfg.tiers).forEach(function (k) {
+        var t = cfg.tiers[k];
+        if (!t) return;
+        if (t.label) TIER_LABELS[k] = t.label;
+        if (t.desc) TIER_DESCS[k] = t.desc;
+        var mn = t.minNum != null ? Number(t.minNum) : 1;
+        var mx = t.maxNum != null ? Number(t.maxNum) : 24;
+        tierRanges[k] = { minNum: mn, maxNum: mx };
+      });
+    }
+  }
+
+  function assignTierByCuts(puzzles, cuts) {
+    var n = puzzles.length;
+    return puzzles.map(function (p, i) {
+      var frac = (i + 1) / n;
+      var tier = "god";
+      for (var c = 0; c < cuts.length; c++) {
+        if (frac <= cuts[c]) { tier = TIER_ORDER[c]; break; }
+      }
+      return Object.assign({}, p, { t: tier });
+    });
+  }
+
+  function inNumRange(p, minN, maxN) {
+    return (p.n || []).every(function (x) { return x >= minN && x <= maxN; });
+  }
+
+  function rebuildRankedBank() {
+    var sorted = BANK.slice().sort(function (a, b) { return (a.h || 0) - (b.h || 0); });
+    rankedBank = assignTierByCuts(sorted, tierCuts);
+  }
+
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) {
+      rebuildRankedBank();
+      thenFn();
+      return;
+    }
+    FGB.loadDifficulty("24points").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      rebuildRankedBank();
+      thenFn();
+    });
+  }
 
   let mode = "casual"; // casual | challenge
   let selectedTier = "normal";
@@ -656,7 +745,6 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   let challengeTotal = 0;
   let remaining = [];
   let done = 0;
-  let deferred = 0;
   let startedAt = 0;
   let casualStartedAt = 0;
   let timerId = null;
@@ -699,15 +787,17 @@ h1 em { font-style: italic; color: var(--accent-deep); }
     show("setup");
   }
 
-  function poolForTier(tierIds) {
+  function poolForTier(tierIds, minN, maxN) {
     const set = {};
     tierIds.forEach(t => { set[t] = true; });
-    return BANK.filter(p => set[p.t || "normal"]);
+    return rankedBank.filter(function (p) {
+      var tid = p.t || "normal";
+      if (!set[tid]) return false;
+      return inNumRange(p, minN, maxN);
+    });
   }
 
-  function resolvePool(tier) {
-    let pool = poolForTier([tier]);
-    if (pool.length) return { pool: pool, tier: tier };
+  function adjacentTier(tier) {
     const idx = TIER_ORDER.indexOf(tier);
     const normalIdx = TIER_ORDER.indexOf("normal");
     const order = [];
@@ -722,11 +812,36 @@ h1 em { font-style: italic; color: var(--accent-deep); }
         return da - db;
       });
     }
-    for (let i = 0; i < order.length; i++) {
-      pool = poolForTier([order[i]]);
+    return order;
+  }
+
+  function resolvePool(tier) {
+    var range = tierRanges[tier] || DEFAULT_RANGES[tier] || { minNum: 1, maxNum: 24 };
+    var minN = range.minNum | 0;
+    var maxN = range.maxNum | 0;
+    var pool = poolForTier([tier], minN, maxN);
+    if (pool.length) return { pool: pool, tier: tier };
+
+    // 同范围换相邻档（硬过滤不丢弃）
+    var order = adjacentTier(tier);
+    var i;
+    for (i = 0; i < order.length; i++) {
+      pool = poolForTier([order[i]], minN, maxN);
       if (pool.length) return { pool: pool, tier: order[i] };
     }
-    return { pool: BANK.slice(), tier: tier };
+
+    // 再放宽范围一步：max +2（不超过 24）
+    var relaxedMax = Math.min(24, maxN + 2);
+    if (relaxedMax > maxN) {
+      pool = poolForTier([tier], minN, relaxedMax);
+      if (pool.length) return { pool: pool, tier: tier, relaxed: true };
+      for (i = 0; i < order.length; i++) {
+        pool = poolForTier([order[i]], minN, relaxedMax);
+        if (pool.length) return { pool: pool, tier: order[i], relaxed: true };
+      }
+    }
+
+    return { pool: [], tier: tier, empty: true };
   }
 
   function updateExprBoard() {
@@ -757,6 +872,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   }
 
   function resetRound(puzzle) {
+    if (!puzzle || !puzzle.n) return;
     currentPuzzle = puzzle;
     casualStartedAt = Date.now();
     solved = false;
@@ -920,20 +1036,6 @@ h1 em { font-style: italic; color: var(--accent-deep); }
     resetRound(remaining[0]);
   }
 
-  function deferChallenge() {
-    if (mode !== "challenge" || !remaining.length) return;
-    if (remaining.length <= 1) {
-      setHint("只剩最后一题，请完成本题", "err");
-      return;
-    }
-    const cur = remaining.shift();
-    remaining.push(cur);
-    deferred += 1;
-    updatePlayChrome();
-    resetRound(remaining[0]);
-    setHint("已放到后面，稍后再做 · 点选一个数字");
-  }
-
   function startTimer() {
     stopTimer();
     startedAt = Date.now();
@@ -952,33 +1054,54 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   function pickRandomPuzzle() {
     const resolved = resolvePool(selectedTier);
     const pool = resolved.pool;
+    if (!pool || !pool.length) return null;
     return pool[(Math.random() * pool.length) | 0];
   }
 
+  function notifyEmptyPool() {
+    var msg = "该档在当前数字范围内无题，请在管理端调大 min/max";
+    setHint(msg, "err");
+    if (window.FGBUI && FGBUI.toast) FGBUI.toast(msg, "err");
+  }
+
   function startCasual() {
-    mode = "casual";
-    show("play");
-    updatePlayChrome();
-    resetRound(pickRandomPuzzle());
+    ensureDifficulty(function () {
+      var puzzle = pickRandomPuzzle();
+      if (!puzzle) {
+        notifyEmptyPool();
+        show("setup");
+        return;
+      }
+      mode = "casual";
+      show("play");
+      updatePlayChrome();
+      resetRound(puzzle);
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    done = 0;
-    deferred = 0;
-    const resolved = resolvePool(selectedTier);
-    const pool = resolved.pool;
-    const take = Math.min(challengeCount, pool.length);
-    remaining = shuffle(pool).slice(0, take).map(p => ({
-      n: p.n.slice(),
-      h: p.h,
-      t: p.t,
-    }));
-    challengeTotal = remaining.length;
-    show("play");
-    updatePlayChrome();
-    startTimer();
-    resetRound(remaining[0]);
+    ensureDifficulty(function () {
+      mode = "challenge";
+      done = 0;
+      const resolved = resolvePool(selectedTier);
+      const pool = resolved.pool;
+      if (!pool.length) {
+        notifyEmptyPool();
+        show("setup");
+        return;
+      }
+      const take = Math.min(challengeCount, pool.length);
+      remaining = shuffle(pool).slice(0, take).map(p => ({
+        n: p.n.slice(),
+        h: p.h,
+        t: p.t,
+      }));
+      challengeTotal = remaining.length;
+      show("play");
+      updatePlayChrome();
+      startTimer();
+      resetRound(remaining[0]);
+    });
   }
 
   function startFromSetup() {
@@ -991,7 +1114,6 @@ h1 em { font-style: italic; color: var(--accent-deep); }
     const elapsed = Date.now() - startedAt;
     document.getElementById("st-total").textContent = String(challengeTotal);
     document.getElementById("st-done").textContent = String(done);
-    document.getElementById("st-skip").textContent = String(deferred);
     document.getElementById("st-time").textContent = fmtTime(elapsed);
     const rate = challengeTotal ? Math.round((done / challengeTotal) * 100) : 0;
     document.getElementById("st-rate").textContent = rate + "%";
@@ -1002,7 +1124,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
     if (typeof fgbSubmitScore === "function") fgbSubmitScore({
       gameId: "24points", mode: "challenge", tier: selectedTier,
       tierLabel: TIER_LABELS[selectedTier] || selectedTier,
-      metrics: { done: done, total: challengeTotal, timeMs: elapsed, skip: deferred }
+      metrics: { done: done, total: challengeTotal, timeMs: elapsed, skip: 0 }
     });
   }
 
@@ -1016,12 +1138,10 @@ h1 em { font-style: italic; color: var(--accent-deep); }
       prog.textContent = cur + " / " + challengeTotal;
       document.getElementById("play-timer").classList.remove("hidden");
       document.getElementById("casual-extra").classList.add("hidden");
-      document.getElementById("challenge-extra").classList.remove("hidden");
     } else {
       prog.textContent = "";
       document.getElementById("play-timer").classList.add("hidden");
       document.getElementById("casual-extra").classList.remove("hidden");
-      document.getElementById("challenge-extra").classList.add("hidden");
     }
   }
 
@@ -1071,6 +1191,10 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   });
 
   document.getElementById("btn-exit").addEventListener("click", () => {
+    if (window.__FGB_IS_DAILY__ || (window.FGBDaily && FGBDaily.isDaily && FGBDaily.isDaily())) {
+      if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
+      return;
+    }
     if (mode === "challenge") {
       askConfirm(FGB_MSG.exitConfirm, finishChallenge);
       return;
@@ -1079,17 +1203,18 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   });
 
   document.getElementById("btn-next").addEventListener("click", () => {
-    resetRound(pickRandomPuzzle());
+    var puzzle = pickRandomPuzzle();
+    if (!puzzle) {
+      notifyEmptyPool();
+      return;
+    }
+    resetRound(puzzle);
   });
 
   document.getElementById("btn-hint").addEventListener("click", () => {
     if (!currentPuzzle) return;
     refBox.textContent = "参考：" + (currentPuzzle.h || "（无）");
     refBox.classList.remove("hidden");
-  });
-
-  document.getElementById("btn-skip").addEventListener("click", () => {
-    deferChallenge();
   });
 
   document.getElementById("btn-again").addEventListener("click", () => openSetup("challenge"));
@@ -1099,14 +1224,17 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   });
 
   updateDiffDesc();
-  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
-    var dq = window.__FGB_DAILY_Q__ || {};
-    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
-    if (dq.tier) selectedTier = dq.tier;
-    startCasual();
-  } else {
-    show("home");
-  }
+  ensureDifficulty(function () {
+    updateDiffDesc();
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier) selectedTier = dq.tier;
+      startCasual();
+    } else {
+      show("home");
+    }
+  });
   } // end boot
 
   if (homeView) {

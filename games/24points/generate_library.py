@@ -74,20 +74,21 @@ def build_html(stats: Dict[str, str], groups: List[Tuple[List[int], List[str]]])
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>24 点 · 整数解法库</title>
+<link rel="stylesheet" href="/css/fgb-theme.css">
 <style>
 :root {
-  --ink: #1a2421;
-  --muted: #5c6b66;
-  --line: rgba(26, 36, 33, 0.12);
-  --paper: #f3efe6;
-  --panel: rgba(255, 252, 246, 0.82);
-  --accent: #0f7a5a;
-  --accent-deep: #0a5240;
-  --warn: #9a4a12;
-  --shadow: 0 18px 50px rgba(26, 36, 33, 0.08);
+  --ink: #e8f2ec;
+  --muted: #8fa399;
+  --line: rgba(232, 242, 236, 0.12);
+  --paper: #0c1411;
+  --panel: rgba(18, 32, 28, 0.88);
+  --accent: #3ecf8e;
+  --accent-deep: #1a9f68;
+  --warn: #e8a04a;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
   --radius: 18px;
-  --display: "Cambria", "Songti SC", "Palatino Linotype", serif;
-  --sans: "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
+  --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
   --mono: "Cascadia Code", "Sarasa Mono SC", "Consolas", monospace;
 }
 * { box-sizing: border-box; }
@@ -96,19 +97,19 @@ body {
   font-family: var(--sans);
   color: var(--ink);
   background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(15, 122, 90, 0.16), transparent 55%),
-    radial-gradient(900px 500px at 100% 0%, rgba(154, 74, 18, 0.10), transparent 50%),
-    linear-gradient(165deg, #efe8d8 0%, var(--paper) 42%, #e7eee9 100%);
+    radial-gradient(900px 480px at 12% -8%, rgba(62, 207, 142, 0.14), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.06), transparent 50%),
+    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
 }
 body::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.35;
+  opacity: 0.2;
   background-image:
-    linear-gradient(rgba(26,36,33,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(26,36,33,0.03) 1px, transparent 1px);
+    linear-gradient(rgba(232,242,236,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,242,236,0.03) 1px, transparent 1px);
   background-size: 28px 28px;
 }
 .wrap {
@@ -126,7 +127,7 @@ body::before {
 }
 .brand em {
   font-style: italic;
-  color: var(--accent-deep);
+  color: var(--accent);
 }
 .lede {
   margin: 0 0 1.6rem;
@@ -181,11 +182,11 @@ body::before {
   font: inherit;
   font-size: 1.05rem;
   text-align: center;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
   color: var(--ink);
 }
 .search input:focus {
-  outline: 2px solid rgba(15, 122, 90, 0.35);
+  outline: 2px solid rgba(62, 207, 142, 0.35);
   border-color: var(--accent);
 }
 .search button {
@@ -194,7 +195,7 @@ body::before {
   padding: 0 1.1rem;
   font: inherit;
   font-weight: 700;
-  color: #f7fffB;
+  color: #062016;
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
   cursor: pointer;
   white-space: nowrap;
@@ -244,8 +245,8 @@ body::before {
   letter-spacing: 0.02em;
 }
 .badge {
-  color: var(--accent-deep);
-  background: rgba(15, 122, 90, 0.1);
+  color: var(--accent);
+  background: rgba(62, 207, 142, 0.1);
   border-radius: 999px;
   padding: 0.25rem 0.7rem;
   font-size: 0.82rem;
@@ -263,13 +264,13 @@ body::before {
   font-family: var(--mono);
   font-size: 0.86rem;
   padding: 0.45rem 0;
-  border-bottom: 1px dashed rgba(26,36,33,0.08);
+  border-bottom: 1px dashed rgba(232,242,236,0.12);
   white-space: nowrap;
 }
 .exprs code:last-child { border-bottom: 0; }
 .empty, .hint {
   padding: 1.4rem 1.1rem;
-  border: 1px dashed rgba(26,36,33,0.2);
+  border: 1px dashed rgba(232,242,236,0.2);
   border-radius: var(--radius);
   color: var(--muted);
   background: rgba(255,252,246,0.55);
@@ -291,7 +292,7 @@ footer {
   <div class="wrap">
     <h1 class="brand">24<em>点</em></h1>
     <p class="lede">整数四则运算解法库。范围 """ + _esc(rng) + """；仅整除合法。输入 4 个数查询，或浏览全部有解组合。</p>
-    <p style="margin:0 0 1.2rem"><a href="/" style="color:var(--accent-deep);font-weight:600;text-decoration:none">← 返回大厅</a></p>
+    <p style="margin:0 0 1.2rem"><a href="/" style="color:var(--accent);font-weight:600;text-decoration:none">← 返回大厅</a></p>
 
     <div class="stats">
       <div class="stat"><b id="stat-solvable">""" + _esc(solvable) + """</b><span>有解组合</span></div>
@@ -317,9 +318,9 @@ footer {
     <div class="list" id="list"></div>
     <div class="empty" id="empty" hidden>没有匹配的有解组合。</div>
     <div class="meta" id="more-wrap" hidden>
-      <button type="button" class="ghost" id="btn-more" style="border:1px solid var(--line);border-radius:12px;padding:0.55rem 1rem;background:#fffdf8;cursor:pointer;font:inherit;font-weight:600;color:var(--ink)">加载更多</button>
+      <button type="button" class="ghost" id="btn-more" style="border:1px solid var(--line);border-radius:12px;padding:0.55rem 1rem;background:rgba(255,255,255,.04);cursor:pointer;font:inherit;font-weight:600;color:var(--ink)">加载更多</button>
     </div>
-    <footer>数据来自 solutions.txt · <a href="play.html" style="color:var(--accent-deep);font-weight:600;text-decoration:none">去玩 24 点</a> · 整数运算 24 点</footer>
+    <footer>数据来自 solutions.txt · <a href="play.html" style="color:var(--accent);font-weight:600;text-decoration:none">去玩 24 点</a> · 整数运算 24 点</footer>
   </div>
 
 <script id="data" type="application/json">""" + data_json + """</script>

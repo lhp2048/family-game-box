@@ -13,7 +13,7 @@ LOBBY_HREF = "/"
 
 def lobby_back_link(extra_style: str = "") -> str:
     style = (' style="%s"' % extra_style) if extra_style else ""
-    return '<a class="linkish" href="%s"%s>← 返回大厅</a>' % (LOBBY_HREF, style)
+    return '<a class="linkish fgb-nav-link" href="%s"%s>← 返回大厅</a>' % (LOBBY_HREF, style)
 
 
 def inject_lobby_link(body_html: str) -> str:
@@ -57,18 +57,18 @@ def tier_choice_row(
 
 COMMON_CSS = r"""
 :root {
-  --ink: #1a2421;
-  --muted: #5c6b66;
-  --line: rgba(26, 36, 33, 0.14);
-  --paper: #f3efe6;
-  --panel: rgba(255, 252, 246, 0.9);
-  --accent: #0f7a5a;
-  --accent-deep: #0a5240;
-  --warn: #9a4a12;
-  --danger: #a33b2d;
-  --shadow: 0 16px 40px rgba(26, 36, 33, 0.1);
-  --display: Cambria, "Songti SC", "Palatino Linotype", serif;
-  --sans: "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --ink: #e8f2ec;
+  --muted: #8fa399;
+  --line: rgba(232, 242, 236, 0.12);
+  --paper: #0c1411;
+  --panel: rgba(18, 32, 28, 0.88);
+  --accent: #3ecf8e;
+  --accent-deep: #1a9f68;
+  --warn: #e8a04a;
+  --danger: #e07060;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
+  --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
@@ -76,21 +76,37 @@ body {
   font-family: var(--sans);
   color: var(--ink);
   background:
-    radial-gradient(1000px 520px at 8% -8%, rgba(15,122,90,.15), transparent 55%),
-    radial-gradient(800px 420px at 100% 0%, rgba(154,74,18,.09), transparent 50%),
-    linear-gradient(165deg, #efe8d8 0%, var(--paper) 45%, #e7eee9 100%);
+    radial-gradient(900px 480px at 12% -8%, rgba(62, 207, 142, 0.14), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.06), transparent 50%),
+    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
 }
 body::before {
   content: "";
-  position: fixed; inset: 0; pointer-events: none; opacity: .32;
+  position: fixed; inset: 0; pointer-events: none; opacity: .2;
   background-image:
-    linear-gradient(rgba(26,36,33,.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(26,36,33,.03) 1px, transparent 1px);
+    linear-gradient(rgba(232,242,236,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,242,236,.03) 1px, transparent 1px);
   background-size: 28px 28px;
 }
-.wrap { position: relative; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
+.wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
 .wrap.wide { width: min(720px, calc(100% - 1.5rem)); }
 .hidden { display: none !important; }
+/* 平板横屏 / 矮视口：压缩边距；棋盘尺寸由各游戏用 vmin 吃满短边 */
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .wrap { padding: .55rem 0 1rem; width: min(560px, calc(100% - 1rem)); }
+  .wrap.wide { width: min(960px, calc(100% - 1rem)); }
+  h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); margin-bottom: .2rem; }
+  .sub { margin: 0 0 .65rem; font-size: .88rem; }
+  .card { padding: .75rem; border-radius: 14px; }
+  .topbar { margin-bottom: .45rem; }
+  .hint { margin: 0 0 .4rem; min-height: 1.1em; font-size: .88rem; }
+  .actions { margin-top: .3rem; gap: .35rem; }
+  .actions button { padding: .35rem .2rem; font-size: .82rem; border-radius: 10px; }
+  .task-bar { padding: .45rem .65rem; margin-bottom: .5rem; }
+  .mode-btn { padding: .75rem .85rem; }
+  .choice-row { margin: .65rem 0; }
+  .choice-row button { padding: .65rem .3rem; }
+}
 h1 {
   font-family: var(--display);
   font-size: clamp(2rem, 8vw, 3rem);
@@ -98,7 +114,7 @@ h1 {
   letter-spacing: -.02em;
   line-height: .95;
 }
-h1 em { font-style: italic; color: var(--accent-deep); }
+h1 em { font-style: italic; color: var(--accent); }
 .sub { margin: 0 0 1.4rem; color: var(--muted); line-height: 1.5; }
 .card {
   background: var(--panel);
@@ -113,13 +129,13 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   border: 1px solid var(--line);
   border-radius: 16px;
   padding: 1rem 1.05rem;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
   cursor: pointer;
   font: inherit;
   color: inherit;
   transition: transform .15s ease, border-color .15s ease;
 }
-.mode-btn:hover { transform: translateY(-1px); border-color: rgba(15,122,90,.35); }
+.mode-btn:hover { transform: translateY(-1px); border-color: rgba(62,207,142,.4); }
 .mode-btn strong { display: block; font-size: 1.15rem; margin-bottom: .25rem; }
 .mode-btn span { color: var(--muted); font-size: .92rem; }
 .choice-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin: 1rem 0; }
@@ -134,12 +150,13 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   padding: .9rem .4rem;
   font: inherit;
   font-weight: 700;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
+  color: var(--ink);
   cursor: pointer;
 }
 .choice-row button.active {
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
-  color: #f7fffb;
+  color: #062016;
   border-color: transparent;
 }
 .primary {
@@ -149,7 +166,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   padding: .85rem 1rem;
   font: inherit;
   font-weight: 700;
-  color: #f7fffb;
+  color: #062016;
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
   cursor: pointer;
 }
@@ -182,7 +199,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   font-size: .95rem;
 }
 .hint.err { color: var(--danger); }
-.hint.ok { color: var(--accent-deep); font-weight: 600; }
+.hint.ok { color: var(--accent); font-weight: 600; }
 .actions {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -196,7 +213,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   padding: .7rem .3rem;
   font: inherit;
   font-weight: 600;
-  background: #fffdf8;
+  background: rgba(255,255,255,.04);
   cursor: pointer;
   color: var(--ink);
 }
@@ -213,7 +230,7 @@ h1 em { font-style: italic; color: var(--accent-deep); }
 .linkish {
   display: inline-block;
   margin-top: 1rem;
-  color: var(--accent-deep);
+  color: var(--accent);
   text-decoration: none;
   font-weight: 600;
 }
@@ -223,10 +240,12 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   margin: .5rem 0;
   user-select: none;
 }
+.grid-wrap { overflow: auto; max-height: min(82vmin, 720px); }
 .grid-cells button, .grid-cells .cell {
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fffdf8;
+  background: rgba(232,242,236,.08);
+  color: var(--ink);
   font: inherit;
   font-weight: 600;
   aspect-ratio: 1;
@@ -235,30 +254,31 @@ h1 em { font-style: italic; color: var(--accent-deep); }
   justify-content: center;
   cursor: pointer;
   padding: 0;
-  min-height: 28px;
+  min-height: 0;
+  min-width: 0;
 }
 .grid-cells button.marked {
-  background: rgba(15,122,90,.18);
-  color: var(--accent-deep);
+  background: rgba(62,207,142,.18);
+  color: var(--accent);
   text-decoration: line-through;
 }
 .grid-cells button.found {
-  background: rgba(15,122,90,.25);
+  background: rgba(62,207,142,.25);
   box-shadow: inset 0 0 0 2px var(--accent);
 }
 .grid-cells button.wrong-flash {
   animation: wrongFlash .5s ease;
 }
 @keyframes wrongFlash {
-  0%, 100% { background: #fffdf8; }
-  50% { background: rgba(163,59,45,.25); }
+  0%, 100% { background: rgba(232,242,236,.08); }
+  50% { background: rgba(163,59,45,.35); }
 }
 .task-bar {
   text-align: center;
   padding: .65rem .8rem;
   border-radius: 12px;
-  background: rgba(15,122,90,.08);
-  color: var(--accent-deep);
+  background: rgba(62,207,142,.1);
+  color: var(--accent);
   font-weight: 600;
   margin-bottom: .85rem;
 }
@@ -273,13 +293,13 @@ OVERLAY_CSS = r"""
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  background: rgba(26, 36, 33, 0.42);
+  background: rgba(6, 14, 12, 0.72);
   backdrop-filter: blur(2px);
 }
 .confirm-mask.hidden { display: none !important; }
 .confirm-box {
   width: min(360px, 100%);
-  background: #fffdf8;
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 18px;
   box-shadow: var(--shadow);
@@ -310,7 +330,7 @@ OVERLAY_CSS = r"""
 }
 .confirm-actions .confirm-ok {
   border: 0;
-  color: #f7fffb;
+  color: #062016;
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
 }
 /* 统一完成反馈：轻量、不挡操作 */
@@ -334,10 +354,10 @@ OVERLAY_CSS = r"""
   gap: .55rem;
   padding: .7rem 1.1rem .7rem .85rem;
   border-radius: 999px;
-  background: rgba(255, 252, 246, 0.96);
-  border: 1px solid rgba(15,122,90,.28);
-  box-shadow: 0 12px 32px rgba(26,36,33,.14);
-  color: var(--accent-deep);
+  background: var(--panel);
+  border: 1px solid rgba(62,207,142,.35);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
+  color: var(--accent);
   font-weight: 700;
   font-size: 1rem;
   white-space: nowrap;
@@ -347,14 +367,14 @@ OVERLAY_CSS = r"""
   height: 1.55rem;
   border-radius: 50%;
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
-  color: #f7fffb;
+  color: #062016;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: .95rem;
   line-height: 1;
   flex-shrink: 0;
-  box-shadow: 0 0 0 0 rgba(15,122,90,.35);
+  box-shadow: 0 0 0 0 rgba(62,207,142,.35);
   animation: celebratePulse .55s ease;
 }
 @keyframes celebratePulse {
@@ -425,6 +445,11 @@ function askConfirm(message, onYes, onNo) {
   var mask = document.getElementById("confirm-mask");
   var msg = document.getElementById("confirm-msg");
   if (!mask || !msg) {
+    // 无页面内弹层时走 FGBUI；禁止回退到浏览器 confirm/alert
+    if (window.FGBUI && FGBUI.askConfirm) {
+      FGBUI.askConfirm(message, onYes, onNo);
+      return;
+    }
     if (onYes) onYes();
     return;
   }
@@ -507,7 +532,7 @@ CONFIRM_HTML = """
 
 DAILY_HEAD = r"""
 <script>
-(function () {
+(function fgbDailyHead() {
   if (/(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
     document.documentElement.classList.add("fgb-daily-mode");
   }
@@ -524,6 +549,39 @@ html.fgb-daily-mode .mode-btn,
 html.fgb-daily-mode #casual-extra,
 html.fgb-daily-mode #btn-next,
 html.fgb-daily-mode #btn-restart { display: none !important; }
+/* 闯关 iframe 内：收掉重复顶栏/长说明；棋盘边长由 --fgb-board 动态计算 */
+html.fgb-daily-mode {
+  --fgb-board: 280px;
+  height: 100%;
+}
+html.fgb-daily-mode body { height: 100%; }
+html.fgb-daily-mode:not(.fgb-play-scroll),
+html.fgb-daily-mode:not(.fgb-play-scroll) body { overflow: hidden; }
+html.fgb-daily-mode.fgb-play-scroll,
+html.fgb-daily-mode.fgb-play-scroll body { overflow: auto; }
+html.fgb-daily-mode .wrap {
+  width: min(720px, calc(100% - 0.75rem));
+  padding: 0.35rem 0 0.4rem;
+  box-sizing: border-box;
+}
+html.fgb-daily-mode #view-play > .topbar { display: none !important; }
+html.fgb-daily-mode #view-play > .hint { margin: 0 0 0.3rem; min-height: 1.05em; font-size: 0.88rem; }
+html.fgb-daily-mode #view-play .tip { display: none !important; }
+html.fgb-daily-mode .clover {
+  width: var(--fgb-board) !important;
+  height: var(--fgb-board) !important;
+}
+html.fgb-daily-mode .clover-wrap { margin: 0.1rem 0 0.3rem; }
+html.fgb-daily-mode .leaf { font-size: calc(var(--fgb-board) * 0.11) !important; }
+html.fgb-daily-mode .sudoku-wrap { width: min(100%, var(--fgb-board)) !important; }
+html.fgb-daily-mode .sudoku { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .maze-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .grid-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .diff-panels { max-height: var(--fgb-board) !important; overflow: auto; }
+html.fgb-daily-mode .board {
+  width: min(100%, var(--fgb-board)) !important;
+  max-height: var(--fgb-board) !important;
+}
 </style>
 """
 
@@ -545,6 +603,9 @@ DAILY_BOOT_JS = r"""
   if (window.FGBDaily && FGBDaily.installMathRandom) {
     FGBDaily.installMathRandom(q.seed);
   }
+  if (window.FGBDaily && FGBDaily.installFitPlay) {
+    FGBDaily.installFitPlay({ min: 168, max: 480, pad: 16 });
+  }
   window.fgbSubmitScore = function (payload) {
     var ms = 0;
     if (payload && payload.metrics && payload.metrics.timeMs != null) ms = payload.metrics.timeMs | 0;
@@ -553,69 +614,90 @@ DAILY_BOOT_JS = r"""
       window.parent.postMessage({ type: "fgb-daily-stage-done", timeMs: ms }, "*");
     }
   };
-  function abortDaily() {
+  function abortDaily(e) {
+    if (e) {
+      e.preventDefault();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      else e.stopPropagation();
+    }
     if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
     else if (window.parent && window.parent !== window) {
       window.parent.postMessage({ type: "fgb-daily-abort" }, "*");
     }
   }
-  document.querySelectorAll('a.linkish[href="/"], a[href="/"]').forEach(function (a) {
+  var base = (window.__FGB_BASE__ || "").replace(/\/$/, "");
+  var homeSel = 'a.linkish[href="/"], a[href="/"]';
+  if (base) {
+    homeSel += ', a.linkish[href="' + base + '/"], a[href="' + base + '/"], a.linkish[href="' + base + '"], a[href="' + base + '"]';
+  }
+  document.querySelectorAll(homeSel).forEach(function (a) {
     a.textContent = "退出本关";
     a.href = "#";
-    a.addEventListener("click", function (e) {
-      e.preventDefault();
-      abortDaily();
-    });
+    a.addEventListener("click", abortDaily);
+  });
+  // 游戏内退出按钮：每日模式禁止 show(home)，须通知父页结束挑战
+  ["btn-exit", "btn-exit-casual", "btn-exit-challenge"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", abortDaily, true);
   });
 })();
 """
 
 
+THEME_LINK = '<link rel="stylesheet" href="/css/fgb-theme.css">'
+
+
 def inject_standalone_overlays(html: str, *, include_fgb_client: bool = True) -> str:
     """为独立 HTML 页注入统一确认框与完成庆祝组件。"""
+    if 'href="/css/fgb-theme.css"' not in html:
+        if "</title>" in html:
+            html = html.replace("</title>", "</title>\n" + THEME_LINK, 1)
+        elif "</head>" in html:
+            html = html.replace("</head>", THEME_LINK + "\n</head>", 1)
+    # Daily early CSS/class in <head>
     if "fgb-daily-mode #view-home" not in html:
         if "</head>" in html:
             html = html.replace("</head>", DAILY_HEAD + "\n</head>", 1)
         elif "</style>" in html:
             html = html.replace("</style>", "</style>\n" + DAILY_HEAD, 1)
+
+    # Overlay CSS: prefer last </style> before </head>, else first </style>
     if ".confirm-mask" not in html:
-        html = html.replace("</style>", OVERLAY_CSS + "\n</style>", 1)
+        head_end = html.find("</head>")
+        style_end = html.rfind("</style>", 0, head_end if head_end >= 0 else len(html))
+        if style_end < 0:
+            style_end = html.find("</style>")
+        if style_end >= 0:
+            html = html[:style_end] + OVERLAY_CSS + "\n" + html[style_end:]
+
+    scripts_block = ""
+    if include_fgb_client:
+        if "/js/fgb-daily.js" not in html:
+            scripts_block += '<script src="/js/fgb-daily.js"></script>\n'
+        if "/js/fgb-client.js" not in html:
+            scripts_block += '<script src="/js/fgb-client.js"></script>\n'
+        if "/js/fgb-ui.js" not in html:
+            scripts_block += '<script src="/js/fgb-ui.js"></script>\n'
+
+    # Confirm DOM + client scripts + overlay JS must live at end of <body>
+    # so bindConfirmUI can find #confirm-mask / buttons.
+    tail = ""
     if 'id="confirm-mask"' not in html:
-        fgb = '<script src="/js/fgb-client.js"></script>'
-        daily_fgb = '<script src="/js/fgb-daily.js"></script>\n' + fgb
-        if fgb in html and "/js/fgb-daily.js" not in html:
-            html = html.replace(fgb, daily_fgb, 1)
-        if daily_fgb in html or fgb in html:
-            marker = daily_fgb if daily_fgb in html else fgb
-            html = html.replace(
-                marker + "\n<script>",
-                CONFIRM_HTML + "\n" + marker + "\n<script>",
-                1,
-            )
-        else:
-            if include_fgb_client:
-                html = html.replace(
-                    "<script>",
-                    '<script src="/js/fgb-daily.js"></script>\n'
-                    '<script src="/js/fgb-client.js"></script>\n<script>',
-                    1,
-                )
-            html = html.replace("</div>\n<script", "</div>\n" + CONFIRM_HTML + "\n<script", 1)
+        tail += CONFIRM_HTML + "\n"
+    tail += scripts_block
     if "function askConfirm" not in html:
-        html = html.replace(
-            "<script>\n(function () {",
-            "<script>\n" + OVERLAY_JS + "\n(function () {",
-            1,
-        )
-    if "/* fgb-daily-boot */" not in html and "fgb-daily.js" in html:
-        html = html.replace(
-            '<script src="/js/fgb-client.js"></script>\n<script>',
-            '<script src="/js/fgb-client.js"></script>\n<script>\n'
-            + "/* fgb-daily-boot */\n"
-            + DAILY_BOOT_JS
-            + "\n",
-            1,
-        )
+        tail += "<script>\n" + OVERLAY_JS + "\n</script>\n"
+    if "/* fgb-daily-boot */" not in html and (
+        "/js/fgb-daily.js" in html or "/js/fgb-daily.js" in scripts_block
+    ):
+        tail += "<script>\n/* fgb-daily-boot */\n" + DAILY_BOOT_JS + "\n</script>\n"
+    if tail:
+        if "</body>" in html:
+            html = html.replace("</body>", tail + "</body>", 1)
+        else:
+            html = html + "\n" + tail
+
     return html
 
 
@@ -628,6 +710,7 @@ def build_page(title: str, extra_css: str, body_html: str, script: str, wide: bo
         '<meta charset="utf-8">',
         '<meta name="viewport" content="width=device-width, initial-scale=1">',
         "<title>" + title + "</title>",
+        THEME_LINK,
         DAILY_HEAD,
         "<style>",
         COMMON_CSS,
@@ -642,6 +725,7 @@ def build_page(title: str, extra_css: str, body_html: str, script: str, wide: bo
         CONFIRM_HTML,
         '<script src="/js/fgb-daily.js"></script>',
         '<script src="/js/fgb-client.js"></script>',
+        '<script src="/js/fgb-ui.js"></script>',
         "<script>",
         "/* fgb-daily-boot */",
         COMMON_JS_UTILS,

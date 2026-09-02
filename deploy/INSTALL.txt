@@ -15,7 +15,9 @@ Python: 3.10+（install 自动选版本并建 .venv）
 本期无 Agent Skill / MCP
 
 健康检查: GET http://127.0.0.1:18029/api/v1/health
-大厅:     GET http://127.0.0.1:18029/
+大厅:     GET http://127.0.0.1:18029/game-box/
+应用前缀: /game-box（可用环境变量 ROOT_PATH 修改；设为空则挂在站点根）
+反代应将 /game-box 原样转发到本服务，不要剥前缀。
 Windows 计划任务: FamilyGameBox
 launchd (macOS): com.family.smart.game-box
 Linux systemd user: family-game-box.service

@@ -66,6 +66,14 @@ EXTRA_CSS = r"""
   margin-top: .75rem;
 }
 .stat-row strong { color: var(--ink); }
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .stroop-word {
+    font-size: clamp(2.2rem, 8vw, 3.2rem);
+    margin: .55rem 0 .7rem;
+  }
+  .color-grid button { padding: .6rem .15rem; min-height: 42px; }
+  .stat-row { margin-top: .4rem; gap: .65rem; font-size: .82rem; }
+}
 """
 
 BODY = r"""
@@ -128,7 +136,6 @@ BODY = r"""
       <div class="actions">
         <button type="button" class="danger" id="btn-exit">退出</button>
         <button type="button" id="btn-next">下一题</button>
-        <button type="button" class="warn" id="btn-skip">跳过</button>
       </div>
     </div>
   </section>
@@ -188,6 +195,21 @@ SCRIPT = r"""
     master: { label: "大师", trialLimit: 50, timeLimitMs: 0, congruentRate: 0.12 },
     god: { label: "大神", trialLimit: 0, timeLimitMs: 120000, congruentRate: 0.1 }
   };
+
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!DIFF[k]) return;
+      Object.assign(DIFF[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("stroop").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
 
   function diffLabel(key) {
     var d = DIFF[key];
@@ -346,36 +368,39 @@ SCRIPT = r"""
     var name = diffLabel(diffKey);
     labelEl.textContent = (mode === "casual" ? "休闲" : "挑战") + " · " + name;
     document.getElementById("btn-next").style.display = mode === "casual" ? "" : "none";
-    document.getElementById("btn-skip").style.display = mode === "challenge" ? "" : "none";
     progressEl.textContent = mode === "challenge" && trialLimit > 0 ? ("0 / " + trialLimit) : "";
   }
 
   function startCasual() {
-    mode = "casual";
-    applyDiff();
-    stopTimer();
-    resetStats();
-    updateChrome();
-    document.getElementById("timer-text").textContent = "—";
-    showView(views, "play");
-    showTrial();
+    ensureDifficulty(function () {
+      mode = "casual";
+      applyDiff();
+      stopTimer();
+      resetStats();
+      updateChrome();
+      document.getElementById("timer-text").textContent = "—";
+      showView(views, "play");
+      showTrial();
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    applyDiff();
-    resetStats();
-    startedAt = Date.now();
-    if (timeLimitMs > 0) {
-      deadline = startedAt + timeLimitMs;
-    } else {
-      deadline = startedAt + 86400000;
-      document.getElementById("timer-text").textContent = "00:00";
-    }
-    updateChrome();
-    showView(views, "play");
-    startTimer();
-    showTrial();
+    ensureDifficulty(function () {
+      mode = "challenge";
+      applyDiff();
+      resetStats();
+      startedAt = Date.now();
+      if (timeLimitMs > 0) {
+        deadline = startedAt + timeLimitMs;
+      } else {
+        deadline = startedAt + 86400000;
+        document.getElementById("timer-text").textContent = "00:00";
+      }
+      updateChrome();
+      showView(views, "play");
+      startTimer();
+      showTrial();
+    });
   }
 
   function finishChallenge() {
@@ -438,24 +463,19 @@ SCRIPT = r"""
     doExit();
   });
   document.getElementById("btn-next").addEventListener("click", showTrial);
-  document.getElementById("btn-skip").addEventListener("click", function () {
-    total++;
-    streak = 0;
-    document.getElementById("streak").textContent = "0";
-    if (trialLimit > 0 && total >= trialLimit) finishChallenge();
-    else showTrial();
-  });
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
 
-  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
-    var dq = window.__FGB_DAILY_Q__ || {};
-    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
-    if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
-    startChallenge();
-  } else {
-    showView(views, "home");
-  }
+  ensureDifficulty(function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
+      startChallenge();
+    } else {
+      showView(views, "home");
+    }
+  });
 })();
 """
 

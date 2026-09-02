@@ -35,6 +35,7 @@ EXTRA_CSS = r"""
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: .65rem;
+  align-items: start;
 }
 @media (max-width: 520px) {
   .diff-panels { grid-template-columns: 1fr; }
@@ -42,6 +43,7 @@ EXTRA_CSS = r"""
 .diff-panel {
   border-radius: 14px;
   padding: .55rem .5rem .65rem;
+  min-width: 0;
 }
 .diff-panel.left {
   background: rgba(15, 122, 90, 0.1);
@@ -59,7 +61,25 @@ EXTRA_CSS = r"""
 }
 .diff-panel.left .panel-label { color: var(--accent-deep); }
 .diff-panel.right .panel-label { color: var(--warn); }
-.grid-cells.compact button { min-height: 26px; font-size: clamp(.65rem, 2.5vw, .85rem); border-radius: 4px; }
+.diff-panel .grid-cells.compact {
+  width: min(100%, 42vmin, 420px);
+  margin: 0 auto;
+  container-type: inline-size;
+}
+.grid-cells.compact button {
+  min-height: 0;
+  aspect-ratio: 1;
+  font-size: clamp(.7rem, 8cqi, 1.15rem);
+  font-weight: 700;
+  border-radius: 6px;
+}
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .diff-panels { gap: .45rem; }
+  .diff-panel { padding: .35rem .35rem .45rem; }
+  .panel-label { margin-bottom: .25rem; font-size: .78rem; }
+  /* 双栏各占短边约四成，横屏放宽上限而不是再压小 */
+  .diff-panel .grid-cells.compact { width: min(100%, 44vmin, 460px); }
+}
 """
 
 BODY = r"""
@@ -190,6 +210,21 @@ SCRIPT_MID = r""";
     god: { n: 10, diffs: 10, label: "大神" }
   };
 
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!DIFF[k]) return;
+      Object.assign(DIFF[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("spot-diff").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
+
   function diffLabel(key) {
     var d = DIFF[key];
     return d ? d.label : key;
@@ -311,25 +346,29 @@ SCRIPT_MID = r""";
   }
 
   function startCasual() {
-    mode = "casual";
-    stopTimer();
-    document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
-    document.getElementById("timer-text").textContent = "—";
-    showView(views, "play");
-    loadRound();
+    ensureDifficulty(function () {
+      mode = "casual";
+      stopTimer();
+      document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
+      document.getElementById("timer-text").textContent = "—";
+      showView(views, "play");
+      loadRound();
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    roundIndex = 0;
-    roundsDone = 0;
-    totalWrong = 0;
-    totalHints = 0;
-    startedAt = Date.now();
-    document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
-    showView(views, "play");
-    startTimer();
-    loadRound();
+    ensureDifficulty(function () {
+      mode = "challenge";
+      roundIndex = 0;
+      roundsDone = 0;
+      totalWrong = 0;
+      totalHints = 0;
+      startedAt = Date.now();
+      document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
+      showView(views, "play");
+      startTimer();
+      loadRound();
+    });
   }
 
   function finishChallenge() {
@@ -395,14 +434,16 @@ SCRIPT_MID = r""";
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
 
-  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
-    var dq = window.__FGB_DAILY_Q__ || {};
-    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
-    if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
-    startCasual();
-  } else {
-    showView(views, "home");
-  }
+  ensureDifficulty(function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier && DIFF[dq.tier]) diffKey = dq.tier;
+      startCasual();
+    } else {
+      showView(views, "home");
+    }
+  });
 })();
 """
 

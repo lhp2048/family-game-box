@@ -49,8 +49,32 @@ EXTRA_CSS = r"""
   font-size: 1.6rem;
   color: var(--accent-deep);
 }
-.grid-wrap { overflow-x: auto; }
-.grid-cells.dense button { min-height: 32px; font-size: clamp(.72rem, 2.8vw, .95rem); }
+.grid-wrap {
+  overflow: auto;
+  max-height: min(82vmin, 720px);
+  display: flex;
+  justify-content: center;
+}
+.grid-cells.dense {
+  width: min(100%, 82vmin, 640px);
+  margin: 0;
+}
+.grid-cells.dense button {
+  min-height: 0;
+  aspect-ratio: 1;
+  font-size: clamp(.72rem, 2.6cqi, 1.25rem);
+  font-weight: 700;
+}
+.grid-cells.dense { container-type: inline-size; }
+.target-bar strong {
+  color: var(--accent);
+}
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .target-bar { margin-bottom: .35rem; font-size: 1rem; }
+  .target-bar strong { font-size: 1.25rem; }
+  .grid-wrap { max-height: min(86vmin, 720px); }
+  .grid-cells.dense { width: min(100%, 86vmin, 720px); }
+}
 """
 
 BODY = r"""
@@ -189,6 +213,21 @@ SCRIPT_MID = r""";
     master: { size: 16, pct: 0.07, label: "大师" },
     god: { size: 18, pct: 0.06, label: "大神" }
   };
+
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!DIFF[k]) return;
+      Object.assign(DIFF[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("cancel").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
 
   function diffLabel(key) {
     var d = DIFF[key];
@@ -332,28 +371,32 @@ SCRIPT_MID = r""";
   }
 
   function startCasual() {
-    mode = "casual";
-    stopTimer();
-    document.getElementById("play-label").textContent = modeLabel();
-    document.getElementById("play-progress").textContent = "";
-    document.getElementById("timer-text").textContent = "—";
-    document.getElementById("casual-extra").classList.remove("hidden");
-    showView(views, "play");
-    loadRound();
+    ensureDifficulty(function () {
+      mode = "casual";
+      stopTimer();
+      document.getElementById("play-label").textContent = modeLabel();
+      document.getElementById("play-progress").textContent = "";
+      document.getElementById("timer-text").textContent = "—";
+      document.getElementById("casual-extra").classList.remove("hidden");
+      showView(views, "play");
+      loadRound();
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    roundIndex = 0;
-    roundsDone = 0;
-    totalWrong = 0;
-    totalMiss = 0;
-    startedAt = Date.now();
-    document.getElementById("play-label").textContent = modeLabel();
-    document.getElementById("casual-extra").classList.add("hidden");
-    showView(views, "play");
-    startTimer();
-    loadRound();
+    ensureDifficulty(function () {
+      mode = "challenge";
+      roundIndex = 0;
+      roundsDone = 0;
+      totalWrong = 0;
+      totalMiss = 0;
+      startedAt = Date.now();
+      document.getElementById("play-label").textContent = modeLabel();
+      document.getElementById("casual-extra").classList.add("hidden");
+      showView(views, "play");
+      startTimer();
+      loadRound();
+    });
   }
 
   function finishChallenge() {
@@ -431,14 +474,16 @@ SCRIPT_MID = r""";
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
 
-  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
-    var dq = window.__FGB_DAILY_Q__ || {};
-    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
-    if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
-    startCasual();
-  } else {
-    showView(views, "home");
-  }
+  ensureDifficulty(function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier && DIFF[dq.tier]) diffKey = dq.tier;
+      startCasual();
+    } else {
+      showView(views, "home");
+    }
+  });
 })();
 """
 

@@ -70,14 +70,16 @@ show_launchd_hint() {
 print_access_urls() {
   local port="$1"
   local bind="${2:-0.0.0.0}"
+  local root_path="${ROOT_PATH:-/game-box}"
+  [[ "${root_path}" == "/" ]] && root_path=""
   echo ""
   echo "Access URLs (port ${port}, bind ${bind}):"
-  echo "  Local:  http://127.0.0.1:${port}/"
+  echo "  Local:  http://127.0.0.1:${port}${root_path}/"
   echo "  Health: http://127.0.0.1:${port}${CART_HEALTH_PATH}"
   local lan_ip
   lan_ip="$(get_primary_lan_ipv4 || true)"
   if [[ -n "${lan_ip}" && "${bind}" == "0.0.0.0" ]]; then
-    echo "  LAN:    http://${lan_ip}:${port}/"
+    echo "  LAN:    http://${lan_ip}:${port}${root_path}/"
   fi
 }
 

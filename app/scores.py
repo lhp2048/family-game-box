@@ -256,3 +256,22 @@ def get_recent_leaderboard(limit: int = _RECENT_LIMIT) -> Dict[str, Any]:
             for idx, item in enumerate(board, start=1)
         ],
     }
+
+
+def latest_for_terminal(terminal_id: str) -> Optional[Dict[str, Any]]:
+    if not terminal_id:
+        return None
+    best = None
+    for item in _load_entries():
+        if item.get("terminalId") != terminal_id:
+            continue
+        if best is None or str(item.get("playedAt") or "") > str(best.get("playedAt") or ""):
+            best = item
+    if not best:
+        return None
+    return {
+        "gameId": best.get("gameId", ""),
+        "gameTitle": _GAME_TITLE.get(best.get("gameId", ""), best.get("gameId", "")),
+        "display": best.get("display", ""),
+        "playedAt": best.get("playedAt"),
+    }

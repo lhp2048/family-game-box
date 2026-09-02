@@ -33,37 +33,39 @@ EXTRA_CSS = r"""
   justify-content: center;
   margin: .5rem 0;
   overflow: auto;
-  max-height: min(70vh, 720px);
+  max-height: min(82vmin, 720px);
+  width: 100%;
 }
 .maze {
   display: grid;
   gap: 0;
-  border: 2px solid var(--ink);
-  background: var(--ink);
+  border: 2px solid #e8f2ec;
+  background: #050a08;
+  --cell: 24px;
 }
 .maze .cell {
-  width: 18px;
-  height: 18px;
+  width: var(--cell);
+  height: var(--cell);
   border-radius: 0;
   aspect-ratio: auto;
   min-height: 0;
   cursor: default;
   flex-shrink: 0;
 }
-.maze .wall { background: #2a3530; }
-.maze .path { background: #fffdf8; cursor: pointer; }
-.maze .path:hover { background: #eef6f1; }
-.maze .start { background: #9fd6bf; }
-.maze .end { background: #e8b88a; }
+.maze .wall { background: #050a08; }
+.maze .path { background: #d8e8df; cursor: pointer; }
+.maze .path:hover { background: #b8dcc8; }
+.maze .start { background: #2bb673; }
+.maze .end { background: #e8a04a; }
 .maze .player {
-  background: var(--accent);
-  box-shadow: inset 0 0 0 2px #fff;
+  background: #3ecf8e;
+  box-shadow: inset 0 0 0 2px #062016;
 }
-/* 走过痕迹：浅琥珀，与深色墙明显区分 */
-.maze .path.in-trail { background: #f3e6c4; }
-.maze .path.in-trail:hover { background: #ead9a8; }
-.maze .start.in-trail { background: #8fcbb0; }
-.maze .end.in-trail { background: #dfa978; }
+/* 走过痕迹：琥珀，与浅色通道、深色墙都易区分 */
+.maze .path.in-trail { background: #f0c86a; }
+.maze .path.in-trail:hover { background: #e8b84a; }
+.maze .start.in-trail { background: #1a9f68; }
+.maze .end.in-trail { background: #d4892a; }
 .stat-pills {
   display: flex;
   justify-content: center;
@@ -81,12 +83,16 @@ EXTRA_CSS = r"""
   margin-top: .15rem;
   opacity: .85;
 }
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .maze-wrap { max-height: min(86vmin, 720px); margin: .3rem 0; }
+  .stat-pills { margin-bottom: .3rem; gap: .65rem; font-size: .82rem; }
+}
 """
 
 BODY = r"""
   <section id="view-home">
     <h1>迷宫<em>追踪</em></h1>
-    <p class="sub">从起点走到终点。同一方向无墙阻挡时，可一次走到该方向上的任意格。难度由迷宫整体规模控制，单格大小固定。</p>
+    <p class="sub">从起点走到终点。同一方向无墙阻挡时，可一次走到该方向上的任意格。难度由迷宫整体规模控制，单格大小随视口缩放。</p>
     <div class="card mode-grid">
       <button type="button" class="mode-btn" id="btn-casual">
         <strong>休闲模式</strong>
@@ -102,7 +108,7 @@ BODY = r"""
 
   <section id="view-casual" class="hidden">
     <h1>休闲</h1>
-    <p class="sub">选择难度（迷宫规模，单格固定 18px）。</p>
+    <p class="sub">选择难度（迷宫规模）。</p>
     <div class="card">
       <p style="margin:0 0 .5rem;color:var(--muted);font-size:.9rem">难度</p>
       """ + tier_choice_row("casual-diff", MAZE_TIER_SUB) + r"""
@@ -196,6 +202,7 @@ SCRIPT = r"""
   var steps = 0;
   var bumps = 0;
   var trail = {};
+  var trailPath = [];
 
   function stopTimer() {
     if (timerId) { clearInterval(timerId); timerId = null; }
@@ -215,6 +222,21 @@ SCRIPT = r"""
     master: { size: 21, label: "大师" },
     god: { size: 31, label: "大神" }
   };
+
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!DIFF[k]) return;
+      Object.assign(DIFF[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("maze").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
 
   function diffLabel(key) {
     var d = DIFF[key];
@@ -342,6 +364,22 @@ SCRIPT = r"""
 
   var levelStart = 0;
 
+  function syncTrailFromPath() {
+    trail = {};
+    for (var i = 0; i < trailPath.length; i++) {
+      trail[trailPath[i][0] + "," + trailPath[i][1]] = true;
+    }
+  }
+
+  function recountSteps() {
+    steps = 0;
+    for (var i = 1; i < trailPath.length; i++) {
+      steps += Math.abs(trailPath[i][0] - trailPath[i - 1][0]) +
+        Math.abs(trailPath[i][1] - trailPath[i - 1][1]);
+    }
+    document.getElementById("steps").textContent = String(steps);
+  }
+
   function loadLevel(size) {
     levelStart = Date.now();
     maze = generateMaze(size);
@@ -349,8 +387,8 @@ SCRIPT = r"""
     player = maze.start.slice();
     steps = 0;
     bumps = 0;
-    trail = {};
-    trail[player[0] + "," + player[1]] = true;
+    trailPath = [player.slice()];
+    syncTrailFromPath();
     document.getElementById("steps").textContent = "0";
     document.getElementById("bumps").textContent = "0";
     document.getElementById("shortest").textContent = String(maze.shortest);
@@ -359,24 +397,32 @@ SCRIPT = r"""
 
   function renderMaze() {
     var el = document.getElementById("maze");
-    el.style.gridTemplateColumns = "repeat(" + maze.size + ", 18px)";
+    var wrap = document.querySelector(".maze-wrap");
+    var availW = (wrap && wrap.clientWidth) ? wrap.clientWidth - 8 : 480;
+    var availH = Math.min(
+      (wrap && wrap.clientHeight) ? wrap.clientHeight - 8 : 560,
+      Math.floor(Math.min(window.innerWidth || 900, window.innerHeight || 700) * 0.86)
+    );
+    var cell = Math.max(10, Math.min(32, Math.floor(Math.min(availW, availH) / maze.size)));
+    el.style.setProperty("--cell", cell + "px");
+    el.style.gridTemplateColumns = "repeat(" + maze.size + ", var(--cell))";
     el.innerHTML = "";
     for (var r = 0; r < maze.size; r++) {
       for (var c = 0; c < maze.size; c++) {
-        var cell = document.createElement("div");
-        cell.className = "cell";
-        if (maze.grid[r][c] === 1) cell.classList.add("wall");
+        var cellEl = document.createElement("div");
+        cellEl.className = "cell";
+        if (maze.grid[r][c] === 1) cellEl.classList.add("wall");
         else {
-          cell.classList.add("path");
-          if (r === maze.start[0] && c === maze.start[1]) cell.classList.add("start");
-          if (r === maze.end[0] && c === maze.end[1]) cell.classList.add("end");
-          if (trail[r + "," + c]) cell.classList.add("in-trail");
-          if (r === player[0] && c === player[1]) cell.classList.add("player");
-          cell.dataset.r = String(r);
-          cell.dataset.c = String(c);
-          cell.addEventListener("click", onCellClick);
+          cellEl.classList.add("path");
+          if (r === maze.start[0] && c === maze.start[1]) cellEl.classList.add("start");
+          if (r === maze.end[0] && c === maze.end[1]) cellEl.classList.add("end");
+          if (trail[r + "," + c]) cellEl.classList.add("in-trail");
+          if (r === player[0] && c === player[1]) cellEl.classList.add("player");
+          cellEl.dataset.r = String(r);
+          cellEl.dataset.c = String(c);
+          cellEl.addEventListener("click", onCellClick);
         }
-        el.appendChild(cell);
+        el.appendChild(cellEl);
       }
     }
   }
@@ -415,14 +461,32 @@ SCRIPT = r"""
       document.getElementById("play-hint").textContent = "只能沿同一方向、无墙阻挡移动";
       return;
     }
-    for (var i = 0; i < path.length; i++) {
-      trail[path[i][0] + "," + path[i][1]] = true;
+
+    // 返回已走过的格子：截断轨迹，前方路径颜色恢复
+    var backIdx = -1;
+    for (var i = 0; i < trailPath.length; i++) {
+      if (trailPath[i][0] === r && trailPath[i][1] === c) backIdx = i;
+    }
+    if (backIdx >= 0) {
+      trailPath = trailPath.slice(0, backIdx + 1);
+      player = [r, c];
+      syncTrailFromPath();
+      recountSteps();
+      document.getElementById("play-hint").className = "hint";
+      document.getElementById("play-hint").textContent = "已返回，前方路径已清除";
+      renderMaze();
+      return;
+    }
+
+    for (var j = 0; j < path.length; j++) {
+      trailPath.push([path[j][0], path[j][1]]);
     }
     player = [r, c];
+    syncTrailFromPath();
     steps += path.length;
     document.getElementById("steps").textContent = String(steps);
     document.getElementById("play-hint").className = "hint";
-    document.getElementById("play-hint").textContent = "点击同行或同列、路径畅通的格子移动";
+    document.getElementById("play-hint").textContent = "点击同行或同列、路径畅通的格子移动；点回轨迹可返回";
     renderMaze();
     if (r === maze.end[0] && c === maze.end[1]) onComplete();
   }
@@ -451,29 +515,33 @@ SCRIPT = r"""
   }
 
   function startCasual() {
-    mode = "casual";
-    applyDiff();
-    stopTimer();
-    document.getElementById("play-label").textContent = modeLabel();
-    document.getElementById("play-progress").textContent = "";
-    document.getElementById("timer-text").textContent = "—";
-    showView(views, "play");
-    loadLevel(mazeSize);
+    ensureDifficulty(function () {
+      mode = "casual";
+      applyDiff();
+      stopTimer();
+      document.getElementById("play-label").textContent = modeLabel();
+      document.getElementById("play-progress").textContent = "";
+      document.getElementById("timer-text").textContent = "—";
+      showView(views, "play");
+      loadLevel(mazeSize);
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    applyDiff();
-    levelIndex = 0;
-    levelsDone = 0;
-    totalSteps = 0;
-    effSum = 0;
-    startedAt = Date.now();
-    document.getElementById("play-label").textContent = modeLabel();
-    showView(views, "play");
-    startTimer();
-    document.getElementById("play-progress").textContent = "1 / " + challengeTotal;
-    loadLevel(mazeSize);
+    ensureDifficulty(function () {
+      mode = "challenge";
+      applyDiff();
+      levelIndex = 0;
+      levelsDone = 0;
+      totalSteps = 0;
+      effSum = 0;
+      startedAt = Date.now();
+      document.getElementById("play-label").textContent = modeLabel();
+      showView(views, "play");
+      startTimer();
+      document.getElementById("play-progress").textContent = "1 / " + challengeTotal;
+      loadLevel(mazeSize);
+    });
   }
 
   function finishChallenge() {
@@ -537,9 +605,13 @@ SCRIPT = r"""
   document.getElementById("btn-restart").addEventListener("click", function () {
     player = maze.start.slice();
     steps = 0;
-    trail = {};
-    trail[player[0] + "," + player[1]] = true;
+    bumps = 0;
+    trailPath = [player.slice()];
+    syncTrailFromPath();
     document.getElementById("steps").textContent = "0";
+    document.getElementById("bumps").textContent = "0";
+    document.getElementById("play-hint").className = "hint";
+    document.getElementById("play-hint").textContent = "点击同行或同列、路径畅通的格子移动；点回轨迹可返回";
     renderMaze();
   });
   document.getElementById("btn-new").addEventListener("click", function () {
@@ -548,14 +620,23 @@ SCRIPT = r"""
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
 
-  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
-    var dq = window.__FGB_DAILY_Q__ || {};
-    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
-    if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
-    startCasual();
-  } else {
-    showView(views, "home");
-  }
+  var resizeTimer = null;
+  window.addEventListener("resize", function () {
+    if (!maze) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () { renderMaze(); }, 120);
+  });
+
+  ensureDifficulty(function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
+      startCasual();
+    } else {
+      showView(views, "home");
+    }
+  });
 })();
 """
 

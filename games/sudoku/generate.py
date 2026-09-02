@@ -38,18 +38,19 @@ EXTRA_CSS = r"""
   padding: .65rem;
   margin: 0 0 .7rem;
   border-radius: 14px;
-  background: #f0f4f2;
+  background: rgba(255,255,255,.04);
 }
-.sudoku-wrap { width: 100%; max-width: min(100%, 400px); margin: 0 auto; }
+.sudoku-wrap { width: min(100%, 480px, 82vmin); margin: 0 auto; }
 .sudoku {
   display: grid;
   width: 100%;
   aspect-ratio: 1;
+  max-height: min(82vmin, 480px);
   background: #1a2420;
   border: 2.5px solid #1a2420;
   border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(26,36,33,.1);
+  box-shadow: 0 4px 16px rgba(0,0,0,.35);
 }
 .sudoku button {
   box-sizing: border-box;
@@ -65,46 +66,47 @@ EXTRA_CSS = r"""
   margin: 0;
   padding: 0;
   line-height: 1;
-  background: #fffcf8;
+  background: rgba(232,242,236,.1);
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-variant-numeric: tabular-nums;
   font-size: clamp(.9rem, 4.2vw, 1.35rem);
   font-weight: 600;
-  color: #1a5c48;
+  color: var(--accent);
   cursor: pointer;
   transition: background .1s ease, color .1s ease;
 }
-.sudoku button.box-alt { background: #f0f5f2; }
-.sudoku button.bdr-r-thin { border-right: 1px solid #c5d5cd; }
-.sudoku button.bdr-r-thick { border-right: 2px solid #1a2420; }
-.sudoku button.bdr-b-thin { border-bottom: 1px solid #c5d5cd; }
-.sudoku button.bdr-b-thick { border-bottom: 2px solid #1a2420; }
-.sudoku button:not(.given):hover { background: #e8f3ee; }
+.sudoku button.box-alt { background: rgba(232,242,236,.06); }
+.sudoku button.bdr-r-thin { border-right: 1px solid rgba(232,242,236,.14); }
+.sudoku button.bdr-r-thick { border-right: 2px solid #0a1210; }
+.sudoku button.bdr-b-thin { border-bottom: 1px solid rgba(232,242,236,.14); }
+.sudoku button.bdr-b-thick { border-bottom: 2px solid #0a1210; }
+.sudoku button:not(.given):hover { background: rgba(62,207,142,.14); }
 .sudoku button.given {
-  background: #f5f8f6;
-  color: #1a2420;
+  background: rgba(232,242,236,.14);
+  color: var(--ink);
   font-weight: 700;
   cursor: default;
 }
-.sudoku button.given.box-alt { background: #e8eeeb; }
-.sudoku button.related { background: #dceee6 !important; }
-.sudoku button.given.related { background: #d0e4db !important; }
+.sudoku button.given.box-alt { background: rgba(232,242,236,.1); }
+.sudoku button.related { background: rgba(62,207,142,.1) !important; }
+.sudoku button.given.related { background: rgba(232,242,236,.18) !important; }
 .sudoku button.same-num {
-  color: #0a5240;
+  color: var(--accent);
   font-weight: 700;
-  background: #c8e6d8 !important;
+  background: rgba(62,207,142,.14) !important;
 }
 .sudoku button.selected {
-  background: #0f7a5a !important;
-  color: #fff !important;
+  background: rgba(62, 207, 142, 0.28) !important;
+  color: var(--ink) !important;
   font-weight: 700;
+  box-shadow: inset 0 0 0 2px rgba(62, 207, 142, 0.75);
 }
-.sudoku button.selected.given { color: #fff !important; }
+.sudoku button.selected.given { color: var(--ink) !important; }
 .sudoku button.conflict {
-  background: #f5d4cf !important;
-  color: #a33b2d !important;
+  background: rgba(224, 112, 96, 0.28) !important;
+  color: #f0b0a4 !important;
 }
-.sudoku button.hinted { color: #9a4a12; }
+.sudoku button.hinted { color: var(--warn); }
 .sudoku.size-4 button { font-size: clamp(1.2rem, 7vw, 1.75rem); }
 .sudoku.size-6 button { font-size: clamp(1rem, 5vw, 1.35rem); }
 .sudoku.size-9 button { font-size: clamp(.85rem, 3.5vw, 1.1rem); }
@@ -113,7 +115,7 @@ EXTRA_CSS = r"""
 .play-dock {
   padding: .65rem;
   border-radius: 14px;
-  background: #f7faf8;
+  background: rgba(255,255,255,.04);
   border: 1px solid var(--line);
 }
 .numpad {
@@ -137,10 +139,10 @@ EXTRA_CSS = r"""
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 1.15rem;
   font-weight: 700;
-  color: #0a5240;
-  background: #fff;
+  color: var(--accent-deep);
+  background: rgba(255,255,255,.92);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(26,36,33,.08);
+  box-shadow: 0 1px 3px rgba(0,0,0,.25);
   transition: background .1s ease, transform .08s ease;
 }
 .numpad.grid-9 button { max-width: none; height: 2.5rem; font-size: 1rem; }
@@ -156,17 +158,19 @@ EXTRA_CSS = r"""
   color: var(--muted);
   background: transparent;
   box-shadow: none;
-  border: 1px dashed #c5d5cd;
+  border: 1px dashed var(--line);
 }
-.numpad button.clear:hover { background: #fff; }
+.numpad button.clear:hover { background: rgba(255,255,255,.08); }
 
-.tool-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: .4rem;
+.play-chrome {
   margin-top: .55rem;
   padding-top: .55rem;
   border-top: 1px solid var(--line);
+}
+.tool-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: .4rem;
 }
 .tool-row button {
   border: 0;
@@ -175,24 +179,53 @@ EXTRA_CSS = r"""
   font: inherit;
   font-size: .84rem;
   font-weight: 600;
-  background: #fff;
+  background: rgba(255,255,255,.08);
   color: var(--ink);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(26,36,33,.06);
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
   transition: background .1s ease;
 }
-.tool-row button:hover { background: #eef5f1; }
+.tool-row button:hover { background: rgba(62,207,142,.16); }
 .tool-row button.tool-accent {
-  color: #0a5240;
-  background: #e0f0e8;
+  color: #062016;
+  background: rgba(62,207,142,.35);
 }
-.play-actions { margin-top: .7rem; }
+.play-actions { margin-top: .55rem; }
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .play-card { padding: .45rem .45rem .55rem; }
+  .sudoku-stage { padding: .3rem; margin: 0 0 .3rem; }
+  /* 横屏只收边距，棋盘仍按 vmin 吃满短边，避免被 dvh 再压小 */
+  .sudoku-wrap { width: min(100%, 520px, 86vmin); }
+  .sudoku { max-height: min(86vmin, 520px); }
+  .play-dock { padding: .35rem; }
+  .numpad { gap: .3rem; }
+  .numpad button { height: 1.85rem; font-size: .92rem; }
+  .numpad.grid-9 button { height: 1.7rem; font-size: .85rem; }
+  /* 工具行 + 退出行合成一行，少占一截高度 */
+  .play-chrome {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: .25rem;
+    margin-top: .3rem;
+    padding-top: .3rem;
+  }
+  .tool-row,
+  .play-actions {
+    display: contents;
+  }
+  .tool-row button,
+  .play-actions button {
+    padding: .32rem .1rem;
+    font-size: .7rem;
+    border-radius: 8px;
+  }
+}
 """
 
 BODY = r"""
   <section id="view-home">
     <h1>数<em>独</em></h1>
-    <p class="sub">四宫格、六宫格、九宫格逻辑推理。支持检查、提示与撤销。</p>
+    <p class="sub">四宫格、六宫格、九宫格逻辑推理。支持检查、提示与上一步 / 下一步。</p>
     <div class="card mode-grid">
       <button type="button" class="mode-btn" id="btn-casual">
         <strong>休闲模式</strong>
@@ -248,16 +281,19 @@ BODY = r"""
       </div>
       <div class="play-dock">
         <div class="numpad" id="numpad"></div>
-        <div class="tool-row">
-          <button type="button" id="btn-undo">撤销</button>
-          <button type="button" id="btn-check" class="tool-accent">检查</button>
-          <button type="button" id="btn-hint" class="tool-accent">提示</button>
+        <div class="play-chrome">
+          <div class="tool-row">
+            <button type="button" id="btn-undo">上一步</button>
+            <button type="button" id="btn-redo">下一步</button>
+            <button type="button" id="btn-check" class="tool-accent">检查</button>
+            <button type="button" id="btn-hint" class="tool-accent">提示</button>
+          </div>
+          <div class="actions play-actions">
+            <button type="button" class="danger" id="btn-exit">退出</button>
+            <button type="button" id="btn-restart">重来</button>
+            <button type="button" id="btn-next">下一题</button>
+          </div>
         </div>
-      </div>
-      <div class="actions play-actions">
-        <button type="button" class="danger" id="btn-exit">退出</button>
-        <button type="button" id="btn-restart">重来</button>
-        <button type="button" id="btn-next">下一题</button>
       </div>
     </div>
   </section>
@@ -301,6 +337,21 @@ SCRIPT = r"""
     god: { size: 9, givens: 28, label: "大神" }
   };
 
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!DIFF[k]) return;
+      Object.assign(DIFF[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("sudoku").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
+
   function diffLabel(key) {
     var d = DIFF[key];
     return d ? d.label : key;
@@ -326,6 +377,7 @@ SCRIPT = r"""
   var board = [];
   var selected = null;
   var history = [];
+  var redoStack = [];
 
   function stopTimer() {
     if (timerId) { clearInterval(timerId); timerId = null; }
@@ -584,6 +636,7 @@ SCRIPT = r"""
     board = p.puzzle.map(function (row) { return row.slice(); });
     selected = null;
     history = [];
+    redoStack = [];
     hintsUsed = 0;
     renderBoard();
     buildNumpad();
@@ -591,8 +644,13 @@ SCRIPT = r"""
     document.getElementById("play-hint").textContent = "点格选中，再点数字填入";
   }
 
+  function cloneBoard(src) {
+    return src.map(function (row) { return row.slice(); });
+  }
+
   function pushHistory() {
-    history.push(board.map(function (row) { return row.slice(); }));
+    history.push(cloneBoard(board));
+    redoStack = [];
     if (history.length > 40) history.shift();
   }
 
@@ -725,30 +783,34 @@ SCRIPT = r"""
   }
 
   function startCasualPlay() {
-    mode = "casual";
-    applyDiff();
-    stopTimer();
-    document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
-    document.getElementById("play-progress").textContent = "";
-    document.getElementById("timer-text").textContent = "—";
-    document.getElementById("btn-next").style.display = "";
-    showView(views, "play");
-    loadPuzzle();
+    ensureDifficulty(function () {
+      mode = "casual";
+      applyDiff();
+      stopTimer();
+      document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
+      document.getElementById("play-progress").textContent = "";
+      document.getElementById("timer-text").textContent = "—";
+      document.getElementById("btn-next").style.display = "";
+      showView(views, "play");
+      loadPuzzle();
+    });
   }
 
   function startChallenge() {
-    mode = "challenge";
-    applyDiff();
-    puzzleIndex = 0;
-    puzzlesDone = 0;
-    totalHints = 0;
-    startedAt = Date.now();
-    document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
-    document.getElementById("btn-next").style.display = "none";
-    showView(views, "play");
-    startTimer();
-    document.getElementById("play-progress").textContent = "1 / " + challengeTotal;
-    loadPuzzle();
+    ensureDifficulty(function () {
+      mode = "challenge";
+      applyDiff();
+      puzzleIndex = 0;
+      puzzlesDone = 0;
+      totalHints = 0;
+      startedAt = Date.now();
+      document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
+      document.getElementById("btn-next").style.display = "none";
+      showView(views, "play");
+      startTimer();
+      document.getElementById("play-progress").textContent = "1 / " + challengeTotal;
+      loadPuzzle();
+    });
   }
 
   function finishChallenge() {
@@ -796,7 +858,14 @@ SCRIPT = r"""
   document.getElementById("btn-start").addEventListener("click", startChallenge);
   document.getElementById("btn-undo").addEventListener("click", function () {
     if (!history.length) return;
+    redoStack.push(cloneBoard(board));
     board = history.pop();
+    renderBoard();
+  });
+  document.getElementById("btn-redo").addEventListener("click", function () {
+    if (!redoStack.length) return;
+    history.push(cloneBoard(board));
+    board = redoStack.pop();
     renderBoard();
   });
   document.getElementById("btn-check").addEventListener("click", function () {
@@ -838,14 +907,16 @@ SCRIPT = r"""
   document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
   document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
 
-  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
-    var dq = window.__FGB_DAILY_Q__ || {};
-    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
-    if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
-    startCasualPlay();
-  } else {
-    showView(views, "home");
-  }
+  ensureDifficulty(function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier && DIFF[dq.tier]) { diffKey = dq.tier; applyDiff(); }
+      startCasualPlay();
+    } else {
+      showView(views, "home");
+    }
+  });
 })();
 """
 

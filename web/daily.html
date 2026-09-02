@@ -99,6 +99,7 @@
   var stageEnteredAt = 0;
   var timerId = null;
   var finishing = false;
+  var exitSentRunId = "";
 
   function fmt(ms) {
     ms = Math.max(0, ms | 0);
@@ -284,6 +285,44 @@
     return api("/api/v1/daily/runs/" + run.runId, { method: "PATCH", body: body });
   }
 
+  function buildExitBody() {
+    var stages = (run && run.stages) || [];
+    var st = stages[stageIndex] || {};
+    return {
+      action: "exit",
+      stageIndex: stageIndex,
+      totalTimeMs: totalMs(),
+      stage: {
+        gameId: st.gameId || "",
+        tier: st.tier || "",
+        timeMs: stageMs(),
+        completed: false,
+      },
+    };
+  }
+
+  /** 关页/杀进程：用 keepalive 尽量把退出送达（不依赖 PATCH sendBeacon）。 */
+  function patchExitKeepalive(body) {
+    if (!run || !run.runId) return;
+    try {
+      fetch(apiUrl("/api/v1/daily/runs/" + run.runId), {
+        method: "PATCH",
+        headers: headers(),
+        body: JSON.stringify(body),
+        keepalive: true,
+      });
+    } catch (e) { /* ignore unload errors */ }
+  }
+
+  function canExitRun() {
+    return !!(
+      run &&
+      run.status === "running" &&
+      !finishing &&
+      exitSentRunId !== run.runId
+    );
+  }
+
   function showResult(finalRun) {
     stopTimer();
     document.getElementById("game-frame").src = "about:blank";
@@ -333,25 +372,43 @@
     });
   }
 
-  function doExit() {
-    if (!run || finishing) return;
-    FGBUI.askConfirm("确定退出？已完成的关卡会记入挑战榜。", function () {
-      finishing = true;
-      var stages = run.stages || [];
-      var st = stages[stageIndex];
-      patch({
-        action: "exit",
-        stageIndex: stageIndex,
-        totalTimeMs: totalMs(),
-        stage: { gameId: st.gameId, tier: st.tier, timeMs: stageMs(), completed: false },
-      }).then(function (updated) {
-        finishing = false;
-        showResult(updated);
-      }).catch(function (e) {
-        finishing = false;
-        FGBUI.toast(e.message || "退出失败", "err");
-      });
+  function exitRun(opts) {
+    opts = opts || {};
+    if (!canExitRun()) return false;
+    var body = buildExitBody();
+    if (opts.keepalive) {
+      exitSentRunId = run.runId;
+      if (run) run.status = "exited";
+      stopTimer();
+      patchExitKeepalive(body);
+      return true;
+    }
+    finishing = true;
+    stopTimer();
+    exitSentRunId = run.runId;
+    patch(body).then(function (updated) {
+      run = updated;
+      finishing = false;
+      showResult(updated);
+    }).catch(function (e) {
+      finishing = false;
+      exitSentRunId = "";
+      if (run) run.status = "running";
+      FGBUI.toast(e.message || "退出失败", "err");
     });
+    return true;
+  }
+
+  function doExit() {
+    if (!canExitRun()) return;
+    FGBUI.askConfirm("确定退出？已完成的关卡会记入挑战榜。", function () {
+      exitRun();
+    });
+  }
+
+  function onPageLeave() {
+    // 关页/跳转记退出；进 bfcache（persisted）时调用方已跳过
+    exitRun({ keepalive: true });
   }
 
   function startRun() {
@@ -363,6 +420,7 @@
       }
       return api("/api/v1/daily/runs", { method: "POST" }).then(function (data) {
         run = data;
+        exitSentRunId = "";
         startedAt = Date.now();
         show("play");
         stopTimer();
@@ -386,7 +444,17 @@
   document.getElementById("btn-again").addEventListener("click", function () {
     run = null;
     finishing = false;
+    exitSentRunId = "";
     loadPrep();
+  });
+
+  window.addEventListener("pagehide", function (ev) {
+    if (ev && ev.persisted) return;
+    onPageLeave();
+  });
+  // 部分 WebView 对 pagehide 支持差，补一层（仍靠 canExitRun 防重复）
+  window.addEventListener("beforeunload", function () {
+    onPageLeave();
   });
 
   window.addEventListener("resize", function () {

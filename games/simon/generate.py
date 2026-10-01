@@ -65,20 +65,29 @@ EXTRA_CSS = r"""
 .action-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: .55rem;
+  gap: .65rem;
+  max-width: 360px;
+  margin: 0 auto;
 }
 .action-grid button {
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 1rem .4rem;
+  border-radius: 22px;
+  aspect-ratio: 1;
+  width: 100%;
+  padding: .35rem;
   font: inherit;
   font-weight: 700;
+  font-size: clamp(.95rem, 3.2vw, 1.1rem);
   background: rgba(255,255,255,.04);
   color: var(--ink);
   cursor: pointer;
-  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.2;
 }
-.action-grid button:active { transform: scale(.98); }
+.action-grid button:active { transform: scale(.96); }
 .action-grid button:disabled { opacity: .4; cursor: not-allowed; }
 .feedback {
   text-align: center;
@@ -98,7 +107,8 @@ EXTRA_CSS = r"""
     margin: .25rem 0 .55rem;
     font-size: clamp(1.15rem, 3.5vw, 1.55rem);
   }
-  .action-grid button { padding: .7rem .3rem; min-height: 44px; }
+  .action-grid { max-width: 300px; gap: .5rem; }
+  .action-grid button { border-radius: 18px; font-size: .92rem; }
   .feedback { margin-top: .4rem; min-height: 1.2em; }
 }
 """

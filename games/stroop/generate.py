@@ -1,6 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""生成 Stroop 色声干扰训练页（语音播报 + 色块，无汉字）。"""
+"""生成 Stroop 色字干扰训练页（固定语音播报字义）。"""
 
 from __future__ import annotations
 
@@ -29,21 +27,20 @@ STROOP_TIER_SUB = {
 }
 
 EXTRA_CSS = r"""
-.stroop-swatch {
-  width: min(42vw, 168px);
-  aspect-ratio: 1;
-  margin: 1rem auto 1.25rem;
-  border-radius: 28px;
-  border: 2px solid rgba(255,255,255,.18);
-  box-shadow: 0 8px 28px rgba(0,0,0,.28);
-  transition: transform .18s ease, box-shadow .18s ease;
+.stroop-word {
+  font-family: var(--display);
+  font-size: clamp(3.6rem, 16vw, 5.5rem);
+  font-weight: 800;
+  text-align: center;
+  margin: 1.2rem 0 1.4rem;
+  line-height: 1.1;
+  min-height: 1.2em;
+  -webkit-text-stroke: 0.5px rgba(0,0,0,.12);
+  transition: transform .18s ease;
 }
-.stroop-swatch.is-speaking {
-  transform: scale(1.04);
-  box-shadow: 0 0 0 4px rgba(62,207,142,.28), 0 8px 28px rgba(0,0,0,.28);
-}
+.stroop-word.is-speaking { transform: scale(1.04); }
 #view-play .task-bar {
-  font-size: clamp(1.05rem, 3.2vw, 1.3rem);
+  font-size: clamp(1.15rem, 3.6vw, 1.45rem);
   padding: .85rem 1rem;
   letter-spacing: .02em;
 }
@@ -59,10 +56,12 @@ EXTRA_CSS = r"""
   margin: 0 auto;
 }
 .color-grid button {
-  border: 2px solid rgba(255,255,255,.2);
+  border: 2px solid var(--line);
   border-radius: 22px;
   padding: 0;
   font: inherit;
+  font-size: clamp(1.25rem, 4vw, 1.65rem);
+  font-weight: 800;
   cursor: pointer;
   aspect-ratio: 1;
   width: 100%;
@@ -86,27 +85,27 @@ EXTRA_CSS = r"""
 }
 .stat-row strong { color: var(--ink); }
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
-  .stroop-swatch {
-    width: min(28vw, 112px);
-    margin: .45rem auto .7rem;
-    border-radius: 20px;
+  .stroop-word {
+    font-size: clamp(2.6rem, 10vw, 3.8rem);
+    margin: .55rem 0 .7rem;
   }
   #view-play .task-bar {
-    font-size: clamp(.95rem, 2.6vw, 1.15rem);
+    font-size: clamp(1.05rem, 2.8vw, 1.25rem);
     padding: .55rem .75rem;
   }
   .color-grid {
     gap: .5rem;
     max-width: min(100%, 440px);
   }
+  .color-grid button { font-size: clamp(1.1rem, 3.2vw, 1.35rem); }
   .stat-row { margin-top: .4rem; gap: .65rem; font-size: .82rem; }
 }
 """
 
 BODY = r"""
   <section id="view-home">
-    <h1>Stroop<em>色声</em></h1>
-    <p class="sub">听语音报的颜色名，选你<strong>看到</strong>的色块颜色——不要跟着听。听觉干扰版抗干扰训练。</p>
+    <h1>Stroop<em>色字</em></h1>
+    <p class="sub">选出字的<strong>颜色</strong>，不要读字义；每题同步语音播报字义，加大干扰。经典抗干扰训练。</p>
     <div class="card mode-grid">
       <button type="button" class="mode-btn" id="btn-casual">
         <strong>休闲模式</strong>
@@ -114,7 +113,7 @@ BODY = r"""
       </button>
       <button type="button" class="mode-btn" id="btn-challenge">
         <strong>挑战模式</strong>
-        <span>限时或固定试次，结束后看干扰量</span>
+        <span>限时或固定试次，结束后看 Stroop 干扰量</span>
       </button>
     </div>
     {lobby_back_link()}
@@ -150,10 +149,10 @@ BODY = r"""
       <span id="play-progress"></span>
       <span><strong id="timer-text">00:00</strong></span>
     </div>
-    <div class="task-bar" id="task-bar">选看到的颜色，不要听信语音</div>
-    <p class="hint" id="play-hint">听播报 · 点下方色块</p>
+    <div class="task-bar" id="task-bar">请选字的颜色，不要读字 / 听字</div>
+    <p class="hint" id="play-hint">看颜色，点下方色块</p>
     <div class="card">
-      <div class="stroop-swatch" id="stroop-swatch" aria-hidden="true"></div>
+      <div class="stroop-word" id="stroop-word">—</div>
       <div class="color-grid" id="color-grid"></div>
       <div class="stat-row">
         <span>连击 <strong id="streak">0</strong></span>
@@ -268,7 +267,7 @@ SCRIPT = r"""
   var rtsCong = [];
   var rtsIncong = [];
 
-  var swatchEl = document.getElementById("stroop-swatch");
+  var wordEl = document.getElementById("stroop-word");
   var gridEl = document.getElementById("color-grid");
   var hintEl = document.getElementById("play-hint");
   var progressEl = document.getElementById("play-progress");
@@ -282,7 +281,7 @@ SCRIPT = r"""
   }
 
   function setSpeaking(on) {
-    if (swatchEl) swatchEl.classList.toggle("is-speaking", !!on);
+    if (wordEl) wordEl.classList.toggle("is-speaking", !!on);
   }
 
   function stopSpeak() {
@@ -317,7 +316,7 @@ SCRIPT = r"""
     });
   }
 
-  /** 播报颜色名（干扰）；统一预置 MP3 */
+  /** 固定播报字义（红→红色）；不可关闭 */
   function speakWordLabel(wordId) {
     stopSpeak();
     if (!wordId) return;
@@ -400,9 +399,10 @@ SCRIPT = r"""
     choices.forEach(function (c) {
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.setAttribute("aria-label", c.label);
+      btn.textContent = c.label;
       btn.style.background = c.hex;
-      btn.style.borderColor = (c.id === "white") ? "rgba(0,0,0,.22)" : c.hex;
+      btn.style.color = (c.id === "white" || c.id === "yellow") ? "#1a2421" : "#fff";
+      btn.style.borderColor = c.hex;
       btn.disabled = !!disabled;
       btn.dataset.id = c.id;
       btn.addEventListener("click", function () { onAnswer(c.id); });
@@ -413,15 +413,13 @@ SCRIPT = r"""
   function showTrial() {
     waiting = true;
     currentTrial = buildTrial();
-    // 只显示墨色色块，不写汉字；语音播报字义作干扰
-    if (swatchEl) {
-      swatchEl.style.background = currentTrial.inkHex;
-      swatchEl.style.borderColor = (currentTrial.inkId === "white")
-        ? "rgba(0,0,0,.28)" : "rgba(255,255,255,.18)";
-    }
+    wordEl.textContent = currentTrial.word;
+    wordEl.style.color = currentTrial.inkHex;
+    if (currentTrial.inkId === "white") wordEl.style.textShadow = "0 0 1px #888";
+    else wordEl.style.textShadow = "none";
     renderChoices(currentTrial.choices, false);
     hintEl.className = "hint";
-    hintEl.textContent = "听播报 · 选看到的颜色";
+    hintEl.textContent = "看颜色，点下方色块";
     trialStart = performance.now();
     waiting = false;
     speakWordLabel(currentTrial.wordId);
@@ -449,7 +447,7 @@ SCRIPT = r"""
       setHint("正确 · " + rt + " ms", "ok");
     } else {
       streak = 0;
-      setHint("错误 · 应选色块颜色", "err");
+      setHint("错误 · 应为「" + byId[currentTrial.inkId].label + "」", "err");
     }
     document.getElementById("streak").textContent = String(streak);
     document.getElementById("correct-n").textContent = String(correct);
@@ -611,7 +609,7 @@ def sync_audio(web_index: Path) -> None:
 
 
 def build_html() -> str:
-    return build_page("Stroop 色声干扰", EXTRA_CSS, inject_lobby_link(BODY), SCRIPT)
+    return build_page("Stroop 色字干扰", EXTRA_CSS, inject_lobby_link(BODY), SCRIPT)
 
 
 def main() -> None:

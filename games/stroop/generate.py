@@ -5,8 +5,7 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
-
+import shutil
 import sys
 from pathlib import Path
 
@@ -18,6 +17,7 @@ from common.game_common import build_page, inject_lobby_link, run_generator, tie
 from common.paths import game_page_paths
 
 SLUG = "stroop"
+AUDIO_SRC = Path(__file__).resolve().parent / "audio"
 
 STROOP_TIER_SUB = {
     "intro": "20 试次",
@@ -298,6 +298,9 @@ SCRIPT = r"""
   var labelEl = document.getElementById("play-label");
   var voiceBtn = document.getElementById("btn-voice");
   var voiceOn = true;
+  var clipCache = {};
+  var activeAudio = null;
+  var audioUnlocked = false;
   try {
     var savedVoice = localStorage.getItem("fgb_stroop_voice");
     if (savedVoice === "0") voiceOn = false;
@@ -311,23 +314,69 @@ SCRIPT = r"""
   }
   syncVoiceBtn();
 
+  function clipUrl(name) {
+    return "audio/" + name + ".mp3";
+  }
+
   function stopSpeak() {
+    if (activeAudio) {
+      try { activeAudio.pause(); } catch (e) {}
+      activeAudio = null;
+    }
+  }
+
+  /** 用户手势下解锁 WebView 音频 */
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
     try {
-      if (window.speechSynthesis) speechSynthesis.cancel();
+      var silent = new Audio(
+        "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"
+      );
+      silent.volume = 0.01;
+      var p = silent.play();
+      if (p && p.then) p.catch(function () {});
     } catch (e) {}
   }
 
-  /** 播报字义（如「白」→「白色」），干扰读字、强化选色任务 */
-  function speakWordLabel(label) {
+  function preloadClips() {
+    COLORS.forEach(function (c) {
+      if (clipCache[c.id]) return;
+      var a = new Audio(clipUrl(c.id));
+      a.preload = "auto";
+      a.addEventListener("error", function () { a.__fgbBad = true; });
+      clipCache[c.id] = a;
+    });
+  }
+
+  /** 播报字义（红→红色）；统一预置 MP3，兼容 Android WebView */
+  function speakWordLabel(wordId) {
     stopSpeak();
-    if (!voiceOn || !label || !window.speechSynthesis) return;
+    if (!voiceOn || !wordId) return;
+    var audio = clipCache[wordId];
+    if (!audio) {
+      audio = new Audio(clipUrl(wordId));
+      audio.preload = "auto";
+      clipCache[wordId] = audio;
+    }
+    if (audio.__fgbBad) return;
     try {
-      var u = new SpeechSynthesisUtterance(String(label) + "色");
-      u.lang = "zh-CN";
-      u.rate = 1.05;
-      u.pitch = 1;
-      speechSynthesis.speak(u);
+      audio.pause();
+      audio.currentTime = 0;
     } catch (e) {}
+    activeAudio = audio;
+    audio.onended = function () { activeAudio = null; };
+    audio.onerror = function () {
+      audio.__fgbBad = true;
+      activeAudio = null;
+    };
+    var playPromise = audio.play();
+    if (playPromise && playPromise.then) {
+      playPromise.catch(function () {
+        audio.__fgbBad = true;
+        activeAudio = null;
+      });
+    }
   }
 
   if (voiceBtn) {
@@ -336,7 +385,7 @@ SCRIPT = r"""
       try { localStorage.setItem("fgb_stroop_voice", voiceOn ? "1" : "0"); } catch (e) {}
       syncVoiceBtn();
       if (!voiceOn) stopSpeak();
-      else if (currentTrial && currentTrial.word) speakWordLabel(currentTrial.word);
+      else if (currentTrial && currentTrial.wordId) speakWordLabel(currentTrial.wordId);
     });
   }
 
@@ -383,7 +432,7 @@ SCRIPT = r"""
     if (!choices.some(function (c) { return c.id === inkColor.id; })) {
       choices[0] = inkColor;
     }
-    return { word: wordColor.label, inkId: inkColor.id, inkHex: inkColor.hex, congruent: congruent, choices: choices };
+    return { word: wordColor.label, wordId: wordColor.id, inkId: inkColor.id, inkHex: inkColor.hex, congruent: congruent, choices: choices };
   }
 
   function renderChoices(choices, disabled) {
@@ -414,7 +463,7 @@ SCRIPT = r"""
     hintEl.textContent = "看颜色，点下方色块";
     trialStart = performance.now();
     waiting = false;
-    speakWordLabel(currentTrial.word);
+    speakWordLabel(currentTrial.wordId);
   }
 
   function setHint(text, cls) {
@@ -469,6 +518,8 @@ SCRIPT = r"""
     ensureDifficulty(function () {
       mode = "casual";
       applyDiff();
+      unlockAudio();
+      preloadClips();
       stopTimer();
       resetStats();
       updateChrome();
@@ -482,6 +533,8 @@ SCRIPT = r"""
     ensureDifficulty(function () {
       mode = "challenge";
       applyDiff();
+      unlockAudio();
+      preloadClips();
       resetStats();
       startedAt = Date.now();
       if (timeLimitMs > 0) {
@@ -576,6 +629,25 @@ SCRIPT = r"""
 """
 
 
+def sync_audio(web_index: Path) -> None:
+    """Copy games/stroop/audio → web/games/stroop/audio (and build twin)."""
+    if not AUDIO_SRC.is_dir():
+        print("NOTE: no %s yet — run games/stroop/gen_audio.py" % AUDIO_SRC)
+        return
+    targets = [web_index.parent / "audio"]
+    build_index = Path(__file__).resolve().parent / "build" / "index.html"
+    targets.append(build_index.parent / "audio")
+    mp3s = list(AUDIO_SRC.glob("*.mp3"))
+    if not mp3s:
+        print("NOTE: %s has no .mp3 — run games/stroop/gen_audio.py" % AUDIO_SRC)
+        return
+    for dst in targets:
+        dst.mkdir(parents=True, exist_ok=True)
+        for src in mp3s:
+            shutil.copy2(src, dst / src.name)
+        print("Synced %d audio clips → %s" % (len(mp3s), dst))
+
+
 def build_html() -> str:
     return build_page("Stroop 色字干扰", EXTRA_CSS, inject_lobby_link(BODY), SCRIPT)
 
@@ -587,6 +659,7 @@ def main() -> None:
     parser.add_argument("--dist", default=str(web))
     args = parser.parse_args()
     run_generator(build_html, args.out, args.dist, SLUG)
+    sync_audio(Path(args.dist))
 
 
 if __name__ == "__main__":

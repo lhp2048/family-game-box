@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""生成 Stroop 色字干扰训练页 stroop.html。"""
+"""生成 Stroop 色声干扰训练页（语音播报 + 色块，无汉字）。"""
 
 from __future__ import annotations
 
@@ -29,18 +29,21 @@ STROOP_TIER_SUB = {
 }
 
 EXTRA_CSS = r"""
-.stroop-word {
-  font-family: var(--display);
-  font-size: clamp(3.6rem, 16vw, 5.5rem);
-  font-weight: 800;
-  text-align: center;
-  margin: 1.2rem 0 1.4rem;
-  line-height: 1.1;
-  min-height: 1.2em;
-  -webkit-text-stroke: 0.5px rgba(0,0,0,.12);
+.stroop-swatch {
+  width: min(42vw, 168px);
+  aspect-ratio: 1;
+  margin: 1rem auto 1.25rem;
+  border-radius: 28px;
+  border: 2px solid rgba(255,255,255,.18);
+  box-shadow: 0 8px 28px rgba(0,0,0,.28);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.stroop-swatch.is-speaking {
+  transform: scale(1.04);
+  box-shadow: 0 0 0 4px rgba(62,207,142,.28), 0 8px 28px rgba(0,0,0,.28);
 }
 #view-play .task-bar {
-  font-size: clamp(1.15rem, 3.6vw, 1.45rem);
+  font-size: clamp(1.05rem, 3.2vw, 1.3rem);
   padding: .85rem 1rem;
   letter-spacing: .02em;
 }
@@ -56,12 +59,10 @@ EXTRA_CSS = r"""
   margin: 0 auto;
 }
 .color-grid button {
-  border: 2px solid var(--line);
-  border-radius: 14px;
+  border: 2px solid rgba(255,255,255,.2);
+  border-radius: 22px;
   padding: 0;
   font: inherit;
-  font-size: clamp(1.25rem, 4vw, 1.65rem);
-  font-weight: 800;
   cursor: pointer;
   aspect-ratio: 1;
   width: 100%;
@@ -84,49 +85,28 @@ EXTRA_CSS = r"""
   margin-top: .75rem;
 }
 .stat-row strong { color: var(--ink); }
-.voice-row {
-  display: flex;
-  justify-content: flex-end;
-  margin: 0 0 .35rem;
-}
-.voice-row button {
-  border: 1px solid var(--line);
-  background: rgba(255,255,255,.04);
-  color: var(--muted);
-  border-radius: 999px;
-  padding: .35rem .75rem;
-  font: inherit;
-  font-size: .82rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.voice-row button.is-on {
-  color: var(--accent);
-  border-color: rgba(62,207,142,.45);
-  background: rgba(62,207,142,.12);
-}
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
-  .stroop-word {
-    font-size: clamp(2.6rem, 10vw, 3.8rem);
-    margin: .55rem 0 .7rem;
+  .stroop-swatch {
+    width: min(28vw, 112px);
+    margin: .45rem auto .7rem;
+    border-radius: 20px;
   }
   #view-play .task-bar {
-    font-size: clamp(1.05rem, 2.8vw, 1.25rem);
+    font-size: clamp(.95rem, 2.6vw, 1.15rem);
     padding: .55rem .75rem;
   }
   .color-grid {
     gap: .5rem;
     max-width: min(100%, 440px);
   }
-  .color-grid button { font-size: clamp(1.1rem, 3.2vw, 1.35rem); }
   .stat-row { margin-top: .4rem; gap: .65rem; font-size: .82rem; }
 }
 """
 
 BODY = r"""
   <section id="view-home">
-    <h1>Stroop<em>色字</em></h1>
-    <p class="sub">快速选出字的颜色，不要读字义。经典认知训练，锻炼抗干扰与选择性注意。</p>
+    <h1>Stroop<em>色声</em></h1>
+    <p class="sub">听语音报的颜色名，选你<strong>看到</strong>的色块颜色——不要跟着听。听觉干扰版抗干扰训练。</p>
     <div class="card mode-grid">
       <button type="button" class="mode-btn" id="btn-casual">
         <strong>休闲模式</strong>
@@ -134,7 +114,7 @@ BODY = r"""
       </button>
       <button type="button" class="mode-btn" id="btn-challenge">
         <strong>挑战模式</strong>
-        <span>限时或固定试次，结束后看 Stroop 干扰量</span>
+        <span>限时或固定试次，结束后看干扰量</span>
       </button>
     </div>
     {lobby_back_link()}
@@ -170,13 +150,10 @@ BODY = r"""
       <span id="play-progress"></span>
       <span><strong id="timer-text">00:00</strong></span>
     </div>
-    <div class="task-bar" id="task-bar">请选字的颜色，不要读字</div>
-    <p class="hint" id="play-hint">看颜色，点下方色块</p>
+    <div class="task-bar" id="task-bar">选看到的颜色，不要听信语音</div>
+    <p class="hint" id="play-hint">听播报 · 点下方色块</p>
     <div class="card">
-      <div class="voice-row">
-        <button type="button" class="is-on" id="btn-voice" aria-pressed="true">语音：开</button>
-      </div>
-      <div class="stroop-word" id="stroop-word">—</div>
+      <div class="stroop-swatch" id="stroop-swatch" aria-hidden="true"></div>
       <div class="color-grid" id="color-grid"></div>
       <div class="stat-row">
         <span>连击 <strong id="streak">0</strong></span>
@@ -291,34 +268,25 @@ SCRIPT = r"""
   var rtsCong = [];
   var rtsIncong = [];
 
-  var wordEl = document.getElementById("stroop-word");
+  var swatchEl = document.getElementById("stroop-swatch");
   var gridEl = document.getElementById("color-grid");
   var hintEl = document.getElementById("play-hint");
   var progressEl = document.getElementById("play-progress");
   var labelEl = document.getElementById("play-label");
-  var voiceBtn = document.getElementById("btn-voice");
-  var voiceOn = true;
   var clipCache = {};
   var activeAudio = null;
   var audioUnlocked = false;
-  try {
-    var savedVoice = localStorage.getItem("fgb_stroop_voice");
-    if (savedVoice === "0") voiceOn = false;
-  } catch (e) {}
-
-  function syncVoiceBtn() {
-    if (!voiceBtn) return;
-    voiceBtn.textContent = voiceOn ? "语音：开" : "语音：关";
-    voiceBtn.classList.toggle("is-on", voiceOn);
-    voiceBtn.setAttribute("aria-pressed", voiceOn ? "true" : "false");
-  }
-  syncVoiceBtn();
 
   function clipUrl(name) {
     return "audio/" + name + ".mp3";
   }
 
+  function setSpeaking(on) {
+    if (swatchEl) swatchEl.classList.toggle("is-speaking", !!on);
+  }
+
   function stopSpeak() {
+    setSpeaking(false);
     if (activeAudio) {
       try { activeAudio.pause(); } catch (e) {}
       activeAudio = null;
@@ -349,10 +317,10 @@ SCRIPT = r"""
     });
   }
 
-  /** 播报字义（红→红色）；统一预置 MP3，兼容 Android WebView */
+  /** 播报颜色名（干扰）；统一预置 MP3 */
   function speakWordLabel(wordId) {
     stopSpeak();
-    if (!voiceOn || !wordId) return;
+    if (!wordId) return;
     var audio = clipCache[wordId];
     if (!audio) {
       audio = new Audio(clipUrl(wordId));
@@ -365,30 +333,22 @@ SCRIPT = r"""
       audio.currentTime = 0;
     } catch (e) {}
     activeAudio = audio;
-    audio.onended = function () { activeAudio = null; };
+    setSpeaking(true);
+    audio.onended = function () { setSpeaking(false); activeAudio = null; };
     audio.onerror = function () {
       audio.__fgbBad = true;
+      setSpeaking(false);
       activeAudio = null;
     };
     var playPromise = audio.play();
     if (playPromise && playPromise.then) {
       playPromise.catch(function () {
         audio.__fgbBad = true;
+        setSpeaking(false);
         activeAudio = null;
       });
     }
   }
-
-  if (voiceBtn) {
-    voiceBtn.addEventListener("click", function () {
-      voiceOn = !voiceOn;
-      try { localStorage.setItem("fgb_stroop_voice", voiceOn ? "1" : "0"); } catch (e) {}
-      syncVoiceBtn();
-      if (!voiceOn) stopSpeak();
-      else if (currentTrial && currentTrial.wordId) speakWordLabel(currentTrial.wordId);
-    });
-  }
-
   function avg(arr) {
     if (!arr.length) return null;
     var s = 0;
@@ -440,10 +400,9 @@ SCRIPT = r"""
     choices.forEach(function (c) {
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.textContent = c.label;
+      btn.setAttribute("aria-label", c.label);
       btn.style.background = c.hex;
-      btn.style.color = (c.id === "white" || c.id === "yellow") ? "#1a2421" : "#fff";
-      btn.style.borderColor = c.hex;
+      btn.style.borderColor = (c.id === "white") ? "rgba(0,0,0,.22)" : c.hex;
       btn.disabled = !!disabled;
       btn.dataset.id = c.id;
       btn.addEventListener("click", function () { onAnswer(c.id); });
@@ -454,13 +413,15 @@ SCRIPT = r"""
   function showTrial() {
     waiting = true;
     currentTrial = buildTrial();
-    wordEl.textContent = currentTrial.word;
-    wordEl.style.color = currentTrial.inkHex;
-    if (currentTrial.inkId === "white") wordEl.style.textShadow = "0 0 1px #888";
-    else wordEl.style.textShadow = "none";
+    // 只显示墨色色块，不写汉字；语音播报字义作干扰
+    if (swatchEl) {
+      swatchEl.style.background = currentTrial.inkHex;
+      swatchEl.style.borderColor = (currentTrial.inkId === "white")
+        ? "rgba(0,0,0,.28)" : "rgba(255,255,255,.18)";
+    }
     renderChoices(currentTrial.choices, false);
     hintEl.className = "hint";
-    hintEl.textContent = "看颜色，点下方色块";
+    hintEl.textContent = "听播报 · 选看到的颜色";
     trialStart = performance.now();
     waiting = false;
     speakWordLabel(currentTrial.wordId);
@@ -474,6 +435,7 @@ SCRIPT = r"""
   function onAnswer(choiceId) {
     if (waiting || !currentTrial) return;
     waiting = true;
+    stopSpeak();
     renderChoices(currentTrial.choices, true);
     var rt = Math.round(performance.now() - trialStart);
     total++;
@@ -487,7 +449,7 @@ SCRIPT = r"""
       setHint("正确 · " + rt + " ms", "ok");
     } else {
       streak = 0;
-      setHint("错误 · 应为「" + byId[currentTrial.inkId].label + "」", "err");
+      setHint("错误 · 应选色块颜色", "err");
     }
     document.getElementById("streak").textContent = String(streak);
     document.getElementById("correct-n").textContent = String(correct);
@@ -649,7 +611,7 @@ def sync_audio(web_index: Path) -> None:
 
 
 def build_html() -> str:
-    return build_page("Stroop 色字干扰", EXTRA_CSS, inject_lobby_link(BODY), SCRIPT)
+    return build_page("Stroop 色声干扰", EXTRA_CSS, inject_lobby_link(BODY), SCRIPT)
 
 
 def main() -> None:

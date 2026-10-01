@@ -5,7 +5,7 @@
 from __future__ import annotations
 
 import argparse
-
+import shutil
 import sys
 from pathlib import Path
 
@@ -17,6 +17,7 @@ from common.game_common import build_page, inject_lobby_link, run_generator, tie
 from common.paths import game_page_paths
 
 SLUG = "simon"
+AUDIO_SRC = Path(__file__).resolve().parent / "audio"
 
 SIMON_TIER_SUB = {
     "intro": "15 试次",
@@ -42,6 +43,24 @@ EXTRA_CSS = r"""
   background: rgba(255,255,255,.04);
   border: 1px dashed var(--line);
   line-height: 1.35;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.command-box.is-speaking {
+  border-color: var(--accent);
+  border-style: solid;
+  box-shadow: 0 0 0 3px rgba(62,207,142,.22);
+  animation: simonSpeakPulse .7s ease-in-out infinite;
+}
+@keyframes simonSpeakPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+.tts-note {
+  text-align: center;
+  font-size: .82rem;
+  color: var(--muted);
+  min-height: 1.2em;
+  margin: -.35rem 0 .55rem;
 }
 .action-grid {
   display: grid;
@@ -123,6 +142,7 @@ BODY = r"""
         <label><input type="checkbox" id="chk-tts" checked> 语音朗读</label>
         <label><input type="checkbox" id="chk-reverse"> 反向规则（老师说→不做）</label>
       </div>
+      <p style="margin:0 0 .85rem;color:var(--muted);font-size:.82rem">部分平板内置浏览器不支持系统语音；请确保已生成并部署 <code>games/simon/audio/*.mp3</code>（运行 <code>gen_audio.py</code>）。</p>
       <button type="button" class="primary" id="btn-start">开始挑战</button>
       <div style="height:.65rem"></div>
       <button type="button" class="ghost" id="btn-setup-back" style="width:100%">返回</button>
@@ -138,6 +158,7 @@ BODY = r"""
     <div class="task-bar" id="rule-bar">老师说 → 做动作；无「老师说」→ 不动</div>
     <div class="card">
       <div class="command-box" id="command">准备…</div>
+      <div class="tts-note" id="tts-note"></div>
       <div class="action-grid" id="actions">
         <button type="button" data-act="hands_up">↑ 举手</button>
         <button type="button" data-act="turn_left">← 左转</button>
@@ -239,20 +260,247 @@ SCRIPT = r"""
   var phase = "idle";
   var reactStart = 0;
   var reactTimer = null;
+  var presentTimer = null;
   var streak = 0;
   var maxStreak = 0;
   var correct = 0;
   var impulse = 0;
   var miss = 0;
   var rts = [];
+  var clipCache = {};
+  var activeAudio = null;
+  var audioUnlocked = false;
+  var ttsMode = "auto"; // clip | synth | visual
+  var commandEl = document.getElementById("command");
+  var ttsNoteEl = document.getElementById("tts-note");
 
-  function speak(text) {
-    if (!useTts || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(text);
-    u.lang = "zh-CN";
-    u.rate = 0.95;
-    window.speechSynthesis.speak(u);
+  function clipName(trialObj) {
+    if (!trialObj) return "";
+    return (trialObj.hasPrefix ? "say_" : "") + trialObj.action;
+  }
+
+  function clipUrl(name) {
+    // 相对当前页：/games/simon/index.html → audio/xxx.mp3（兼容 ROOT_PATH）
+    return "audio/" + name + ".mp3";
+  }
+
+  function setSpeaking(on) {
+    if (!commandEl) return;
+    commandEl.classList.toggle("is-speaking", !!on);
+  }
+
+  function setTtsNote(msg) {
+    if (ttsNoteEl) ttsNoteEl.textContent = msg || "";
+  }
+
+  function stopSpeak() {
+    setSpeaking(false);
+    try {
+      if (window.speechSynthesis) speechSynthesis.cancel();
+    } catch (e) {}
+    if (activeAudio) {
+      try { activeAudio.pause(); } catch (e2) {}
+      activeAudio = null;
+    }
+  }
+
+  /** 用户手势下解锁 WebView 音频（Android 内置浏览器常见限制） */
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    audioUnlocked = true;
+    try {
+      var silent = new Audio(
+        "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"
+      );
+      silent.volume = 0.01;
+      var p = silent.play();
+      if (p && p.then) p.catch(function () {});
+    } catch (e) {}
+    try {
+      if (window.speechSynthesis) {
+        var warm = new SpeechSynthesisUtterance("。");
+        warm.volume = 0;
+        warm.rate = 2;
+        warm.lang = "zh-CN";
+        speechSynthesis.speak(warm);
+        speechSynthesis.cancel();
+      }
+    } catch (e2) {}
+  }
+
+  function playClip(name, onDone) {
+    if (!name) {
+      if (onDone) onDone(false);
+      return false;
+    }
+    var url = clipUrl(name);
+    var audio = clipCache[name];
+    if (!audio) {
+      audio = new Audio(url);
+      audio.preload = "auto";
+      clipCache[name] = audio;
+    }
+    if (audio.__fgbBad) {
+      if (onDone) onDone(false);
+      return false;
+    }
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch (e) {}
+    activeAudio = audio;
+    var finished = false;
+    function done(ok) {
+      if (finished) return;
+      finished = true;
+      setSpeaking(false);
+      activeAudio = null;
+      if (!ok) audio.__fgbBad = true;
+      if (onDone) onDone(ok);
+    }
+    audio.onended = function () { done(true); };
+    audio.onerror = function () { done(false); };
+    setSpeaking(true);
+    var playPromise = audio.play();
+    if (playPromise && playPromise.then) {
+      playPromise.then(function () {
+        ttsMode = "clip";
+        setTtsNote("");
+      }).catch(function () {
+        done(false);
+      });
+    }
+    return true;
+  }
+
+  function pickZhVoice() {
+    if (!window.speechSynthesis) return null;
+    var voices = speechSynthesis.getVoices() || [];
+    var zh = null;
+    for (var i = 0; i < voices.length; i++) {
+      var v = voices[i];
+      var lang = (v.lang || "").toLowerCase();
+      if (lang.indexOf("zh") === 0 || lang.indexOf("cmn") === 0) {
+        zh = v;
+        if (/xiaoxiao|tingting|yaoyao|lili|huihui|chinese/.test((v.name || "").toLowerCase())) {
+          return v;
+        }
+      }
+    }
+    return zh;
+  }
+
+  function playSynth(text, onDone) {
+    if (!window.speechSynthesis) {
+      if (onDone) onDone(false);
+      return;
+    }
+    try {
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = "zh-CN";
+      u.rate = 0.95;
+      var voice = pickZhVoice();
+      if (voice) u.voice = voice;
+      var finished = false;
+      var watchdog = setTimeout(function () {
+        if (finished) return;
+        // 部分 WebView speak() 静默失败：超时当失败
+        finished = true;
+        setSpeaking(false);
+        try { speechSynthesis.cancel(); } catch (e) {}
+        if (onDone) onDone(false);
+      }, 1200);
+      u.onstart = function () {
+        clearTimeout(watchdog);
+        ttsMode = "synth";
+        setTtsNote("");
+      };
+      u.onend = function () {
+        if (finished) return;
+        finished = true;
+        clearTimeout(watchdog);
+        setSpeaking(false);
+        if (onDone) onDone(true);
+      };
+      u.onerror = function () {
+        if (finished) return;
+        finished = true;
+        clearTimeout(watchdog);
+        setSpeaking(false);
+        if (onDone) onDone(false);
+      };
+      setSpeaking(true);
+      speechSynthesis.speak(u);
+      // 触发 voices 加载
+      if (speechSynthesis.getVoices().length === 0) {
+        speechSynthesis.onvoiceschanged = function () {
+          speechSynthesis.onvoiceschanged = null;
+        };
+      }
+    } catch (e) {
+      setSpeaking(false);
+      if (onDone) onDone(false);
+    }
+  }
+
+  function speak(text, trialObj, onDone) {
+    if (!useTts) {
+      if (onDone) onDone(false);
+      return;
+    }
+    stopSpeak();
+    var name = clipName(trialObj);
+    var finished = false;
+    function finish(ok) {
+      if (finished) return;
+      finished = true;
+      if (onDone) onDone(ok);
+    }
+    function visualFallback() {
+      ttsMode = "visual";
+      setTtsNote("当前浏览器无法播语音，请看上方文字指令");
+      setSpeaking(true);
+      setTimeout(function () {
+        setSpeaking(false);
+        finish(false);
+      }, 1100);
+    }
+    function trySynth() {
+      playSynth(text, function (ok) {
+        if (ok) finish(true);
+        else visualFallback();
+      });
+    }
+    if (name && clipCache[name] && !clipCache[name].__fgbBad) {
+      playClip(name, function (ok) {
+        if (ok) finish(true);
+        else trySynth();
+      });
+      return;
+    }
+    if (name) {
+      // 首次：先试 clip，失败再 synth
+      playClip(name, function (ok) {
+        if (ok) finish(true);
+        else trySynth();
+      });
+      return;
+    }
+    trySynth();
+  }
+
+  function preloadClips() {
+    Object.keys(ACTIONS).forEach(function (act) {
+      ["", "say_"].forEach(function (prefix) {
+        var name = prefix + act;
+        if (clipCache[name]) return;
+        var a = new Audio(clipUrl(name));
+        a.preload = "auto";
+        a.addEventListener("error", function () { a.__fgbBad = true; });
+        clipCache[name] = a;
+      });
+    });
   }
 
   function buildTrial() {
@@ -317,18 +565,19 @@ SCRIPT = r"""
   function presentTrial() {
     trial = buildTrial();
     phase = "show";
-    document.getElementById("command").textContent = trial.text;
+    commandEl.textContent = trial.text;
     showFeedback("", true);
     setActionsEnabled(false);
-    speak(trial.text);
-    setTimeout(function () {
+    if (presentTimer) clearTimeout(presentTimer);
+    speak(trial.text, trial, function () {
+      if (phase !== "show") return;
       phase = "react";
       reactStart = performance.now();
       setActionsEnabled(true);
       reactTimer = setTimeout(function () {
         if (phase === "react") judge(null);
       }, 2800);
-    }, 600);
+    });
   }
 
   function nextTrial() {
@@ -354,10 +603,13 @@ SCRIPT = r"""
       applyDiff();
       reverse = false;
       useTts = true;
+      unlockAudio();
+      preloadClips();
       trialIndex = 0;
       correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
       document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
       document.getElementById("btn-next").style.display = "";
+      setTtsNote("");
       updateRuleBar();
       showView(views, "play");
       nextTrial();
@@ -370,10 +622,13 @@ SCRIPT = r"""
       applyDiff();
       reverse = document.getElementById("chk-reverse").checked;
       useTts = document.getElementById("chk-tts").checked;
+      unlockAudio();
+      if (useTts) preloadClips();
       trialIndex = 0;
       correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
       document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
       document.getElementById("btn-next").style.display = "none";
+      setTtsNote("");
       updateRuleBar();
       showView(views, "play");
       nextTrial();
@@ -382,6 +637,8 @@ SCRIPT = r"""
 
   function finishChallenge() {
     clearTimeout(reactTimer);
+    if (presentTimer) clearTimeout(presentTimer);
+    stopSpeak();
     var total = trialTotal;
     document.getElementById("st-total").textContent = String(total);
     document.getElementById("st-correct").textContent = String(correct);
@@ -423,6 +680,8 @@ SCRIPT = r"""
   document.getElementById("btn-exit").addEventListener("click", function () {
     function doExit() {
       clearTimeout(reactTimer);
+      if (presentTimer) clearTimeout(presentTimer);
+      stopSpeak();
       if (mode === "challenge" && trialIndex > 0) finishChallenge();
       else showView(views, "home");
     }
@@ -436,8 +695,8 @@ SCRIPT = r"""
     if (phase === "react") judge(null);
     else nextTrial();
   });
-  document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
-  document.getElementById("btn-home").addEventListener("click", function () { showView(views, "home"); });
+  document.getElementById("btn-again").addEventListener("click", function () { stopSpeak(); showView(views, "setup"); });
+  document.getElementById("btn-home").addEventListener("click", function () { stopSpeak(); showView(views, "home"); });
 
   ensureDifficulty(function () {
     if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
@@ -453,6 +712,25 @@ SCRIPT = r"""
 """
 
 
+def sync_audio(web_index: Path) -> None:
+    """Copy games/simon/audio → web/games/simon/audio (and build twin)."""
+    if not AUDIO_SRC.is_dir():
+        print("NOTE: no %s yet — run games/simon/gen_audio.py" % AUDIO_SRC)
+        return
+    targets = [web_index.parent / "audio"]
+    build_index = Path(__file__).resolve().parent / "build" / "index.html"
+    targets.append(build_index.parent / "audio")
+    mp3s = list(AUDIO_SRC.glob("*.mp3"))
+    if not mp3s:
+        print("NOTE: %s has no .mp3 — run games/simon/gen_audio.py" % AUDIO_SRC)
+        return
+    for dst in targets:
+        dst.mkdir(parents=True, exist_ok=True)
+        for src in mp3s:
+            shutil.copy2(src, dst / src.name)
+        print("Synced %d audio clips → %s" % (len(mp3s), dst))
+
+
 def build_html() -> str:
     return build_page("Simon Says · 老师说", EXTRA_CSS, inject_lobby_link(BODY), SCRIPT)
 
@@ -464,6 +742,7 @@ def main() -> None:
     parser.add_argument("--dist", default=str(web))
     args = parser.parse_args()
     run_generator(build_html, args.out, args.dist, SLUG)
+    sync_audio(Path(args.dist))
 
 
 if __name__ == "__main__":

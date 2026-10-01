@@ -149,10 +149,9 @@ BODY = r"""
       <p style="margin:0 0 .5rem;color:var(--muted);font-size:.9rem">难度</p>
       """ + tier_choice_row("diff-choices", SIMON_TIER_SUB) + r"""
       <div class="toggles">
-        <label><input type="checkbox" id="chk-tts" checked> 语音朗读</label>
         <label><input type="checkbox" id="chk-reverse"> 反向规则（老师说→不做）</label>
       </div>
-      <p style="margin:0 0 .85rem;color:var(--muted);font-size:.82rem">语音用预置 MP3，开着时不显示文字指令（练听力）；关闭则只看文字。播放中也可作答，听不全可能答错。</p>
+      <p style="margin:0 0 .85rem;color:var(--muted);font-size:.82rem">挑战固定用预置 MP3 播指令（不显示文字）；播放中可作答，听不全可能答错。</p>
       <button type="button" class="primary" id="btn-start">开始挑战</button>
       <div style="height:.65rem"></div>
       <button type="button" class="ghost" id="btn-setup-back" style="width:100%">返回</button>
@@ -551,9 +550,10 @@ SCRIPT = r"""
       mode = "challenge";
       applyDiff();
       reverse = document.getElementById("chk-reverse").checked;
-      useTts = document.getElementById("chk-tts").checked;
+      // 与休闲一致：挑战固定 MP3，不再提供「关语音看字」
+      useTts = true;
       unlockAudio();
-      if (useTts) preloadClips();
+      preloadClips();
       trialIndex = 0;
       correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
       document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);

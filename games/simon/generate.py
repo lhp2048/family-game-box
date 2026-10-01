@@ -142,7 +142,7 @@ BODY = r"""
         <label><input type="checkbox" id="chk-tts" checked> 语音朗读</label>
         <label><input type="checkbox" id="chk-reverse"> 反向规则（老师说→不做）</label>
       </div>
-      <p style="margin:0 0 .85rem;color:var(--muted);font-size:.82rem">语音使用预置 MP3（各端一致）；关闭则仅显示文字指令。</p>
+      <p style="margin:0 0 .85rem;color:var(--muted);font-size:.82rem">语音用预置 MP3，开着时不显示文字指令（练听力）；关闭则只看文字。播完才能选动作。</p>
       <button type="button" class="primary" id="btn-start">开始挑战</button>
       <div style="height:.65rem"></div>
       <button type="button" class="ghost" id="btn-setup-back" style="width:100%">返回</button>
@@ -292,6 +292,16 @@ SCRIPT = r"""
     if (ttsNoteEl) ttsNoteEl.textContent = msg || "";
   }
 
+  function setCommandHint(msg) {
+    if (commandEl) commandEl.textContent = msg || "";
+  }
+
+  /** 语音模式默认不露指令文字；失败或关闭语音时再显示 */
+  function revealCommandText(trialObj) {
+    if (!trialObj) return;
+    setCommandHint(trialObj.text);
+  }
+
   function stopSpeak() {
     setSpeaking(false);
     if (activeAudio) {
@@ -357,13 +367,15 @@ SCRIPT = r"""
     return true;
   }
 
-  /** 统一播预置 MP3；失败则文字高亮提示（不再用 speechSynthesis） */
+  /** 统一播预置 MP3；失败则露出文字（不再用 speechSynthesis） */
   function speak(text, trialObj, onDone) {
     if (!useTts) {
+      revealCommandText(trialObj);
       if (onDone) onDone(false);
       return;
     }
     stopSpeak();
+    setCommandHint("听指令…");
     var name = clipName(trialObj);
     var finished = false;
     function finish(ok) {
@@ -372,7 +384,8 @@ SCRIPT = r"""
       if (onDone) onDone(ok);
     }
     function visualFallback() {
-      setTtsNote("语音文件未加载，请看上方文字指令");
+      revealCommandText(trialObj);
+      setTtsNote("语音未加载，请看上方文字");
       setSpeaking(true);
       setTimeout(function () {
         setSpeaking(false);
@@ -384,8 +397,12 @@ SCRIPT = r"""
       return;
     }
     playClip(name, function (ok) {
-      if (ok) finish(true);
-      else visualFallback();
+      if (ok) {
+        setCommandHint("请反应");
+        finish(true);
+      } else {
+        visualFallback();
+      }
     });
   }
 
@@ -464,7 +481,9 @@ SCRIPT = r"""
   function presentTrial() {
     trial = buildTrial();
     phase = "show";
-    commandEl.textContent = trial.text;
+    // 语音开：先不写指令字，避免读字不听；关语音：直接显示文字
+    if (useTts) setCommandHint("听指令…");
+    else revealCommandText(trial);
     showFeedback("", true);
     setActionsEnabled(false);
     if (presentTimer) clearTimeout(presentTimer);

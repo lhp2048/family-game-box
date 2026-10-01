@@ -152,7 +152,7 @@ BODY = r"""
         <label><input type="checkbox" id="chk-tts" checked> 语音朗读</label>
         <label><input type="checkbox" id="chk-reverse"> 反向规则（老师说→不做）</label>
       </div>
-      <p style="margin:0 0 .85rem;color:var(--muted);font-size:.82rem">语音用预置 MP3，开着时不显示文字指令（练听力）；关闭则只看文字。播完才能选动作。</p>
+      <p style="margin:0 0 .85rem;color:var(--muted);font-size:.82rem">语音用预置 MP3，开着时不显示文字指令（练听力）；关闭则只看文字。播放中也可作答，听不全可能答错。</p>
       <button type="button" class="primary" id="btn-start">开始挑战</button>
       <div style="height:.65rem"></div>
       <button type="button" class="ghost" id="btn-setup-back" style="width:100%">返回</button>
@@ -458,6 +458,7 @@ SCRIPT = r"""
     if (phase !== "react") return;
     phase = "done";
     clearTimeout(reactTimer);
+    stopSpeak();
     setActionsEnabled(false);
     var rt = Math.round(performance.now() - reactStart);
     var ok = false;
@@ -490,18 +491,19 @@ SCRIPT = r"""
 
   function presentTrial() {
     trial = buildTrial();
-    phase = "show";
-    // 语音开：先不写指令字，避免读字不听；关语音：直接显示文字
+    // 开播即可作答：抢答允许，听不全自负
+    phase = "react";
     if (useTts) setCommandHint("听指令…");
     else revealCommandText(trial);
     showFeedback("", true);
-    setActionsEnabled(false);
+    setActionsEnabled(true);
+    reactStart = performance.now();
     if (presentTimer) clearTimeout(presentTimer);
+    clearTimeout(reactTimer);
     speak(trial.text, trial, function () {
-      if (phase !== "show") return;
-      phase = "react";
-      reactStart = performance.now();
-      setActionsEnabled(true);
+      if (phase !== "react") return;
+      if (useTts) setCommandHint("请反应");
+      // 播完后再给一段时间作答；超时判不动
       reactTimer = setTimeout(function () {
         if (phase === "react") judge(null);
       }, 2800);

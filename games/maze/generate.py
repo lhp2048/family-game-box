@@ -55,19 +55,32 @@ EXTRA_CSS = r"""
   flex-shrink: 0;
 }
 .maze .wall { background: #050a08; }
-.maze .path { background: #d8e8df; cursor: pointer; }
+.maze .path,
+.maze .start,
+.maze .end {
+  background: #d8e8df;
+  cursor: pointer;
+  transition: background .14s ease, box-shadow .14s ease, transform .14s ease;
+}
 .maze .path:hover { background: #b8dcc8; }
 .maze .start { background: #2bb673; }
 .maze .end { background: #e8a04a; }
 .maze .player {
-  background: #3ecf8e;
+  background: #3ecf8e !important;
   box-shadow: inset 0 0 0 2px #062016;
+  transform: scale(1.06);
+  z-index: 1;
+}
+.maze .player.is-sliding {
+  transform: scale(1.14);
+  box-shadow: inset 0 0 0 2px #062016, 0 0 10px rgba(62, 207, 142, 0.45);
 }
 /* 走过痕迹：琥珀，与浅色通道、深色墙都易区分 */
 .maze .path.in-trail { background: #f0c86a; }
 .maze .path.in-trail:hover { background: #e8b84a; }
 .maze .start.in-trail { background: #1a9f68; }
 .maze .end.in-trail { background: #d4892a; }
+.maze.is-moving { pointer-events: none; }
 .stat-pills {
   display: flex;
   justify-content: center;
@@ -209,6 +222,69 @@ SCRIPT = r"""
   var bumps = 0;
   var trail = {};
   var trailPath = [];
+  var moving = false;
+  var moveTimer = null;
+
+  function stopMoveAnim() {
+    if (moveTimer) {
+      clearTimeout(moveTimer);
+      moveTimer = null;
+    }
+    moving = false;
+    var mazeEl = document.getElementById("maze");
+    if (mazeEl) mazeEl.classList.remove("is-moving");
+  }
+
+  function stepDelay(n) {
+    return Math.max(22, Math.min(52, Math.floor(420 / Math.max(1, n))));
+  }
+
+  function paintPlayerAndTrail() {
+    var mazeEl = document.getElementById("maze");
+    if (!mazeEl || !player) return;
+    var cells = mazeEl.querySelectorAll(".cell[data-r]");
+    for (var i = 0; i < cells.length; i++) {
+      var cell = cells[i];
+      if (cell.classList.contains("wall")) continue;
+      var r = Number(cell.dataset.r);
+      var c = Number(cell.dataset.c);
+      var isPlayer = r === player[0] && c === player[1];
+      cell.classList.toggle("in-trail", !!trail[r + "," + c]);
+      cell.classList.toggle("player", isPlayer);
+      if (!isPlayer) cell.classList.remove("is-sliding");
+    }
+  }
+
+  function animateAlong(cells, onStep, onDone) {
+    stopMoveAnim();
+    if (!cells || !cells.length) {
+      if (onDone) onDone();
+      return;
+    }
+    moving = true;
+    var mazeEl = document.getElementById("maze");
+    if (mazeEl) mazeEl.classList.add("is-moving");
+    var delay = stepDelay(cells.length);
+    var i = 0;
+    function tick() {
+      if (i >= cells.length) {
+        var last = mazeEl && mazeEl.querySelector(".cell.player");
+        if (last) last.classList.remove("is-sliding");
+        stopMoveAnim();
+        paintPlayerAndTrail();
+        if (onDone) onDone();
+        return;
+      }
+      var rc = cells[i++];
+      player = [rc[0], rc[1]];
+      if (onStep) onStep(rc, i, cells.length);
+      paintPlayerAndTrail();
+      var cur = mazeEl && mazeEl.querySelector(".cell.player");
+      if (cur) cur.classList.add("is-sliding");
+      moveTimer = setTimeout(tick, delay);
+    }
+    tick();
+  }
 
   function stopTimer() {
     if (timerId) { clearInterval(timerId); timerId = null; }
@@ -387,6 +463,7 @@ SCRIPT = r"""
   }
 
   function loadLevel(size) {
+    stopMoveAnim();
     levelStart = Date.now();
     maze = generateMaze(size);
     maze.shortest = bfsShortest(maze);
@@ -466,6 +543,7 @@ SCRIPT = r"""
   }
 
   function onCellClick() {
+    if (moving) return;
     var r = Number(this.dataset.r), c = Number(this.dataset.c);
     if (r === player[0] && c === player[1]) return;
     if (maze.grid[r][c] === 1) {
@@ -488,27 +566,38 @@ SCRIPT = r"""
       if (trailPath[i][0] === r && trailPath[i][1] === c) backIdx = i;
     }
     if (backIdx >= 0) {
-      trailPath = trailPath.slice(0, backIdx + 1);
-      player = [r, c];
-      syncTrailFromPath();
-      recountSteps();
+      var reverse = [];
+      for (var k = trailPath.length - 2; k >= backIdx; k--) {
+        reverse.push(trailPath[k].slice());
+      }
       document.getElementById("play-hint").className = "hint";
       document.getElementById("play-hint").textContent = "已返回，前方路径已清除";
-      renderMaze();
+      animateAlong(reverse, function () {
+        trailPath = trailPath.slice(0, trailPath.length - 1);
+        syncTrailFromPath();
+      }, function () {
+        trailPath = trailPath.slice(0, backIdx + 1);
+        player = [r, c];
+        syncTrailFromPath();
+        recountSteps();
+        paintPlayerAndTrail();
+      });
       return;
     }
 
-    for (var j = 0; j < path.length; j++) {
-      trailPath.push([path[j][0], path[j][1]]);
-    }
-    player = [r, c];
-    syncTrailFromPath();
-    steps += path.length;
-    document.getElementById("steps").textContent = String(steps);
     document.getElementById("play-hint").className = "hint";
     document.getElementById("play-hint").textContent = "点击同行或同列、路径畅通的格子移动；点回轨迹可返回";
-    renderMaze();
-    if (r === maze.end[0] && c === maze.end[1]) onComplete();
+    animateAlong(path, function (rc) {
+      trailPath.push([rc[0], rc[1]]);
+      syncTrailFromPath();
+      steps += 1;
+      document.getElementById("steps").textContent = String(steps);
+    }, function () {
+      player = [r, c];
+      syncTrailFromPath();
+      paintPlayerAndTrail();
+      if (r === maze.end[0] && c === maze.end[1]) onComplete();
+    });
   }
 
   function onComplete() {
@@ -612,6 +701,7 @@ SCRIPT = r"""
   document.getElementById("btn-start").addEventListener("click", startChallenge);
   document.getElementById("btn-exit").addEventListener("click", function () {
     function doExit() {
+      stopMoveAnim();
       stopTimer();
       if (mode === "challenge" && levelIndex > 0) finishChallenge();
       else showView(views, "home");
@@ -623,6 +713,7 @@ SCRIPT = r"""
     doExit();
   });
   document.getElementById("btn-restart").addEventListener("click", function () {
+    stopMoveAnim();
     player = maze.start.slice();
     steps = 0;
     bumps = 0;
@@ -637,12 +728,12 @@ SCRIPT = r"""
   document.getElementById("btn-new").addEventListener("click", function () {
     loadLevel(mazeSize);
   });
-  document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
-  document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
+  document.getElementById("btn-again").addEventListener("click", function () { stopMoveAnim(); showView(views, "setup"); });
+  document.getElementById("btn-home").addEventListener("click", function () { stopMoveAnim(); stopTimer(); showView(views, "home"); });
 
   var resizeTimer = null;
   window.addEventListener("resize", function () {
-    if (!maze) return;
+    if (!maze || moving) return;
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () { renderMaze(); }, 120);
   });

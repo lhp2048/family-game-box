@@ -142,7 +142,7 @@ BODY = r"""
         <label><input type="checkbox" id="chk-tts" checked> 语音朗读</label>
         <label><input type="checkbox" id="chk-reverse"> 反向规则（老师说→不做）</label>
       </div>
-      <p style="margin:0 0 .85rem;color:var(--muted);font-size:.82rem">部分平板内置浏览器不支持系统语音；请确保已生成并部署 <code>games/simon/audio/*.mp3</code>（运行 <code>gen_audio.py</code>）。</p>
+      <p style="margin:0 0 .85rem;color:var(--muted);font-size:.82rem">语音使用预置 MP3（各端一致）；关闭则仅显示文字指令。</p>
       <button type="button" class="primary" id="btn-start">开始挑战</button>
       <div style="height:.65rem"></div>
       <button type="button" class="ghost" id="btn-setup-back" style="width:100%">返回</button>
@@ -270,7 +270,6 @@ SCRIPT = r"""
   var clipCache = {};
   var activeAudio = null;
   var audioUnlocked = false;
-  var ttsMode = "auto"; // clip | synth | visual
   var commandEl = document.getElementById("command");
   var ttsNoteEl = document.getElementById("tts-note");
 
@@ -295,11 +294,8 @@ SCRIPT = r"""
 
   function stopSpeak() {
     setSpeaking(false);
-    try {
-      if (window.speechSynthesis) speechSynthesis.cancel();
-    } catch (e) {}
     if (activeAudio) {
-      try { activeAudio.pause(); } catch (e2) {}
+      try { activeAudio.pause(); } catch (e) {}
       activeAudio = null;
     }
   }
@@ -316,16 +312,6 @@ SCRIPT = r"""
       var p = silent.play();
       if (p && p.then) p.catch(function () {});
     } catch (e) {}
-    try {
-      if (window.speechSynthesis) {
-        var warm = new SpeechSynthesisUtterance("。");
-        warm.volume = 0;
-        warm.rate = 2;
-        warm.lang = "zh-CN";
-        speechSynthesis.speak(warm);
-        speechSynthesis.cancel();
-      }
-    } catch (e2) {}
   }
 
   function playClip(name, onDone) {
@@ -333,10 +319,9 @@ SCRIPT = r"""
       if (onDone) onDone(false);
       return false;
     }
-    var url = clipUrl(name);
     var audio = clipCache[name];
     if (!audio) {
-      audio = new Audio(url);
+      audio = new Audio(clipUrl(name));
       audio.preload = "auto";
       clipCache[name] = audio;
     }
@@ -364,7 +349,6 @@ SCRIPT = r"""
     var playPromise = audio.play();
     if (playPromise && playPromise.then) {
       playPromise.then(function () {
-        ttsMode = "clip";
         setTtsNote("");
       }).catch(function () {
         done(false);
@@ -373,77 +357,7 @@ SCRIPT = r"""
     return true;
   }
 
-  function pickZhVoice() {
-    if (!window.speechSynthesis) return null;
-    var voices = speechSynthesis.getVoices() || [];
-    var zh = null;
-    for (var i = 0; i < voices.length; i++) {
-      var v = voices[i];
-      var lang = (v.lang || "").toLowerCase();
-      if (lang.indexOf("zh") === 0 || lang.indexOf("cmn") === 0) {
-        zh = v;
-        if (/xiaoxiao|tingting|yaoyao|lili|huihui|chinese/.test((v.name || "").toLowerCase())) {
-          return v;
-        }
-      }
-    }
-    return zh;
-  }
-
-  function playSynth(text, onDone) {
-    if (!window.speechSynthesis) {
-      if (onDone) onDone(false);
-      return;
-    }
-    try {
-      speechSynthesis.cancel();
-      var u = new SpeechSynthesisUtterance(text);
-      u.lang = "zh-CN";
-      u.rate = 0.95;
-      var voice = pickZhVoice();
-      if (voice) u.voice = voice;
-      var finished = false;
-      var watchdog = setTimeout(function () {
-        if (finished) return;
-        // 部分 WebView speak() 静默失败：超时当失败
-        finished = true;
-        setSpeaking(false);
-        try { speechSynthesis.cancel(); } catch (e) {}
-        if (onDone) onDone(false);
-      }, 1200);
-      u.onstart = function () {
-        clearTimeout(watchdog);
-        ttsMode = "synth";
-        setTtsNote("");
-      };
-      u.onend = function () {
-        if (finished) return;
-        finished = true;
-        clearTimeout(watchdog);
-        setSpeaking(false);
-        if (onDone) onDone(true);
-      };
-      u.onerror = function () {
-        if (finished) return;
-        finished = true;
-        clearTimeout(watchdog);
-        setSpeaking(false);
-        if (onDone) onDone(false);
-      };
-      setSpeaking(true);
-      speechSynthesis.speak(u);
-      // 触发 voices 加载
-      if (speechSynthesis.getVoices().length === 0) {
-        speechSynthesis.onvoiceschanged = function () {
-          speechSynthesis.onvoiceschanged = null;
-        };
-      }
-    } catch (e) {
-      setSpeaking(false);
-      if (onDone) onDone(false);
-    }
-  }
-
+  /** 统一播预置 MP3；失败则文字高亮提示（不再用 speechSynthesis） */
   function speak(text, trialObj, onDone) {
     if (!useTts) {
       if (onDone) onDone(false);
@@ -458,36 +372,21 @@ SCRIPT = r"""
       if (onDone) onDone(ok);
     }
     function visualFallback() {
-      ttsMode = "visual";
-      setTtsNote("当前浏览器无法播语音，请看上方文字指令");
+      setTtsNote("语音文件未加载，请看上方文字指令");
       setSpeaking(true);
       setTimeout(function () {
         setSpeaking(false);
         finish(false);
       }, 1100);
     }
-    function trySynth() {
-      playSynth(text, function (ok) {
-        if (ok) finish(true);
-        else visualFallback();
-      });
-    }
-    if (name && clipCache[name] && !clipCache[name].__fgbBad) {
-      playClip(name, function (ok) {
-        if (ok) finish(true);
-        else trySynth();
-      });
+    if (!name) {
+      visualFallback();
       return;
     }
-    if (name) {
-      // 首次：先试 clip，失败再 synth
-      playClip(name, function (ok) {
-        if (ok) finish(true);
-        else trySynth();
-      });
-      return;
-    }
-    trySynth();
+    playClip(name, function (ok) {
+      if (ok) finish(true);
+      else visualFallback();
+    });
   }
 
   function preloadClips() {

@@ -18,4 +18,4 @@ cd /Users/muxin/Desktop/family-smart/family-game-box
 - `hands_up.mp3` … `squat.mp3`（无「老师说」）
 - `say_hands_up.mp3` … `say_squat.mp3`（有「老师说」）
 
-播放优先级：预置 MP3 → 系统 TTS → 仅文字高亮提示。
+播放优先级：预置 MP3（唯一语音来源）→ 失败则仅文字高亮提示。

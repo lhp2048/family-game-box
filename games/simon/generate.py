@@ -545,10 +545,10 @@ SCRIPT = r"""
     speak(trial.text, trial, function () {
       if (phase !== "react") return;
       if (useTts) setCommandHint("请反应");
-      // 播完后再给一段时间作答；超时判不动
+      // 播完后再给 5 秒作答；超时判不动
       reactTimer = setTimeout(function () {
         if (phase === "react") judge(null);
-      }, 2800);
+      }, 5000);
     });
   }
 

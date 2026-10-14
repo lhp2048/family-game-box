@@ -62,8 +62,20 @@ EXTRA_CSS = r"""
 .grid-cells.dense button {
   min-height: 0;
   aspect-ratio: 1;
+  /* Safari 会给 grid/flex 按钮再套一层空壳，和数字叠成两行。 */
+  display: block;
+  width: 100%;
+  position: relative;
   font-size: clamp(.72rem, 2.6cqi, 1.25rem);
   font-weight: 700;
+}
+.grid-cells.dense button > span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
 }
 .grid-cells.dense { container-type: inline-size; }
 .target-bar strong {
@@ -298,7 +310,9 @@ SCRIPT_MID = r""";
     for (var i = 0; i < puzzle.cells.length; i++) {
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.textContent = puzzle.cells[i];
+      var label = document.createElement("span");
+      label.textContent = puzzle.cells[i];
+      btn.appendChild(label);
       btn.dataset.i = String(i);
       btn.addEventListener("click", function () { onCellClick(Number(this.dataset.i), this); });
       grid.appendChild(btn);

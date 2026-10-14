@@ -63,21 +63,25 @@ EXTRA_CSS = r"""
   margin: -.35rem 0 .55rem;
 }
 .action-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: .65rem;
-  max-width: 360px;
+  --action-gap: .65rem;
+  --card: calc((100% - 3 * var(--action-gap)) / 4);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--action-gap);
+  max-width: 560px;
   margin: 0 auto;
 }
 .action-grid button {
   border: 1px solid var(--line);
   border-radius: 22px;
   aspect-ratio: 1;
-  width: 100%;
-  padding: .35rem;
+  width: var(--card);
+  flex: 0 0 var(--card);
+  padding: .25rem;
   font: inherit;
   font-weight: 700;
-  font-size: clamp(.95rem, 3.2vw, 1.1rem);
+  font-size: clamp(1.8rem, 6.2vw, 2.35rem);
   background: rgba(255,255,255,.04);
   color: var(--ink);
   cursor: pointer;
@@ -87,6 +91,8 @@ EXTRA_CSS = r"""
   text-align: center;
   line-height: 1.2;
 }
+.action-grid button:nth-child(1) { margin-left: calc((var(--card) + var(--action-gap)) / 2); }
+.action-grid button:nth-child(3) { margin-right: calc((var(--card) + var(--action-gap)) / 2); }
 .action-grid button:active { transform: scale(.96); }
 .action-grid button:disabled { opacity: .4; cursor: not-allowed; }
 .feedback {
@@ -107,8 +113,8 @@ EXTRA_CSS = r"""
     margin: .25rem 0 .55rem;
     font-size: clamp(1.15rem, 3.5vw, 1.55rem);
   }
-  .action-grid { max-width: 300px; gap: .5rem; }
-  .action-grid button { border-radius: 18px; font-size: .92rem; }
+  .action-grid { --action-gap: .5rem; max-width: 520px; }
+  .action-grid button { border-radius: 18px; font-size: clamp(1.55rem, 4.8vw, 2rem); }
   .feedback { margin-top: .4rem; min-height: 1.2em; }
 }
 """
@@ -175,11 +181,11 @@ BODY = r"""
         <button type="button" data-act="turn_right">→ 右转</button>
         <button type="button" data-act="squat">蹲</button>
         <button type="button" data-act="hands_down">↓ 放下</button>
+        <button type="button" id="btn-wait">不动</button>
       </div>
       <div class="feedback" id="feedback"></div>
       <div class="actions">
         <button type="button" class="danger" id="btn-exit">退出</button>
-        <button type="button" id="btn-wait">不动</button>
         <button type="button" id="btn-next">下一题</button>
       </div>
     </div>
@@ -511,8 +517,21 @@ SCRIPT = r"""
     }
   }
 
+  function shuffleActions() {
+    var grid = document.getElementById("actions");
+    var buttons = [].slice.call(grid.querySelectorAll("button"));
+    for (var i = buttons.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var swap = buttons[i];
+      buttons[i] = buttons[j];
+      buttons[j] = swap;
+    }
+    buttons.forEach(function (btn) { grid.appendChild(btn); });
+  }
+
   function presentTrial() {
     clearPenalty();
+    shuffleActions();
     trial = buildTrial();
     // 开播即可作答：抢答允许，听不全自负
     phase = "react";
@@ -612,9 +631,10 @@ SCRIPT = r"""
   }
 
   document.querySelectorAll("#actions button").forEach(function (btn) {
-    btn.addEventListener("click", function () { judge(btn.dataset.act); });
+    btn.addEventListener("click", function () {
+      judge(btn.id === "btn-wait" ? null : btn.dataset.act);
+    });
   });
-  document.getElementById("btn-wait").addEventListener("click", function () { judge(null); });
   document.getElementById("btn-casual").addEventListener("click", function () { showView(views, "casual"); });
   document.getElementById("btn-casual-back").addEventListener("click", function () { showView(views, "home"); });
   document.getElementById("btn-casual-start").addEventListener("click", startCasual);

@@ -5,12 +5,17 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from app.rank_config import RANKABLE_GAMES, STANDARD_TIER_IDS
+from app.rank_config import STANDARD_TIER_IDS
 from app.storage import load_json, save_json
 
 STORE = "daily_admin.json"
 SESSION_HOURS = 12
-PLAYABLE_IDS = [g["id"] for g in RANKABLE_GAMES]
+
+
+def _playable_ids() -> List[str]:
+    from app.game_registry import daily_candidate_games
+
+    return [g["id"] for g in daily_candidate_games()]
 
 
 def _empty() -> Dict[str, Any]:
@@ -25,7 +30,9 @@ def _empty() -> Dict[str, Any]:
 
 
 def default_template() -> Dict[str, Any]:
-    return {"stages": [{"gameId": gid, "tier": "normal"} for gid in PLAYABLE_IDS]}
+    from app.rank_config import RANKABLE_GAMES
+
+    return {"stages": [{"gameId": g["id"], "tier": "normal"} for g in RANKABLE_GAMES]}
 
 
 def _load() -> Dict[str, Any]:
@@ -123,12 +130,14 @@ def get_template() -> Dict[str, Any]:
 def put_template(stages: List[Dict[str, Any]]) -> Dict[str, Any]:
     if not stages:
         raise ValueError("template stages empty")
+    playable = set(_playable_ids())
+    # allow already-template games that are built-in even if briefly disabled? require enabled+supportsDaily
     clean: List[Dict[str, str]] = []
     for s in stages:
         gid = str(s.get("gameId") or "").strip()
         tier = str(s.get("tier") or "").strip()
-        if gid not in PLAYABLE_IDS:
-            raise ValueError("unknown gameId: %s" % gid)
+        if gid not in playable:
+            raise ValueError("game not available for daily: %s" % gid)
         if tier not in STANDARD_TIER_IDS:
             raise ValueError("invalid tier: %s" % tier)
         clean.append({"gameId": gid, "tier": tier})

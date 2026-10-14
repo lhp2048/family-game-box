@@ -197,8 +197,12 @@ def _merge_game(default_game: Dict[str, Any], stored: Dict[str, Any]) -> Dict[st
         out["cuts"] = list(stored["cuts"])
     st_tiers = stored.get("tiers") or {}
     if isinstance(st_tiers, dict):
+        out.setdefault("tiers", {})
         for tid, vals in st_tiers.items():
-            if tid not in out["tiers"] or not isinstance(vals, dict):
+            if not isinstance(vals, dict):
+                continue
+            if tid not in out["tiers"]:
+                out["tiers"][tid] = copy.deepcopy(vals)
                 continue
             merged = copy.deepcopy(out["tiers"][tid])
             merged.update(vals)
@@ -207,11 +211,18 @@ def _merge_game(default_game: Dict[str, Any], stored: Dict[str, Any]) -> Dict[st
 
 
 def get_difficulty(game_id: Optional[str] = None) -> Dict[str, Any]:
+    from app.game_registry import all_difficulty_game_ids, uploaded_difficulty_defaults
+
     defaults = default_difficulty()
     store = _load_store()
     games: Dict[str, Any] = {}
-    for gid in GAME_IDS:
-        base = defaults["games"][gid]
+    for gid in all_difficulty_game_ids():
+        if gid in defaults["games"]:
+            base = defaults["games"][gid]
+        else:
+            # uploaded: build from seeded defaults
+            seed = uploaded_difficulty_defaults(gid)
+            base = _uploaded_base_from_seed(seed)
         overlay = store.get("games", {}).get(gid) or {}
         games[gid] = _merge_game(base, overlay if isinstance(overlay, dict) else {})
     if game_id:
@@ -227,6 +238,125 @@ def get_difficulty(game_id: Optional[str] = None) -> Dict[str, Any]:
         "updatedAt": store.get("updatedAt") or "",
         "games": games,
     }
+
+
+def _uploaded_base_from_seed(seed: Dict[str, Any]) -> Dict[str, Any]:
+    """seed may be {intro: {...}, ...} or {tiers: {...}}."""
+    if not seed:
+        tiers = {tid: {"label": tid} for tid in TIER_IDS}
+        return {"tiers": tiers}
+    if "tiers" in seed and isinstance(seed["tiers"], dict):
+        return {"tiers": copy.deepcopy(seed["tiers"])}
+    # treat top-level keys as tier ids
+    tiers: Dict[str, Any] = {}
+    for tid in TIER_IDS:
+        if tid in seed and isinstance(seed[tid], dict):
+            tiers[tid] = copy.deepcopy(seed[tid])
+        else:
+            tiers[tid] = {"label": tid}
+    return {"tiers": tiers}
+
+
+def _validate_uploaded(tiers: Dict[str, Any]) -> None:
+    for tid, t in tiers.items():
+        _validate_tier_common(tid, t)
+        if not isinstance(t, dict):
+            raise ValueError("tier must be object: %s" % tid)
+
+
+def validate_game(game_id: str, payload: Dict[str, Any]) -> None:
+    from app.game_registry import all_difficulty_game_ids, uploaded_difficulty_defaults
+
+    known = set(all_difficulty_game_ids())
+    if game_id not in known:
+        raise ValueError("unknown gameId: %s" % game_id)
+    if not isinstance(payload, dict):
+        raise ValueError("game payload must be object")
+    defaults = default_difficulty()["games"]
+    if game_id in defaults:
+        base = defaults[game_id]
+        merged = _merge_game(base, payload)
+        _VALIDATORS[game_id](merged)
+    else:
+        base = _uploaded_base_from_seed(uploaded_difficulty_defaults(game_id))
+        merged = _merge_game(base, payload)
+        _validate_uploaded(merged.get("tiers") or {})
+
+
+def put_difficulty(games_partial: Dict[str, Any]) -> Dict[str, Any]:
+    if not isinstance(games_partial, dict) or not games_partial:
+        raise ValueError("games required")
+    store = _load_store()
+    games_store = store.setdefault("games", {})
+    for gid, payload in games_partial.items():
+        if not isinstance(payload, dict):
+            raise ValueError("invalid payload for %s" % gid)
+        validate_game(gid, payload)
+        existing = games_store.get(gid) if isinstance(games_store.get(gid), dict) else {}
+        new_overlay: Dict[str, Any] = copy.deepcopy(existing) if existing else {}
+        if "cuts" in payload:
+            new_overlay["cuts"] = list(payload["cuts"])
+        if "tiers" in payload and isinstance(payload["tiers"], dict):
+            tiers_out = new_overlay.setdefault("tiers", {})
+            for tid, vals in payload["tiers"].items():
+                if not isinstance(vals, dict):
+                    continue
+                cur = tiers_out.get(tid) if isinstance(tiers_out.get(tid), dict) else {}
+                merged_tier = copy.deepcopy(cur)
+                merged_tier.update(vals)
+                tiers_out[tid] = merged_tier
+        games_store[gid] = new_overlay
+        validate_game(gid, games_store[gid])
+    _save_store(store)
+    return get_difficulty()
+
+
+def reset_difficulty(game_id: Optional[str] = None) -> Dict[str, Any]:
+    from app.game_registry import all_difficulty_game_ids
+
+    store = _load_store()
+    if game_id:
+        if game_id not in all_difficulty_game_ids():
+            raise ValueError("unknown gameId: %s" % game_id)
+        store.get("games", {}).pop(game_id, None)
+    else:
+        store["games"] = {}
+    _save_store(store)
+    return get_difficulty(game_id) if game_id else get_difficulty()
+
+
+def ensure_uploaded_defaults(game_id: str, defaults: Dict[str, Any]) -> None:
+    """On upload: seed difficulty store only for missing keys (do not wipe admin edits)."""
+    if not defaults:
+        return
+    store = _load_store()
+    games_store = store.setdefault("games", {})
+    existing = games_store.get(game_id) if isinstance(games_store.get(game_id), dict) else {}
+    base_seed = _uploaded_base_from_seed(defaults)
+    if not existing:
+        # store as overlay of all seeded tiers so get_difficulty merges cleanly
+        games_store[game_id] = {"tiers": copy.deepcopy(base_seed.get("tiers") or {})}
+        _save_store(store)
+        return
+    # fill missing tier keys only
+    tiers_out = existing.setdefault("tiers", {})
+    if not isinstance(tiers_out, dict):
+        tiers_out = {}
+        existing["tiers"] = tiers_out
+    changed = False
+    for tid, vals in (base_seed.get("tiers") or {}).items():
+        if tid not in tiers_out:
+            tiers_out[tid] = copy.deepcopy(vals)
+            changed = True
+        elif isinstance(tiers_out.get(tid), dict) and isinstance(vals, dict):
+            for k, v in vals.items():
+                if k not in tiers_out[tid]:
+                    tiers_out[tid][k] = copy.deepcopy(v)
+                    changed = True
+    if changed:
+        games_store[game_id] = existing
+        _save_store(store)
+
 
 
 def _validate_tier_common(tid: str, tier: Dict[str, Any]) -> None:
@@ -341,56 +471,3 @@ _VALIDATORS = {
     "maze": lambda g: _validate_maze(g.get("tiers") or {}),
     "24points": _validate_24points,
 }
-
-
-def validate_game(game_id: str, payload: Dict[str, Any]) -> None:
-    if game_id not in GAME_IDS:
-        raise ValueError("unknown gameId: %s" % game_id)
-    if not isinstance(payload, dict):
-        raise ValueError("game payload must be object")
-    # Validate against merged view so partial updates still check full tier fields
-    defaults = default_difficulty()["games"][game_id]
-    merged = _merge_game(defaults, payload)
-    _VALIDATORS[game_id](merged)
-
-
-def put_difficulty(games_partial: Dict[str, Any]) -> Dict[str, Any]:
-    if not isinstance(games_partial, dict) or not games_partial:
-        raise ValueError("games required")
-    store = _load_store()
-    games_store = store.setdefault("games", {})
-    for gid, payload in games_partial.items():
-        if not isinstance(payload, dict):
-            raise ValueError("invalid payload for %s" % gid)
-        validate_game(gid, payload)
-        existing = games_store.get(gid) if isinstance(games_store.get(gid), dict) else {}
-        # Store overlay: deep-merge into existing overlay then keep only overrides shape
-        new_overlay: Dict[str, Any] = copy.deepcopy(existing) if existing else {}
-        if "cuts" in payload:
-            new_overlay["cuts"] = list(payload["cuts"])
-        if "tiers" in payload and isinstance(payload["tiers"], dict):
-            tiers_out = new_overlay.setdefault("tiers", {})
-            for tid, vals in payload["tiers"].items():
-                if not isinstance(vals, dict):
-                    continue
-                cur = tiers_out.get(tid) if isinstance(tiers_out.get(tid), dict) else {}
-                merged_tier = copy.deepcopy(cur)
-                merged_tier.update(vals)
-                tiers_out[tid] = merged_tier
-        games_store[gid] = new_overlay
-        # Re-validate full merged result
-        validate_game(gid, games_store[gid])
-    _save_store(store)
-    return get_difficulty()
-
-
-def reset_difficulty(game_id: Optional[str] = None) -> Dict[str, Any]:
-    store = _load_store()
-    if game_id:
-        if game_id not in GAME_IDS:
-            raise ValueError("unknown gameId: %s" % game_id)
-        store.get("games", {}).pop(game_id, None)
-    else:
-        store["games"] = {}
-    _save_store(store)
-    return get_difficulty(game_id) if game_id else get_difficulty()

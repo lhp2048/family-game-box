@@ -270,6 +270,7 @@ SCRIPT = r"""
   var reactStart = 0;
   var reactTimer = null;
   var presentTimer = null;
+  var penaltyTimer = null;
   var streak = 0;
   var maxStreak = 0;
   var correct = 0;
@@ -447,6 +448,24 @@ SCRIPT = r"""
     document.getElementById("btn-wait").disabled = !on;
   }
 
+  function clearPenalty() {
+    if (penaltyTimer) { clearInterval(penaltyTimer); penaltyTimer = null; }
+  }
+
+  function countPenalty(baseText) {
+    clearPenalty();
+    var left = 2;
+    showFeedback(baseText + " · " + left, false);
+    penaltyTimer = setInterval(function () {
+      left -= 1;
+      if (left <= 0) {
+        clearPenalty();
+        return;
+      }
+      showFeedback(baseText + " · " + left, false);
+    }, 1000);
+  }
+
   function showFeedback(msg, ok) {
     var el = document.getElementById("feedback");
     el.textContent = msg;
@@ -461,6 +480,7 @@ SCRIPT = r"""
     setActionsEnabled(false);
     var rt = Math.round(performance.now() - reactStart);
     var ok = false;
+    var wrongText = "";
     if (trial.shouldAct) {
       if (actionTaken && actionTaken === trial.action) {
         ok = true;
@@ -479,16 +499,20 @@ SCRIPT = r"""
       showFeedback("正确" + (trial.shouldAct && actionTaken ? " · " + rt + " ms" : ""), true);
     } else {
       streak = 0;
-      if (trial.shouldAct) showFeedback("错误或遗漏 · 应「" + ACTIONS[trial.action] + "」", false);
-      else showFeedback("冲动错误 · 不应动作", false);
+      wrongText = trial.shouldAct
+        ? ("错误或遗漏 · 应「" + ACTIONS[trial.action] + "」")
+        : "冲动错误 · 不应动作";
+      showFeedback(wrongText, false);
     }
     document.getElementById("streak").textContent = String(streak);
     if (mode === "challenge") {
-      setTimeout(nextTrial, 900);
+      if (!ok) countPenalty(wrongText);
+      setTimeout(nextTrial, ok ? 900 : 2000);
     }
   }
 
   function presentTrial() {
+    clearPenalty();
     trial = buildTrial();
     // 开播即可作答：抢答允许，听不全自负
     phase = "react";
@@ -566,6 +590,7 @@ SCRIPT = r"""
   }
 
   function finishChallenge() {
+    clearPenalty();
     clearTimeout(reactTimer);
     if (presentTimer) clearTimeout(presentTimer);
     stopSpeak();

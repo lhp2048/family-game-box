@@ -10,6 +10,14 @@ def _int(metrics: Dict[str, Any], key: str, default: int = 0) -> int:
         return default
 
 
+def accuracy_time_key(metrics: Dict[str, Any]) -> tuple:
+    """正确率优先（百万分比），相同再比用时，用时短的更大。"""
+    correct = _int(metrics, "correct")
+    total = _int(metrics, "total")
+    rate = (correct * 1_000_000 // total) if total > 0 else 0
+    return (rate, -_int(metrics, "timeMs"))
+
+
 def rank_score(game_id: str, mode: str, _tier: str, metrics: Dict[str, Any]) -> int:
     """Higher score is always better for sorting."""
     if game_id in ("24points", "schulte"):

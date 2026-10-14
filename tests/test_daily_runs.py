@@ -72,8 +72,8 @@ def test_start_exit_and_finish_leaderboard():
     assert board["items"][0]["nickname"] == "乙"
     assert board["items"][0]["status"] == "finished"
     assert board["items"][1]["status"] == "exited"
-    assert board["items"][0].get("comboNo") == "今日挑战#1"
-    assert board.get("currentComboNo") == "今日挑战#1"
+    assert board["items"][0].get("comboNo") == "专注力#1"
+    assert board.get("currentComboNo") == "专注力#1"
     assert board["items"][0]["isCurrentCombo"] is True
     assert board["items"][0].get("recordKind") in ("first", "best", "first+best")
 
@@ -174,3 +174,49 @@ def test_leaderboard_per_combo_default_latest():
     nicks_old = {it["nickname"] for it in old_board["items"]}
     assert "甲" in nicks_old
     assert "乙" not in nicks_old
+
+
+def test_leaderboard_keeps_seven_days(monkeypatch):
+    monkeypatch.setattr("app.daily_runs.local_today", lambda: "2026-10-13")
+    monkeypatch.setattr("app.daily_challenges.local_today", lambda: "2026-10-13")
+    from app.storage import save_json
+
+    save_json(
+        "daily_runs.json",
+        {
+            "version": 1,
+            "runs": {
+                "old": {
+                    "runId": "old",
+                    "date": "2026-10-01",
+                    "status": "finished",
+                    "terminalId": "x",
+                    "comboId": "c-old",
+                    "stagesDone": 3,
+                    "totalTimeMs": 1000,
+                },
+                "edge": {
+                    "runId": "edge",
+                    "date": "2026-10-07",
+                    "status": "finished",
+                    "terminalId": "y",
+                    "nickname": "边缘",
+                    "comboId": "c-edge",
+                    "stagesDone": 2,
+                    "totalTimeMs": 2000,
+                },
+            },
+        },
+    )
+    board = dr.leaderboard()
+    assert len(board["dates"]) == 7
+    assert board["dates"][0] == {"date": "2026-10-13", "label": "今天"}
+    assert board["dates"][1]["label"] == "昨天"
+    assert board["dates"][-1]["date"] == "2026-10-07"
+    assert dr.leaderboard(date="1999-01-01")["date"] == "2026-10-13"
+    kept = dr.leaderboard(date="2026-10-07")
+    assert kept["date"] == "2026-10-07"
+    assert any(it["terminalId"] == "y" for it in kept["items"])
+    stored = dr._load()
+    assert "old" not in stored["runs"]
+    assert "edge" in stored["runs"]

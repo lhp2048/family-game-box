@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional
 from app.daily_challenges import ensure_today
 from app import daily_runs
 from app import scores
+from app import yuwen_daily
 from app.storage import load_json
 from app.terminals import get_terminal
 
@@ -221,10 +222,13 @@ def get_lobby_summary(terminal_id: Optional[str] = None) -> Dict[str, Any]:
     me = _build_me(terminal_id, day, stage_count, items, podium, combo_id=combo_id)
     daily = _build_daily(terminal_id, day, stage_count, me)
     recent = scores.latest_for_terminal(terminal_id) if terminal_id else None
+    yuwen = yuwen_daily.lobby_slice(terminal_id)
     return {
         "date": day,
         "me": me,
         "podium": podium,
         "daily": daily,
         "recent": recent,
+        "yuwenDaily": yuwen["yuwenDaily"],
+        "yuwenPodium": yuwen["yuwenPodium"],
     }

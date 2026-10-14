@@ -54,4 +54,10 @@ Linux / macOS
 打包
 ======================================================================
 
-  scripts\build.bat
+  整盒: scripts\build_and_pack.bat 或 ./scripts/build_and_pack.sh
+        → dist_out/family_game_box.zip（含全部内置游戏）
+
+  单游戏: scripts\pack_game.bat <id> 或 ./scripts/pack_game.sh <id>
+          → dist_out/games/<id>.zip（管理页上传，热更新无需重启）
+
+  说明: docs/game-packages.md（game.json、上传/启停、每日与难度）

@@ -36,6 +36,25 @@ TIER_LABELS: Dict[str, str] = {
     "m21": "进阶 21×21",
     "m31": "大师 31×31",
     "default": "默认",
+    "zuyin": "字音",
+    "zixing": "字形",
+    "chengyu": "成语",
+    "ciyu": "词语与虚词",
+    "bingju": "病句",
+    "biaodian": "标点符号",
+    "mingju": "名句默写",
+    "changshi": "文学常识",
+    "wenyan-base": "文言文基础",
+    "gushi": "古诗词鉴赏",
+    "yuyan": "语言表达",
+    "xiandai": "现代文阅读",
+    "zonghe": "综合性学习",
+    "xiuci": "修辞手法",
+    "wenyan-read": "文言文阅读",
+    "xiandai-extra": "现代文补充",
+    "gushi-extra": "古诗词补充",
+    "yingyong": "应用文",
+    "mingzhu": "名著阅读",
 }
 
 GAME_TIERS: Dict[str, List[str]] = {
@@ -66,13 +85,25 @@ def tier_label(tier: str, fallback: str = "") -> str:
 
 
 def rank_meta() -> Dict[str, Any]:
+    from app.game_registry import list_all_games
+
+    games = [
+        {"id": g["id"], "title": g["title"]}
+        for g in list_all_games(include_disabled=True)
+        if g.get("rankable")
+    ]
+    tiers: Dict[str, List[str]] = {}
+    for g in list_all_games(include_disabled=True):
+        if not g.get("rankable"):
+            continue
+        tiers[g["id"]] = list(g.get("tiers") or STANDARD_TIER_IDS)
     return {
-        "games": RANKABLE_GAMES,
+        "games": games,
         "modes": [
             {"id": "casual", "title": "休闲"},
             {"id": "challenge", "title": "挑战"},
         ],
-        "tiers": GAME_TIERS,
+        "tiers": tiers,
         "tierLabels": TIER_LABELS,
         "standardTiers": STANDARD_TIER_IDS,
     }

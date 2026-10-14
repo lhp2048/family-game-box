@@ -69,8 +69,10 @@ def test_leaderboard_and_pages():
     assert client.get(url("/daily/leaderboard")).status_code == 200
     page = client.get(url("/daily/leaderboard")).text
     assert "combo-tabs" in page
+    assert "date-tabs" in page
+    assert len(body["dates"]) == 7
     assert client.get(url("/admin")).status_code == 200
     admin = client.get(url("/admin")).text
     assert "管理" in admin
     assert "挑战模板" in admin
-    assert "重新生成今日挑战" in admin
+    assert "重新生成今日专注力挑战" in admin

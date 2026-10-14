@@ -251,6 +251,27 @@ a:hover { color: #6fe0ab; }
 .fgb-card-daily .meta,
 .fgb-card-daily .fgb-card-meta { color: var(--warn); }
 
+.fgb-card-yuwen {
+  background: linear-gradient(145deg, rgba(62, 207, 142, 0.2) 0%, rgba(18, 32, 28, 0.92) 55%);
+  border: 1.5px solid rgba(62, 207, 142, 0.45);
+  box-shadow: 0 18px 48px rgba(62, 207, 142, 0.1);
+}
+.fgb-card-yuwen::before {
+  content: "语文";
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #062016;
+  background: var(--accent);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.fgb-card-yuwen h2 { color: #b7f5d4; }
+.fgb-card-yuwen p { color: #9ecfb6; }
+
 .fgb-panel {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -267,6 +288,8 @@ a:hover { color: #6fe0ab; }
   margin: 1rem 0 0.85rem;
   flex-wrap: wrap;
 }
+
+.fgb-tabs.hidden { display: none; }
 
 .fgb-tab {
   border: 1px solid var(--line);
@@ -560,6 +583,13 @@ body.fgb-daily-playing .fgb-frame iframe {
 @media (max-width: 720px) {
   .fgb-arena-split { grid-template-columns: 1fr; }
   .fgb-stat-strip { grid-template-columns: 1fr; }
+}
+
+.yuwen-next:disabled {
+  opacity: 0.45;
+  cursor: default;
+  filter: none;
+  transform: none;
 }
 
 .fgb-cta-daily {

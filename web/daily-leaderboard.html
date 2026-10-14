@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>每日挑战榜 · 家庭游戏盒</title>
+<title>专注力挑战榜 · 家庭游戏盒</title>
 <link rel="stylesheet" href="/css/fgb-theme.css">
 <style>
 .kind-tag {
@@ -30,15 +30,16 @@
     </div>
     <div class="fgb-nav">
       <a class="fgb-nav-link" href="/">回大厅</a>
-      <a class="fgb-nav-link" href="/daily">每日挑战</a>
+      <a class="fgb-nav-link" href="/daily">每日专注力挑战</a>
       <a class="fgb-nav-link" href="/leaderboard">游戏排行</a>
     </div>
   </header>
 
-  <h1 class="fgb-page-title">每日挑战榜</h1>
+  <h1 class="fgb-page-title">专注力挑战榜</h1>
   <p class="fgb-lead" id="date-label">今日成绩 · 通关优先，其次完成关数，再比总用时</p>
-  <p class="fgb-lead" id="combo-hint" style="margin-top:-.5rem;font-size:.9rem">默认显示最新一场挑战；可切换查看其他场次。</p>
+  <p class="fgb-lead" id="combo-hint" style="margin-top:-.5rem;font-size:.9rem">保留最近 7 天。每天默认显示最新一场，可再切换场次。</p>
 
+  <div class="fgb-tabs" id="date-tabs" aria-label="选择日期"></div>
   <div class="fgb-tabs hidden" id="combo-tabs" aria-label="选择挑战"></div>
 
   <div class="fgb-podium hidden" id="podium" aria-label="前三名"></div>
@@ -51,7 +52,7 @@
       <tbody id="rows"><tr><td colspan="6" class="fgb-empty">加载中…</td></tr></tbody>
     </table>
   </div>
-  <p class="fgb-empty" id="empty" hidden>暂无记录 · <a href="/daily" style="color:var(--accent)">去做每日挑战</a></p>
+  <p class="fgb-empty" id="empty" hidden>暂无记录 · <a href="/daily" style="color:var(--accent)">去做每日专注力挑战</a></p>
 </main>
 <script src="/js/fgb-client.js"></script>
 <script src="/js/fgb-ui.js"></script>
@@ -60,7 +61,9 @@
   var myTerminal = (window.FGB && FGB.getTerminalId) ? FGB.getTerminalId() : "";
   var podiumEl = document.getElementById("podium");
   var tabsEl = document.getElementById("combo-tabs");
+  var dateTabsEl = document.getElementById("date-tabs");
   var selectedComboId = "";
+  var selectedDate = "";
 
   function fmt(ms) {
     ms = Math.max(0, ms | 0);
@@ -112,6 +115,14 @@
     }).join("");
   }
 
+  function renderDateTabs(dates, active) {
+    dateTabsEl.innerHTML = (dates || []).map(function (d) {
+      var id = d.date || "";
+      var cls = "fgb-tab" + (id === active ? " is-active" : "");
+      return '<button type="button" class="' + cls + '" data-date="' + esc(id) + '">' + esc(d.label || id) + "</button>";
+    }).join("");
+  }
+
   function renderTabs(combos, activeId) {
     if (!combos || combos.length <= 1) {
       tabsEl.classList.add("hidden");
@@ -133,9 +144,11 @@
     document.getElementById("date-label").textContent =
       (data.date || "今日") + (comboNo ? (" · " + comboNo) : "") + " · 通关优先，其次完成关数，再比总用时";
     document.getElementById("combo-hint").textContent =
-      "每人每场只保留「首次」与「最佳」；同日多场挑战分榜查看，默认最新一场";
+      "保留最近 7 天。每人每场只留「首次」与「最佳」；同日多场分榜查看，默认最新一场";
 
+    selectedDate = data.date || "";
     selectedComboId = data.comboId || data.currentComboId || "";
+    renderDateTabs(data.dates || [], selectedDate);
     renderTabs(data.combos || [], selectedComboId);
 
     var tb = document.getElementById("rows");
@@ -170,25 +183,44 @@
     });
   }
 
-  function loadBoard(comboId) {
-    var q = comboId ? ("?comboId=" + encodeURIComponent(comboId)) : "";
+  function loadBoard(date, comboId) {
+    var params = [];
+    if (date) params.push("date=" + encodeURIComponent(date));
+    if (comboId) params.push("comboId=" + encodeURIComponent(comboId));
+    var q = params.length ? ("?" + params.join("&")) : "";
     return fetch(FGB.url("/api/v1/daily/leaderboard" + q))
       .then(function (r) { return r.json(); })
       .then(renderBoard);
   }
+
+  dateTabsEl.addEventListener("click", function (ev) {
+    var btn = ev.target.closest("[data-date]");
+    if (!btn) return;
+    var day = btn.getAttribute("data-date") || "";
+    if (!day || day === selectedDate) return;
+    loadBoard(day, "").catch(function () {
+      document.getElementById("rows").innerHTML =
+        '<tr><td colspan="6" class="fgb-empty">加载失败</td></tr>';
+    });
+  });
 
   tabsEl.addEventListener("click", function (ev) {
     var btn = ev.target.closest("[data-combo]");
     if (!btn) return;
     var id = btn.getAttribute("data-combo") || "";
     if (!id || id === selectedComboId) return;
-    loadBoard(id).catch(function () {
+    loadBoard(selectedDate, id).catch(function () {
       document.getElementById("rows").innerHTML =
         '<tr><td colspan="6" class="fgb-empty">加载失败</td></tr>';
     });
   });
 
-  loadBoard("").catch(function () {
+  var initialDate = "";
+  try {
+    initialDate = new URLSearchParams(window.location.search).get("date") || "";
+  } catch (e) { initialDate = ""; }
+
+  loadBoard(initialDate, "").catch(function () {
     document.getElementById("rows").innerHTML =
       '<tr><td colspan="6" class="fgb-empty">加载失败</td></tr>';
   });

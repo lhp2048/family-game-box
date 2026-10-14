@@ -1,0 +1,159 @@
+.yuwen { width: min(880px, calc(100% - 1.25rem)); }
+
+.yuwen-top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.1rem;
+}
+
+.yuwen-top h1 {
+  margin: 0.35rem 0 0.2rem;
+  font-family: var(--display);
+  font-size: 2rem;
+  font-weight: 650;
+}
+
+.yuwen-lead, .yuwen-note {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.yuwen-lane { margin: 1.15rem 0 0.4rem; }
+
+.yuwen-lane h2 {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+}
+
+.yuwen-lane.is-read h2 { color: var(--accent); }
+
+.yuwen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+  gap: 0.65rem;
+}
+
+.yuwen-card {
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 0.85rem 0.8rem 0.75rem;
+  cursor: pointer;
+  min-height: 92px;
+}
+
+.yuwen-card strong { display: block; font-size: 1.05rem; }
+.yuwen-card span { display: block; margin-top: 0.35rem; color: var(--muted); font-size: 0.85rem; }
+
+.yuwen-card:hover { border-color: rgba(62, 207, 142, 0.45); }
+
+.yuwen-nick {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.8rem;
+  margin-bottom: 0.8rem;
+  background: var(--panel);
+}
+
+.yuwen-nick form { display: flex; gap: 0.5rem; }
+.yuwen-nick .fgb-input { flex: 1; }
+.yuwen-err { color: var(--danger); min-height: 1.2em; margin: 0.35rem 0 0; }
+
+.yuwen-play-head, .yuwen-result-actions, .yuwen-pick-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.yuwen-timer {
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  font-size: 1.15rem;
+}
+
+.yuwen-progress {
+  margin: 0.7rem 0;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(232, 242, 236, 0.08);
+  overflow: hidden;
+}
+
+.yuwen-progress i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  width: 0;
+}
+
+.yuwen-passage, .yuwen-explain {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0.85rem 0.95rem;
+  line-height: 1.65;
+  background: rgba(12, 20, 17, 0.55);
+}
+
+.yuwen-passage { max-height: 28vh; overflow: auto; margin-bottom: 0.8rem; }
+
+.yuwen-prompt { color: var(--muted); margin: 0 0 0.45rem; }
+.yuwen-stem { font-size: 1.12rem; line-height: 1.65; margin: 0 0 0.85rem; }
+
+.yuwen-options { display: grid; gap: 0.55rem; }
+
+.yuwen-opt {
+  text-align: left;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel-solid);
+  color: var(--ink);
+  padding: 0.75rem 0.85rem;
+  font: inherit;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.yuwen-opt b { margin-right: 0.45rem; color: var(--gold); }
+.yuwen-mark {
+  font-style: normal;
+  font-weight: 800;
+  color: #ffe7a3;
+  background: rgba(212, 168, 75, 0.28);
+  border-radius: 0.28em;
+  padding: 0 0.14em;
+}
+.yuwen-opt:hover:not(:disabled) { border-color: rgba(62, 207, 142, 0.5); }
+.yuwen-opt.is-correct { border-color: var(--accent); background: rgba(62, 207, 142, 0.16); }
+.yuwen-opt.is-wrong { border-color: var(--danger); background: rgba(224, 112, 96, 0.16); }
+.yuwen-opt:disabled { cursor: default; }
+
+.yuwen-explain { margin-top: 0.8rem; }
+.yuwen-explain strong { color: var(--accent); }
+
+.yuwen-next, .yuwen-pick-actions { margin-top: 0.9rem; }
+.yuwen-next { width: 100%; }
+
+.yuwen-score {
+  font-family: var(--display);
+  font-size: 2.4rem;
+  margin: 0.4rem 0;
+}
+
+.yuwen-board { list-style: none; padding: 0; margin: 0.6rem 0 1rem; }
+.yuwen-board li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.yuwen-picks { display: grid; gap: 0.5rem; margin-top: 0.8rem; }
+.yuwen-picks button { text-align: left; }

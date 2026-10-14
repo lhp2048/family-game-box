@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, FastAPI, Header, HTTPException, Request
+from fastapi import APIRouter, FastAPI, File, Header, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -14,6 +14,7 @@ from app import daily_admin as daily_admin_mod
 from app import daily_challenges as daily_challenges_mod
 from app import daily_runs as daily_runs_mod
 from app import difficulty as difficulty_mod
+from app import game_registry as game_registry_mod
 from app import lobby as lobby_mod
 from app.games_catalog import list_games
 from app.html_prefix import read_response_body, rewrite_html
@@ -21,6 +22,7 @@ from app.rank_config import rank_meta
 from app.root_path import get_root_path
 from app.scores import get_global_leaderboard, get_leaderboard, get_personal_bests, get_recent_leaderboard, submit_score
 from app.terminals import get_me, register_terminal, validate_terminal_id
+from app import yuwen_daily as yuwen_daily_mod
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB_DIR = ROOT / "web"
@@ -75,12 +77,28 @@ class DailyRunPatchBody(BaseModel):
     stage: Optional[Dict[str, Any]] = None
 
 
+class YuwenAnswerBody(BaseModel):
+    paperId: str
+    questionId: int
+    choice: str
+    timeMs: int = 0
+
+
+class YuwenFinishBody(BaseModel):
+    paperId: str
+    timeMs: int = 0
+
+
 class DifficultyPutBody(BaseModel):
     games: Dict[str, Any] = Field(default_factory=dict)
 
 
 class DifficultyResetBody(BaseModel):
     gameId: str = ""
+
+
+class GameEnableBody(BaseModel):
+    enabled: bool = True
 
 
 def create_app() -> FastAPI:
@@ -156,6 +174,89 @@ def _register_routes(api: APIRouter) -> None:
     @api.get("/api/v1/games")
     async def games():
         return {"games": list_games()}
+
+    @api.get("/api/v1/games/paths")
+    async def games_paths():
+        return {"paths": game_registry_mod.game_path_map()}
+
+    @api.get("/api/v1/admin/games")
+    async def admin_games_list(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
+        try:
+            daily_admin_mod.require_admin(x_admin_token)
+            return {"games": game_registry_mod.list_all_games(include_disabled=True)}
+        except PermissionError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    @api.post("/api/v1/admin/games/upload")
+    async def admin_games_upload(
+        file: UploadFile = File(...),
+        x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token"),
+    ):
+        try:
+            daily_admin_mod.require_admin(x_admin_token)
+            raw = await file.read()
+            game = game_registry_mod.install_zip_bytes(raw)
+            return {"ok": True, "game": game}
+        except PermissionError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @api.post("/api/v1/admin/games/{game_id}/enable")
+    async def admin_games_enable(
+        game_id: str,
+        body: GameEnableBody,
+        x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token"),
+    ):
+        try:
+            daily_admin_mod.require_admin(x_admin_token)
+            return {"game": game_registry_mod.set_enabled(game_id, body.enabled)}
+        except PermissionError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @api.delete("/api/v1/admin/games/{game_id}")
+    async def admin_games_delete(
+        game_id: str,
+        x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token"),
+    ):
+        try:
+            daily_admin_mod.require_admin(x_admin_token)
+            game_registry_mod.delete_uploaded(game_id)
+            return {"ok": True}
+        except PermissionError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @api.get("/api/v1/admin/daily/candidates")
+    async def admin_daily_candidates(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
+        try:
+            daily_admin_mod.require_admin(x_admin_token)
+            return {"games": game_registry_mod.daily_candidate_games()}
+        except PermissionError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    @api.get("/uploaded-games/{game_id}/{file_path:path}")
+    async def uploaded_game_file(game_id: str, file_path: str = ""):
+        try:
+            path, enabled = game_registry_mod.resolve_uploaded_file(game_id, file_path)
+        except ValueError:
+            raise HTTPException(status_code=404, detail="not found") from None
+        if not enabled:
+            raise HTTPException(status_code=404, detail="game disabled")
+        return FileResponse(path)
+
+    @api.get("/uploaded-games/{game_id}/")
+    async def uploaded_game_index(game_id: str):
+        try:
+            path, enabled = game_registry_mod.resolve_uploaded_file(game_id, "")
+        except ValueError:
+            raise HTTPException(status_code=404, detail="not found") from None
+        if not enabled:
+            raise HTTPException(status_code=404, detail="game disabled")
+        return FileResponse(path, media_type="text/html; charset=utf-8")
 
     @api.get("/api/v1/rank/meta")
     async def rank_meta_api():
@@ -259,6 +360,46 @@ def _register_routes(api: APIRouter) -> None:
             limit=min(max(limit, 1), 100),
         )
 
+    @api.get("/api/v1/yuwen-daily/today")
+    async def yuwen_daily_today(x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id")):
+        tid = (x_terminal_id or "").strip() or None
+        if tid and not validate_terminal_id(tid):
+            tid = None
+        return yuwen_daily_mod.today_payload(tid)
+
+    @api.post("/api/v1/yuwen-daily/answer")
+    async def yuwen_daily_answer(
+        body: YuwenAnswerBody,
+        x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
+    ):
+        tid = _require_terminal_id(x_terminal_id)
+        try:
+            return yuwen_daily_mod.answer_question(tid, body.paperId, body.questionId, body.choice, body.timeMs)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @api.post("/api/v1/yuwen-daily/finish")
+    async def yuwen_daily_finish(
+        body: YuwenFinishBody,
+        x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
+    ):
+        tid = _require_terminal_id(x_terminal_id)
+        try:
+            run = yuwen_daily_mod.finish_run(tid, body.paperId, body.timeMs)
+            board = yuwen_daily_mod.leaderboard(date=run.get("date"))
+            rank = 0
+            for item in board.get("items") or []:
+                if item.get("terminalId") == tid:
+                    rank = int(item.get("rank") or 0)
+                    break
+            return {"run": run, "rank": rank}
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @api.get("/api/v1/yuwen-daily/leaderboard")
+    async def yuwen_daily_leaderboard(date: Optional[str] = None, limit: int = 50):
+        return yuwen_daily_mod.leaderboard(date=date, limit=min(max(limit, 1), 100))
+
     @api.get("/api/v1/lobby/summary")
     async def lobby_summary(x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id")):
         tid = (x_terminal_id or "").strip() or None
@@ -335,12 +476,15 @@ def _register_routes(api: APIRouter) -> None:
 
     @api.get("/api/v1/difficulty/defaults")
     async def difficulty_defaults(gameId: Optional[str] = None):
-        data = difficulty_mod.default_difficulty()
-        if gameId:
-            if gameId not in data["games"]:
-                raise HTTPException(status_code=400, detail="unknown gameId")
-            return {"version": 1, "updatedAt": "", "games": {gameId: data["games"][gameId]}}
-        return data
+        try:
+            if gameId:
+                # include uploaded seeded defaults via get_difficulty merge without store overlay —
+                # expose same shape as get for admin reset reference
+                data = difficulty_mod.get_difficulty(gameId)
+                return data
+            return difficulty_mod.get_difficulty()
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @api.put("/api/v1/admin/difficulty")
     async def difficulty_put(
@@ -396,6 +540,20 @@ def _register_routes(api: APIRouter) -> None:
         if page.is_file():
             return FileResponse(page, media_type="text/html; charset=utf-8")
         raise HTTPException(status_code=404, detail="daily-leaderboard.html missing")
+
+    @api.get("/yuwen-daily")
+    async def yuwen_daily_page():
+        page = WEB_DIR / "yuwen-daily.html"
+        if page.is_file():
+            return FileResponse(page, media_type="text/html; charset=utf-8")
+        raise HTTPException(status_code=404, detail="yuwen-daily.html missing")
+
+    @api.get("/yuwen-daily/leaderboard")
+    async def yuwen_daily_leaderboard_page():
+        page = WEB_DIR / "yuwen-daily-leaderboard.html"
+        if page.is_file():
+            return FileResponse(page, media_type="text/html; charset=utf-8")
+        raise HTTPException(status_code=404, detail="yuwen-daily-leaderboard.html missing")
 
     @api.get("/admin")
     async def admin_page():

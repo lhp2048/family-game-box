@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>语文大擂台</title>
+<link rel="stylesheet" href="/css/fgb-theme.css">
+<link rel="stylesheet" href="play.css">
+</head>
+<body>
+<main class="fgb-shell yuwen">
+  <header class="yuwen-top">
+    <a class="fgb-nav-link" href="/">← 返回大厅</a>
+    <a class="fgb-nav-link" href="/yuwen-daily">每日语文挑战</a>
+    <div>
+      <h1>语文大擂台</h1>
+      <p class="yuwen-lead">一关一类。答错一题，用时加 5 秒。最好成绩记入排行。</p>
+    </div>
+  </header>
+
+  <section id="nick-bar" class="yuwen-nick" hidden>
+    <p>设置昵称后，成绩才会出现在排行榜。</p>
+    <form id="nick-form">
+      <input id="nick-input" class="fgb-input" maxlength="16" placeholder="昵称，例如：小明" autocomplete="nickname">
+      <button class="fgb-btn" type="submit">保存</button>
+    </form>
+    <p id="nick-err" class="yuwen-err"></p>
+  </section>
+
+  <section id="view-map"></section>
+  <section id="view-pick" hidden></section>
+  <section id="view-play" hidden></section>
+  <section id="view-result" hidden></section>
+</main>
+<script src="/js/fgb-client.js"></script>
+<script src="/js/fgb-ui.js"></script>
+<script src="play.js"></script>
+</body>
+</html>

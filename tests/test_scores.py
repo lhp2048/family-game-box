@@ -146,3 +146,34 @@ def test_leaderboard_nickname_follows_rename(tmp_path, monkeypatch):
     assert board2["items"][0]["nickname"] == "新名"
     recent = scores.get_recent_leaderboard(limit=5)
     assert recent["items"][0]["nickname"] == "新名"
+
+
+def test_yuwen_board_accuracy_then_time(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.storage.DATA_DIR", tmp_path)
+    from app import scores
+    from app.terminals import register_terminal
+
+    high, faster, slower = str(uuid.uuid4()), str(uuid.uuid4()), str(uuid.uuid4())
+    register_terminal(high, "高正确率")
+    register_terminal(faster, "同率更快")
+    register_terminal(slower, "同率更慢")
+    scores.submit_score(
+        slower, "yuwen", "challenge", "zuyin", {"correct": 8, "total": 10, "timeMs": 40000}
+    )
+    scores.submit_score(
+        faster, "yuwen", "challenge", "zuyin", {"correct": 4, "total": 5, "timeMs": 5000}
+    )
+    scores.submit_score(
+        high, "yuwen", "challenge", "zuyin", {"correct": 9, "total": 10, "timeMs": 120000}
+    )
+    names = [item["nickname"] for item in scores.get_leaderboard("yuwen", "challenge", "zuyin")["items"]]
+    assert names == ["高正确率", "同率更快", "同率更慢"]
+
+    not_best = scores.submit_score(
+        faster, "yuwen", "challenge", "zuyin", {"correct": 8, "total": 10, "timeMs": 30000}
+    )
+    assert not_best["isPersonalBest"] is False
+    improved = scores.submit_score(
+        faster, "yuwen", "challenge", "zuyin", {"correct": 9, "total": 10, "timeMs": 90000}
+    )
+    assert improved["isPersonalBest"] is True

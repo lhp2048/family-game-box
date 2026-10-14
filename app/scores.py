@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from app.rank_config import GAME_TIERS, RANKABLE_GAMES, tier_label
-from app.score_rules import format_display, rank_score
+from app.score_rules import accuracy_time_key, format_display, rank_score
 from app.storage import load_json, save_json
 from app.terminals import get_terminal, nickname_lookup, resolve_nickname, touch_terminal, validate_terminal_id
 
@@ -13,8 +13,42 @@ _MAX_ENTRIES = 5000
 _LEADERBOARD_LIMIT = 50
 _RECENT_LIMIT = 20
 
-_GAME_TITLE = {g["id"]: g["title"] for g in RANKABLE_GAMES}
 _MODE_TITLE = {"casual": "休闲", "challenge": "挑战"}
+
+
+def _game_title(game_id: str) -> str:
+    from app.game_registry import get_game
+
+    g = get_game(game_id)
+    if g:
+        return str(g.get("title") or game_id)
+    for item in RANKABLE_GAMES:
+        if item["id"] == game_id:
+            return item["title"]
+    return game_id
+
+
+def _allowed_tiers(game_id: str) -> List[str]:
+    from app.game_registry import get_game
+    from app.rank_config import STANDARD_TIER_IDS
+
+    g = get_game(game_id)
+    if g and g.get("tiers"):
+        return list(g["tiers"])
+    if game_id in GAME_TIERS:
+        return list(GAME_TIERS[game_id])
+    if g and g.get("rankable"):
+        return list(STANDARD_TIER_IDS)
+    return []
+
+
+def _is_known_game(game_id: str) -> bool:
+    from app.game_registry import get_game
+
+    g = get_game(game_id)
+    if g and g.get("rankable") and g.get("enabled"):
+        return True
+    return game_id in GAME_TIERS
 
 
 def _now() -> str:
@@ -48,9 +82,17 @@ def _best_for_terminal(entries: List[Dict[str, Any]], terminal_id: str, game_id:
             continue
         if item.get("gameId") != game_id or item.get("mode") != mode or item.get("tier") != tier:
             continue
-        if best is None or int(item.get("score", 0)) > int(best.get("score", 0)):
+        if best is None or _entry_beats(game_id, item, best):
             best = item
     return best
+
+
+def _entry_beats(game_id: str, candidate: Dict[str, Any], incumbent: Dict[str, Any]) -> bool:
+    if game_id == "yuwen":
+        return accuracy_time_key(candidate.get("metrics") or {}) > accuracy_time_key(
+            incumbent.get("metrics") or {}
+        )
+    return int(candidate.get("score", 0)) > int(incumbent.get("score", 0))
 
 
 def submit_score(
@@ -66,10 +108,10 @@ def submit_score(
         raise ValueError("invalid terminal id")
     if mode not in ("casual", "challenge"):
         raise ValueError("invalid mode")
-    if game_id not in GAME_TIERS:
+    if not _is_known_game(game_id):
         raise ValueError("unsupported game")
     tier = (tier or "default").strip()
-    allowed = GAME_TIERS.get(game_id, [])
+    allowed = _allowed_tiers(game_id)
     if tier not in allowed:
         raise ValueError("invalid tier for game")
 
@@ -84,7 +126,8 @@ def submit_score(
     now = _now()
     entries = _load_entries()
     previous = _best_for_terminal(entries, terminal_id, game_id, mode, tier)
-    is_personal_best = previous is None or score > int(previous.get("score", 0))
+    fresh = {"metrics": metrics, "score": score}
+    is_personal_best = previous is None or _entry_beats(game_id, fresh, previous)
 
     entry = {
         "id": str(uuid.uuid4()),
@@ -123,7 +166,9 @@ def leaderboard_rank(
 ) -> int:
     board = leaderboard_entries(entries, game_id, mode, tier, limit=1000)
     for idx, item in enumerate(board, start=1):
-        if item.get("terminalId") == terminal_id and int(item.get("score", 0)) == score:
+        if item.get("terminalId") != terminal_id:
+            continue
+        if game_id == "yuwen" or int(item.get("score", 0)) == score:
             return idx
     return 0
 
@@ -146,19 +191,26 @@ def leaderboard_entries(
         if not tid:
             continue
         prev = best_by_terminal.get(tid)
-        if prev is None or int(item.get("score", 0)) > int(prev.get("score", 0)):
+        if prev is None or _entry_beats(game_id, item, prev):
             best_by_terminal[tid] = item
-    board = sorted(best_by_terminal.values(), key=lambda e: int(e.get("score", 0)), reverse=True)
+    if game_id == "yuwen":
+        board = sorted(
+            best_by_terminal.values(),
+            key=lambda e: accuracy_time_key(e.get("metrics") or {}),
+            reverse=True,
+        )
+    else:
+        board = sorted(best_by_terminal.values(), key=lambda e: int(e.get("score", 0)), reverse=True)
     return board[:limit]
 
 
 def get_leaderboard(game_id: str, mode: str, tier: str, limit: int = 20) -> Dict[str, Any]:
-    if game_id not in GAME_TIERS:
+    if not _is_known_game(game_id) and game_id not in GAME_TIERS:
         raise ValueError("unsupported game")
     if mode not in ("casual", "challenge"):
         raise ValueError("invalid mode")
     tier = (tier or "default").strip()
-    if tier not in GAME_TIERS.get(game_id, []):
+    if tier not in _allowed_tiers(game_id):
         raise ValueError("invalid tier for game")
     entries = _load_entries()
     board = leaderboard_entries(entries, game_id, mode, tier, limit=limit)
@@ -177,7 +229,9 @@ def get_leaderboard(game_id: str, mode: str, tier: str, limit: int = 20) -> Dict
                     lookup=nicks,
                 ),
                 "terminalId": item.get("terminalId", ""),
-                "display": item.get("display", ""),
+                "display": format_display(game_id, mode, item.get("metrics") or {})
+                if game_id == "yuwen"
+                else item.get("display", ""),
                 "score": item.get("score", 0),
                 "playedAt": item.get("playedAt"),
             }
@@ -191,7 +245,16 @@ def get_personal_bests(terminal_id: str, game_id: Optional[str] = None) -> Dict[
         raise ValueError("invalid terminal id")
     entries = _load_entries()
     bests: Dict[str, Any] = {}
-    for gid, tiers in GAME_TIERS.items():
+    from app.game_registry import list_all_games
+
+    game_tiers = []
+    for g in list_all_games(include_disabled=True):
+        if not g.get("rankable"):
+            continue
+        game_tiers.append((g["id"], list(g.get("tiers") or GAME_TIERS.get(g["id"], []))))
+    if not game_tiers:
+        game_tiers = list(GAME_TIERS.items())
+    for gid, tiers in game_tiers:
         if game_id and gid != game_id:
             continue
         game_best: Dict[str, Any] = {}
@@ -201,7 +264,9 @@ def get_personal_bests(terminal_id: str, game_id: Optional[str] = None) -> Dict[
                 item = _best_for_terminal(entries, terminal_id, gid, mode, tier)
                 if item:
                     mode_best[tier] = {
-                        "display": item.get("display", ""),
+                        "display": format_display(gid, mode, item.get("metrics") or {})
+                        if gid == "yuwen"
+                        else item.get("display", ""),
                         "score": item.get("score", 0),
                         "playedAt": item.get("playedAt"),
                         "tierLabel": item.get("tierLabel", tier_label(tier)),
@@ -261,7 +326,7 @@ def get_recent_leaderboard(limit: int = _RECENT_LIMIT) -> Dict[str, Any]:
                 ),
                 "terminalId": item.get("terminalId", ""),
                 "gameId": item.get("gameId", ""),
-                "gameTitle": _GAME_TITLE.get(item.get("gameId", ""), item.get("gameId", "")),
+                "gameTitle": _game_title(item.get("gameId", "")),
                 "mode": item.get("mode", ""),
                 "modeLabel": _MODE_TITLE.get(item.get("mode", ""), item.get("mode", "")),
                 "tierLabel": item.get("tierLabel", tier_label(str(item.get("tier", "")))),
@@ -286,7 +351,7 @@ def latest_for_terminal(terminal_id: str) -> Optional[Dict[str, Any]]:
         return None
     return {
         "gameId": best.get("gameId", ""),
-        "gameTitle": _GAME_TITLE.get(best.get("gameId", ""), best.get("gameId", "")),
+        "gameTitle": _game_title(best.get("gameId", "")),
         "display": best.get("display", ""),
         "playedAt": best.get("playedAt"),
     }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>每日挑战 · 家庭游戏盒</title>
+<title>每日专注力挑战 · 家庭游戏盒</title>
 <link rel="stylesheet" href="/css/fgb-theme.css">
 <style>
 .stage-list { margin: 0; padding-left: 1.2rem; color: var(--muted); }
@@ -19,18 +19,18 @@
   <header class="fgb-topbar">
     <div>
       <a class="fgb-brand" href="/">家庭<em>游戏盒</em></a>
-      <span class="fgb-page-kicker">每日挑战</span>
+      <span class="fgb-page-kicker">每日专注力挑战</span>
     </div>
     <div class="fgb-nav">
       <a class="fgb-nav-link" href="/">回大厅</a>
-      <a class="fgb-nav-link" href="/daily/leaderboard">挑战榜</a>
+      <a class="fgb-nav-link" href="/daily/leaderboard">专注力挑战榜</a>
     </div>
   </header>
 
   <section id="prep">
     <div class="fgb-arena-split">
       <div class="fgb-panel fgb-panel-pad">
-        <h1 class="fgb-page-title" style="font-size:1.85rem">每日挑战</h1>
+        <h1 class="fgb-page-title" style="font-size:1.85rem">每日专注力挑战</h1>
         <p class="fgb-lead" id="prep-combo-label" style="margin-bottom:.35rem;color:var(--accent);font-weight:600">—</p>
         <p class="fgb-lead" style="margin-bottom:1rem">按顺序通关今日组合，分关计时 + 总计时。中途退出也会记成绩。</p>
         <div class="fgb-err" id="prep-err"></div>
@@ -42,7 +42,7 @@
       <div class="fgb-panel fgb-panel-pad">
         <h3 class="fgb-page-kicker" style="margin:0 0 .5rem">今日榜前三</h3>
         <ol class="fgb-podium-list" id="prep-podium"></ol>
-        <a class="fgb-nav-link" href="/daily/leaderboard">完整挑战榜 →</a>
+        <a class="fgb-nav-link" href="/daily/leaderboard">完整专注力挑战榜 →</a>
       </div>
     </div>
   </section>
@@ -60,7 +60,7 @@
       <button type="button" class="fgb-btn-ghost" id="btn-exit">退出</button>
     </div>
     <div class="fgb-frame">
-      <iframe id="game-frame" title="每日挑战关卡"></iframe>
+      <iframe id="game-frame" title="每日专注力挑战关卡"></iframe>
     </div>
   </section>
 
@@ -72,7 +72,7 @@
     <ul class="stage-list" id="result-stages"></ul>
     <div class="actions-row">
       <button type="button" class="fgb-cta-daily" id="btn-again">再来一次</button>
-      <a class="fgb-btn-ghost" href="/daily/leaderboard">查看挑战榜</a>
+      <a class="fgb-btn-ghost" href="/daily/leaderboard">查看专注力挑战榜</a>
       <a class="fgb-btn-ghost" href="/">回大厅</a>
     </div>
   </section>
@@ -81,16 +81,15 @@
 <script src="/js/fgb-ui.js"></script>
 <script>
 (function () {
-  var PATHS = {
-    "24points": "/games/24points/play.html",
-    schulte: "/games/schulte/",
-    stroop: "/games/stroop/",
-    cancel: "/games/cancel/",
-    simon: "/games/simon/",
-    "spot-diff": "/games/spot-diff/",
-    maze: "/games/maze/",
-    sudoku: "/games/sudoku/",
-  };
+  var PATHS = {};
+
+  function loadPaths() {
+    return fetch(FGB.url("/api/v1/games/paths")).then(function (r) {
+      return r.ok ? r.json() : { paths: {} };
+    }).then(function (data) {
+      PATHS = (data && data.paths) || {};
+    }).catch(function () { PATHS = {}; });
+  }
 
   var combo = null;
   var run = null;
@@ -236,7 +235,7 @@
       combo = data;
       var nameEl = document.getElementById("prep-combo-label");
       if (nameEl) {
-        nameEl.textContent = data.label || (data.daySeq ? ("今日挑战#" + data.daySeq) : "今日挑战");
+        nameEl.textContent = data.label || (data.daySeq ? ("专注力#" + data.daySeq) : "专注力");
       }
       var ol = document.getElementById("stage-list");
       ol.innerHTML = "";
@@ -273,7 +272,13 @@
     document.getElementById("stage-label").textContent = "第 " + (idx + 1) + " / " + stages.length + " 关";
     document.getElementById("stage-name").textContent = st.title + " · " + (st.tierLabel || st.tier);
     stageEnteredAt = Date.now();
-    document.getElementById("game-frame").src = gameUrl(st, idx, run.runId);
+    var url = gameUrl(st, idx, run.runId);
+    if (!url) {
+      document.getElementById("prep-err").textContent = "游戏不可用或已下架：" + (st.gameId || "");
+      show("prep");
+      return;
+    }
+    document.getElementById("game-frame").src = url;
     setTimeout(layoutPlayFrame, 30);
     setTimeout(layoutPlayFrame, 200);
   }
@@ -336,7 +341,7 @@
     if (FGB.loadLobbySummary) {
       FGB.loadLobbySummary().then(function (s) {
         var rank = s && s.me && s.me.dailyRank;
-        if (rank) document.getElementById("result-rank").textContent = "当前挑战榜第 " + rank + " 名";
+        if (rank) document.getElementById("result-rank").textContent = "当前专注力挑战榜第 " + rank + " 名";
       });
     }
     var ul = document.getElementById("result-stages");
@@ -401,7 +406,7 @@
 
   function doExit() {
     if (!canExitRun()) return;
-    FGBUI.askConfirm("确定退出？已完成的关卡会记入挑战榜。", function () {
+    FGBUI.askConfirm("确定退出？已完成的关卡会记入专注力挑战榜。", function () {
       exitRun();
     });
   }
@@ -413,7 +418,9 @@
 
   function startRun() {
     document.getElementById("prep-err").textContent = "";
-    FGB.ensureRegistered().then(function (user) {
+    loadPaths().then(function () {
+      return FGB.ensureRegistered();
+    }).then(function (user) {
       if (!user) {
         document.getElementById("prep-err").textContent = "请先回大厅设置昵称";
         return;
@@ -470,7 +477,7 @@
     });
   }
 
-  loadPrep();
+  loadPaths().then(function () { loadPrep(); });
 })();
 </script>
 </body>

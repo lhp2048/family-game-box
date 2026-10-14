@@ -88,17 +88,10 @@ if errorlevel 1 exit /b 1
 
 
 
-copy /Y "web\index.html" "dist\web\index.html" >nul
+rem 壳页面全部打进包，新增页面不会在部署后 404。
+copy /Y "web\*.html" "dist\web\" >nul
 
 if errorlevel 1 exit /b 1
-
-copy /Y "web\leaderboard.html" "dist\web\leaderboard.html" >nul
-
-copy /Y "web\daily.html" "dist\web\daily.html" >nul
-
-copy /Y "web\daily-leaderboard.html" "dist\web\daily-leaderboard.html" >nul
-
-copy /Y "web\admin.html" "dist\web\admin.html" >nul
 
 if not exist "dist\web\js" mkdir "dist\web\js"
 

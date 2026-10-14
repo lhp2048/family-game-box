@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>语文挑战榜 · 家庭游戏盒</title>
+<link rel="stylesheet" href="/css/fgb-theme.css">
+</head>
+<body>
+<main class="fgb-shell">
+  <header class="fgb-topbar">
+    <div>
+      <a class="fgb-brand" href="/">家庭<em>游戏盒</em></a>
+      <span class="fgb-page-kicker">语文挑战</span>
+    </div>
+    <div class="fgb-nav">
+      <a class="fgb-nav-link" href="/">回大厅</a>
+      <a class="fgb-nav-link" href="/yuwen-daily">每日语文挑战</a>
+      <a class="fgb-nav-link" href="/daily/leaderboard">专注力挑战榜</a>
+    </div>
+  </header>
+  <h1 class="fgb-page-title">语文挑战榜</h1>
+  <p class="fgb-lead" id="date-label">今日成绩 · 正确率优先，相同再比用时</p>
+  <div class="fgb-tabs" id="date-tabs" aria-label="选择日期"></div>
+  <div class="fgb-podium hidden" id="podium" aria-label="前三名"></div>
+  <div class="fgb-panel">
+    <table class="fgb-table">
+      <thead>
+        <tr><th class="fgb-rank">#</th><th>昵称</th><th>成绩</th></tr>
+      </thead>
+      <tbody id="rows"><tr><td colspan="3" class="fgb-empty">加载中…</td></tr></tbody>
+    </table>
+  </div>
+  <p class="fgb-empty" id="empty" hidden>暂无记录 · <a href="/yuwen-daily" style="color:var(--accent)">去做每日语文挑战</a></p>
+</main>
+<script src="/js/fgb-client.js"></script>
+<script>
+(function () {
+  var mine = (window.FGB && FGB.getTerminalId) ? FGB.getTerminalId() : "";
+  var dateTabsEl = document.getElementById("date-tabs");
+  var podiumEl = document.getElementById("podium");
+  var selectedDate = "";
+  function esc(s) {
+    return String(s || "").replace(/[&<>"']/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+    });
+  }
+  function renderPodium(items) {
+    var top = (items || []).slice(0, 3);
+    if (!top.length) {
+      podiumEl.classList.add("hidden");
+      podiumEl.innerHTML = "";
+      return;
+    }
+    var ICONS = { 1: "🥇", 2: "🥈", 3: "🥉" };
+    var TITLES = { 1: "冠军", 2: "亚军", 3: "季军" };
+    podiumEl.classList.remove("hidden");
+    var order = top.length >= 3 ? [top[1], top[0], top[2]] : top;
+    var ranks = top.length >= 3 ? [2, 1, 3] : top.map(function (_, i) { return i + 1; });
+    podiumEl.innerHTML = order.map(function (item, i) {
+      var r = ranks[i];
+      return '<div class="spot fgb-podium-' + r + '"><div class="icon" aria-hidden="true">' +
+        ICONS[r] + '</div><div class="title">' + TITLES[r] + '</div><div class="name">' +
+        esc(item.nickname) + '</div><div class="score">' + esc(item.display) + "</div></div>";
+    }).join("");
+  }
+  function render(data) {
+    selectedDate = data.date || "";
+    document.getElementById("date-label").textContent =
+      (data.date || "今日") + " · 保留最近 7 天 · 正确率优先，相同再比用时";
+    dateTabsEl.innerHTML = (data.dates || []).map(function (d) {
+      var id = d.date || "";
+      var cls = "fgb-tab" + (id === selectedDate ? " is-active" : "");
+      return '<button type="button" class="' + cls + '" data-date="' + esc(id) + '">' + esc(d.label || id) + "</button>";
+    }).join("");
+    var rows = document.getElementById("rows");
+    var empty = document.getElementById("empty");
+    var items = data.items || [];
+    if (!items.length) {
+      podiumEl.classList.add("hidden");
+      podiumEl.innerHTML = "";
+      rows.innerHTML = '<tr><td colspan="3" class="fgb-empty">这天暂无记录</td></tr>';
+      empty.hidden = true;
+      return;
+    }
+    empty.hidden = true;
+    renderPodium(items);
+    var rest = items.slice(3);
+    if (!rest.length) {
+      rows.innerHTML = '<tr><td colspan="3" class="fgb-empty">仅前三名</td></tr>';
+      return;
+    }
+    rows.innerHTML = rest.map(function (item) {
+      var cls = item.terminalId === mine ? " class=\"fgb-row-me\"" : "";
+      return "<tr" + cls + "><td class=\"fgb-rank\">" + item.rank + "</td><td>" + esc(item.nickname) + "</td><td>" + esc(item.display) + "</td></tr>";
+    }).join("");
+  }
+  function load(date) {
+    var q = date ? ("?date=" + encodeURIComponent(date)) : "";
+    return fetch(FGB.url("/api/v1/yuwen-daily/leaderboard" + q)).then(function (res) { return res.json(); }).then(render);
+  }
+  dateTabsEl.addEventListener("click", function (ev) {
+    var btn = ev.target.closest("[data-date]");
+    if (!btn) return;
+    var day = btn.getAttribute("data-date") || "";
+    if (!day || day === selectedDate) return;
+    load(day).catch(function () {
+      document.getElementById("rows").innerHTML = '<tr><td colspan="3" class="fgb-empty">加载失败</td></tr>';
+    });
+  });
+  var initialDate = "";
+  try {
+    initialDate = new URLSearchParams(window.location.search).get("date") || "";
+  } catch (e) { initialDate = ""; }
+  load(initialDate).catch(function () {
+    document.getElementById("rows").innerHTML = '<tr><td colspan="3" class="fgb-empty">加载失败</td></tr>';
+  });
+})();
+</script>
+</body>
+</html>

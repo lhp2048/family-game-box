@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
 from app.html_prefix import rewrite_html
@@ -27,6 +29,7 @@ GAME_IDS = [
     "spot-diff",
     "maze",
     "sudoku",
+    "yuwen",
     "24points-library",
 ]
 
@@ -87,11 +90,14 @@ def test_lobby_html():
     r = client.get(p("/"))
     assert r.status_code == 200
     text = r.text
-    assert "Stroop 色字" in text
-    assert 'href="games/stroop/"' in text
+    assert 'id="game-list"' in text
+    assert "/api/v1/games" in text
     assert 'href="/game-box/leaderboard"' in text
     assert "fgb-client.js" in text
-    assert "每日挑战" in text
+    assert "每日专注力挑战" in text
+    assert "每日语文挑战" in text
+    assert 'href="/game-box/yuwen-daily"' in text
+    assert 'href="/game-box/yuwen-daily/leaderboard"' in text
     assert 'href="/game-box/daily"' in text
     assert 'href="/game-box/admin"' in text
     assert 'href="/game-box/daily/leaderboard"' in text
@@ -102,6 +108,23 @@ def test_leaderboard_page():
     r = client.get(p("/leaderboard"))
     assert r.status_code == 200
     assert "排行榜" in r.text
+
+
+def test_build_packs_shell_pages():
+    root = Path(__file__).resolve().parents[1]
+    shell = (root / "scripts" / "build.sh").read_text(encoding="utf-8")
+    bat = (root / "scripts" / "build.bat").read_text(encoding="utf-8")
+    assert 'web/"*.html' in shell
+    assert "web\\*.html" in bat
+    assert "web/css" in shell
+    required = [
+        "yuwen-daily.html",
+        "yuwen-daily-leaderboard.html",
+        "daily.html",
+        "daily-leaderboard.html",
+    ]
+    for name in required:
+        assert (root / "web" / name).is_file()
 
 
 def test_home_back_to_lobby():

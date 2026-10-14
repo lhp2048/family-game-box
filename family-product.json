@@ -3,7 +3,7 @@
   "id": "family_game_box",
   "title": "家庭游戏盒",
   "subtitle": "家用小游戏在线网站",
-  "version": "26.902.2006",
+  "version": "26.1014.2127",
   "port": 18029,
   "defaultInstallDir": "~/family_game_box",
   "zipNameHint": "family_game_box.zip",
@@ -12,6 +12,9 @@
   "validateFiles": [
     "app/main.py",
     "web/index.html",
+    "web/yuwen-daily.html",
+    "web/yuwen-daily-leaderboard.html",
+    "web/css/fgb-theme.css",
     "requirements.txt",
     "family-product.json",
     "INSTALL.txt",

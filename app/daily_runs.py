@@ -5,11 +5,14 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from app.daily_challenges import (
+    board_dates_payload,
+    clamp_board_date,
     combo_display_name,
     ensure_today,
     get_current,
     list_combos_for_date,
     local_today,
+    prune_dated_runs,
 )
 from app.storage import load_json, save_json
 from app.terminals import get_terminal, nickname_lookup, resolve_nickname
@@ -22,10 +25,20 @@ def _empty() -> Dict[str, Any]:
 
 
 def _load() -> Dict[str, Any]:
-    return load_json(STORE, _empty())
+    data = load_json(STORE, _empty())
+    runs = data.get("runs")
+    if not isinstance(runs, dict):
+        data["runs"] = {}
+        return data
+    if prune_dated_runs(runs, local_today()):
+        save_json(STORE, data)
+    return data
 
 
 def _save(data: Dict[str, Any]) -> None:
+    runs = data.get("runs")
+    if isinstance(runs, dict):
+        prune_dated_runs(runs, local_today())
     save_json(STORE, data)
 
 
@@ -175,7 +188,7 @@ def patch_run(terminal_id: str, run_id: str, body: Dict[str, Any]) -> Dict[str, 
 
 
 def _combo_no(combo_id: str) -> str:
-    """易记挑战名（今日挑战#N）；旧数据回退短单号。"""
+    """易记挑战名（专注力#N）；旧数据回退短单号。"""
     return combo_display_name(combo_id)
 
 
@@ -226,8 +239,9 @@ def leaderboard(
     combo_id: Optional[str] = None,
     limit: int = 50,
 ) -> Dict[str, Any]:
-    """按单场挑战出榜。未传 comboId 时默认当日最新（current）。"""
-    day = date or local_today()
+    """按单场挑战出榜。未传 comboId 时默认当日最新（current）。只保留最近 7 天。"""
+    today = local_today()
+    day = clamp_board_date(date, today)
     cur = get_current()
     if isinstance(cur, dict) and cur.get("date") == day and cur.get("comboId"):
         current_combo = str(cur.get("comboId") or "")
@@ -306,6 +320,7 @@ def leaderboard(
     items.sort(key=_key)
     return {
         "date": day,
+        "dates": board_dates_payload(today),
         "comboId": selected,
         "comboNo": _combo_no(selected) if selected else "",
         "currentComboId": current_combo,

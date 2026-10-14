@@ -254,6 +254,7 @@ SCRIPT = r"""
   var congruentRate = 0.2;
   var deadline = 0;
   var timerId = null;
+  var penaltyTimer = null;
   var startedAt = 0;
   var trialStart = 0;
   var waiting = false;
@@ -363,6 +364,24 @@ SCRIPT = r"""
     if (timerId) { clearInterval(timerId); timerId = null; }
   }
 
+  function clearPenalty() {
+    if (penaltyTimer) { clearInterval(penaltyTimer); penaltyTimer = null; }
+  }
+
+  function countPenalty(baseText) {
+    clearPenalty();
+    var left = 2;
+    setHint(baseText + " · " + left, "err");
+    penaltyTimer = setInterval(function () {
+      left -= 1;
+      if (left <= 0) {
+        clearPenalty();
+        return;
+      }
+      setHint(baseText + " · " + left, "err");
+    }, 1000);
+  }
+
   function updateTimer() {
     var left = Math.max(0, deadline - Date.now());
     document.getElementById("timer-text").textContent = fmtTime(left);
@@ -411,6 +430,7 @@ SCRIPT = r"""
   }
 
   function showTrial() {
+    clearPenalty();
     waiting = true;
     currentTrial = buildTrial();
     wordEl.textContent = currentTrial.word;
@@ -438,6 +458,7 @@ SCRIPT = r"""
     var rt = Math.round(performance.now() - trialStart);
     total++;
     var ok = choiceId === currentTrial.inkId;
+    var wrongText = "错误 · 应为「" + byId[currentTrial.inkId].label + "」";
     if (ok) {
       correct++;
       streak++;
@@ -447,23 +468,28 @@ SCRIPT = r"""
       setHint("正确 · " + rt + " ms", "ok");
     } else {
       streak = 0;
-      setHint("错误 · 应为「" + byId[currentTrial.inkId].label + "」", "err");
+      setHint(wrongText, "err");
     }
     document.getElementById("streak").textContent = String(streak);
     document.getElementById("correct-n").textContent = String(correct);
     document.getElementById("rt-display").textContent = ok ? ("RT " + rt + " ms") : "";
 
+    var challengeWait = ok ? 500 : 2000;
+    if (!ok && mode === "challenge") {
+      if (timeLimitMs > 0) deadline += 2000;
+      countPenalty(wrongText);
+    }
     if (mode === "challenge") {
       progressEl.textContent = trialLimit > 0 ? (total + " / " + trialLimit) : ("试次 " + total);
       if (trialLimit > 0 && total >= trialLimit) {
-        setTimeout(finishChallenge, 700);
+        setTimeout(finishChallenge, ok ? 700 : 2000);
         return;
       }
     }
     if (mode === "casual") {
       setTimeout(showTrial, ok ? 400 : 900);
     } else {
-      setTimeout(showTrial, 500);
+      setTimeout(showTrial, challengeWait);
     }
   }
 
@@ -511,6 +537,7 @@ SCRIPT = r"""
   }
 
   function finishChallenge() {
+    clearPenalty();
     stopTimer();
     stopSpeak();
     var elapsed = Date.now() - startedAt;

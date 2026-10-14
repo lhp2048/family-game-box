@@ -22,10 +22,11 @@ rm -rf "${FGB_DIST}"
 mkdir -p "${FGB_DIST}/web/games/24points" "${FGB_DIST}/web/games/schulte"
 mkdir -p "${FGB_DIST}/app" "${FGB_DIST}/scripts/lib" "${FGB_DIST}/logs"
 
-cp "${FGB_ROOT}/web/index.html" "${FGB_DIST}/web/index.html"
-cp "${FGB_ROOT}/web/leaderboard.html" "${FGB_DIST}/web/leaderboard.html"
-mkdir -p "${FGB_DIST}/web/js"
+# 壳页面全部打进包，新增页面不会在部署后 404。
+cp "${FGB_ROOT}/web/"*.html "${FGB_DIST}/web/"
+mkdir -p "${FGB_DIST}/web/js" "${FGB_DIST}/web/css"
 cp -R "${FGB_ROOT}/web/js/." "${FGB_DIST}/web/js/"
+cp -R "${FGB_ROOT}/web/css/." "${FGB_DIST}/web/css/"
 cp -R "${FGB_ROOT}/web/games/." "${FGB_DIST}/web/games/"
 
 cp -R "${FGB_ROOT}/app/." "${FGB_DIST}/app/"

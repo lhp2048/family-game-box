@@ -241,3 +241,66 @@ def test_leaderboard_one_row_per_user(tmp_path, monkeypatch):
     mine = [it for it in board["items"] if it.get("userId") == uid]
     assert len(mine) == 1
     assert mine[0]["nickname"] == "same_user"
+
+
+def test_personal_bests_prefer_session_user(client):
+    """Shared device: /scores/me/bests with user cookie returns only that user's PBs."""
+    client.cookies.clear()
+    tid = str(uuid.uuid4())
+    client.post(
+        url("/api/v1/terminals/register"),
+        json={"terminalId": tid, "nickname": "pad"},
+    )
+    headers = _headers(tid)
+
+    login_as(client, "alice_pb")
+    r_a = client.post(
+        url("/api/v1/scores"),
+        json={
+            "gameId": "stroop",
+            "mode": "challenge",
+            "tier": "normal",
+            "metrics": {"correct": 30, "total": 30, "timeMs": 20000},
+        },
+        headers=headers,
+    )
+    assert r_a.status_code == 200
+    alice_uid = r_a.json()["entry"]["userId"]
+    alice_score = r_a.json()["entry"]["score"]
+
+    client.post(url("/api/v1/auth/logout"))
+    client.cookies.clear()
+    login_as(client, "bob_pb")
+    r_b = client.post(
+        url("/api/v1/scores"),
+        json={
+            "gameId": "stroop",
+            "mode": "challenge",
+            "tier": "normal",
+            "metrics": {"correct": 10, "total": 30, "timeMs": 50000},
+        },
+        headers=headers,
+    )
+    assert r_b.status_code == 200
+    bob_uid = r_b.json()["entry"]["userId"]
+    bob_score = r_b.json()["entry"]["score"]
+    assert bob_uid != alice_uid
+    assert bob_score < alice_score
+
+    # Bob's session: must see Bob's weaker PB, not Alice's stronger one
+    bests_bob = client.get(url("/api/v1/scores/me/bests"), headers=headers)
+    assert bests_bob.status_code == 200
+    body_bob = bests_bob.json()
+    assert body_bob.get("userId") == bob_uid
+    stroop_bob = body_bob["bests"]["stroop"]["challenge"]["normal"]
+    assert stroop_bob["score"] == bob_score
+
+    client.post(url("/api/v1/auth/logout"))
+    client.cookies.clear()
+    login_as(client, "alice_pb")
+    bests_alice = client.get(url("/api/v1/scores/me/bests"), headers=headers)
+    assert bests_alice.status_code == 200
+    body_alice = bests_alice.json()
+    assert body_alice.get("userId") == alice_uid
+    stroop_alice = body_alice["bests"]["stroop"]["challenge"]["normal"]
+    assert stroop_alice["score"] == alice_score

@@ -279,13 +279,18 @@ def get_leaderboard(game_id: str, mode: str, tier: str, limit: int = 20) -> Dict
     }
 
 
-def get_personal_bests(terminal_id: str, game_id: Optional[str] = None) -> Dict[str, Any]:
+def get_personal_bests(
+    terminal_id: str,
+    game_id: Optional[str] = None,
+    user_id: str = "",
+) -> Dict[str, Any]:
     if not validate_terminal_id(terminal_id):
         raise ValueError("invalid terminal id")
     entries = _load_entries()
     bests: Dict[str, Any] = {}
     from app.game_registry import list_all_games
 
+    uid = (user_id or "").strip()
     game_tiers = []
     for g in list_all_games(include_disabled=True):
         if not g.get("rankable"):
@@ -300,7 +305,9 @@ def get_personal_bests(terminal_id: str, game_id: Optional[str] = None) -> Dict[
         for mode in ("casual", "challenge"):
             mode_best: Dict[str, Any] = {}
             for tier in tiers:
-                item = _best_for_terminal(entries, terminal_id, gid, mode, tier)
+                item = _best_for_terminal(
+                    entries, terminal_id, gid, mode, tier, user_id=uid
+                )
                 if item:
                     mode_best[tier] = {
                         "display": format_display(gid, mode, item.get("metrics") or {})
@@ -314,7 +321,10 @@ def get_personal_bests(terminal_id: str, game_id: Optional[str] = None) -> Dict[
                 game_best[mode] = mode_best
         if game_best:
             bests[gid] = game_best
-    return {"terminalId": terminal_id, "bests": bests}
+    out: Dict[str, Any] = {"terminalId": terminal_id, "bests": bests}
+    if uid:
+        out["userId"] = uid
+    return out
 
 
 def global_leaderboard_entries(

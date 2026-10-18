@@ -66,7 +66,10 @@ def test_yuwen_page_and_score(tmp_path, monkeypatch):
     page = local.get(url("/games/yuwen/"))
     assert page.status_code == 200
     assert "语文大擂台" in page.text
-    assert "← 返回大厅" in page.text
+    # Task 10: shared shell topbar (FGBShell back label is「回大厅」)
+    assert 'data-game-skin="yuwen"' in page.text
+    assert "fgb-shell.js" in page.text
+    assert "FGBShell.mountTopbar" in page.text
     bank = local.get(url("/games/yuwen/questions.json"))
     assert bank.status_code == 200
     assert bank.json()["questions"][0]["id"] == 1

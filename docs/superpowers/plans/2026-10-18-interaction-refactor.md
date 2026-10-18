@@ -108,7 +108,7 @@
 
 - [ ] **Step 1: Replace** ad-hoc hall header with `FGBShell.mountTopbar`
 - [ ] **Step 2: Wire** claim prompt through `fgb-ui` confirm + theme
-- [ ] **Step 3: Smoke** login → hall shows username; logout; claim once path if data available
+- [x] **Step 3: Smoke** login → hall shows username; logout; claim once path if data available
 - [ ] **Step 4: Commit** `feat(ui): hall uses fgb-shell`
 
 ---
@@ -204,10 +204,10 @@
 - Modify: `web/games/yuwen/*`, `web/games/24points/*` templates/sources
 - Test: yuwen daily + 24points play/library smoke
 
-- [ ] **Step 1: Port** yuwen play shell to shared chrome + skin
-- [ ] **Step 2: Port** 24points play + library chrome (library can be lighter)
+- [x] **Step 1: Port** yuwen play shell to shared chrome + skin
+- [x] **Step 2: Port** 24points play + library chrome (library can be lighter)
 - [ ] **Step 3: Smoke**
-- [ ] **Step 4: Commit** `feat(games): yuwen and 24points shared chrome`
+- [x] **Step 4: Commit** `feat(games): yuwen and 24points shared chrome`
 
 ---
 

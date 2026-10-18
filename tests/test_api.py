@@ -192,6 +192,27 @@ def test_remaining_free_train_chrome():
         assert 'data-game-skin="%s"' % skin in theme, skin
 
 
+
+def test_yuwen_and_24points_chrome():
+    """Task 10: yuwen play + 24points play/library shared chrome hooks."""
+    root = Path(__file__).resolve().parents[1]
+    cases = [
+        ("web/games/yuwen/index.html", "yuwen"),
+        ("web/games/24points/play.html", "24points"),
+        ("web/games/24points/library.html", "24points-library"),
+    ]
+    for rel, skin in cases:
+        html = (root / rel).read_text(encoding="utf-8")
+        assert 'data-game-skin="%s"' % skin in html, rel
+        assert 'id="fgb-topbar"' in html, rel
+        assert "fgb-shell.js" in html, rel
+        assert "FGBShell.mountTopbar" in html, rel
+        assert 'id="fgb-result"' in html, rel
+    theme = (root / "web/css/fgb-theme.css").read_text(encoding="utf-8")
+    for skin in ("yuwen", "24points", "24points-library"):
+        assert 'data-game-skin="%s"' % skin in theme, skin
+
+
 def test_24points_play_and_bank():
     login_as(client, "pts24_play")
     page = client.get(p("/games/24points/play.html"))

@@ -217,13 +217,191 @@ footer {
   .search button { min-height: 2.8rem; }
 }
 </style>
+
+<script>
+(function fgbDailyHead() {
+  if (/(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+    document.documentElement.classList.add("fgb-daily-mode");
+  }
+})();
+</script>
+<style>
+html.fgb-daily-mode #view-home,
+html.fgb-daily-mode #view-setup,
+html.fgb-daily-mode #view-casual,
+html.fgb-daily-mode #view-size,
+html.fgb-daily-mode #view-result,
+html.fgb-daily-mode #view-casual-done { display: none !important; }
+html.fgb-daily-mode .mode-btn,
+html.fgb-daily-mode #casual-extra,
+html.fgb-daily-mode #btn-next,
+html.fgb-daily-mode #btn-restart { display: none !important; }
+/* 闯关 iframe 内：收掉重复顶栏/长说明；棋盘边长由 --fgb-board 动态计算 */
+html.fgb-daily-mode {
+  --fgb-board: 280px;
+  height: 100%;
+}
+html.fgb-daily-mode body { height: 100%; }
+html.fgb-daily-mode:not(.fgb-play-scroll),
+html.fgb-daily-mode:not(.fgb-play-scroll) body { overflow: hidden; }
+html.fgb-daily-mode.fgb-play-scroll,
+html.fgb-daily-mode.fgb-play-scroll body { overflow: auto; }
+html.fgb-daily-mode .wrap {
+  width: min(720px, calc(100% - 0.75rem));
+  padding: 0.35rem 0 0.4rem;
+  box-sizing: border-box;
+}
+html.fgb-daily-mode #view-play > .topbar { display: none !important; }
+html.fgb-daily-mode #fgb-topbar,
+html.fgb-daily-mode #fgb-result { display: none !important; }
+html.fgb-daily-mode #view-play > .hint { margin: 0 0 0.3rem; min-height: 1.05em; font-size: 0.88rem; }
+html.fgb-daily-mode #view-play .tip { display: none !important; }
+html.fgb-daily-mode .clover {
+  width: var(--fgb-board) !important;
+  height: var(--fgb-board) !important;
+}
+html.fgb-daily-mode .clover-wrap { margin: 0.1rem 0 0.3rem; }
+html.fgb-daily-mode .leaf { font-size: calc(var(--fgb-board) * 0.11) !important; }
+html.fgb-daily-mode .sudoku-wrap { width: min(100%, var(--fgb-board)) !important; }
+html.fgb-daily-mode .sudoku { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .maze-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .grid-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .diff-panels { max-height: var(--fgb-board) !important; overflow: auto; }
+html.fgb-daily-mode .board {
+  width: min(100%, var(--fgb-board)) !important;
+  max-height: var(--fgb-board) !important;
+}
+
+.confirm-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(6, 14, 12, 0.72);
+  backdrop-filter: blur(2px);
+}
+.confirm-mask.hidden { display: none !important; }
+.confirm-box {
+  width: min(360px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.2rem 1.1rem;
+}
+.confirm-box p {
+  margin: 0 0 1.1rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .55rem;
+}
+.confirm-actions button {
+  border-radius: 14px;
+  padding: .75rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.confirm-actions .confirm-cancel {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+}
+.confirm-actions .confirm-ok {
+  border: 0;
+  color: #062016;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+}
+/* 统一完成反馈：轻量、不挡操作 */
+.celebrate {
+  position: fixed;
+  left: 50%;
+  top: 18%;
+  transform: translate(-50%, -12px) scale(.92);
+  z-index: 1100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease, transform .28s cubic-bezier(.2,.9,.3,1.2);
+}
+.celebrate.show {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+.celebrate-pill {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .7rem 1.1rem .7rem .85rem;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid rgba(62,207,142,.35);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+.celebrate-mark {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #062016;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .95rem;
+  line-height: 1;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(62,207,142,.35);
+  animation: celebratePulse .55s ease;
+}
+@keyframes celebratePulse {
+  0% { box-shadow: 0 0 0 0 rgba(15,122,90,.4); transform: scale(.85); }
+  60% { box-shadow: 0 0 0 10px rgba(15,122,90,0); transform: scale(1.06); }
+  100% { box-shadow: 0 0 0 0 rgba(15,122,90,0); transform: scale(1); }
+}
+.celebrate-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+}
+.celebrate.show .celebrate-burst {
+  animation: celebrateBurst .5s ease forwards;
+}
+.celebrate-burst:nth-child(1) { --dx: -28px; --dy: -22px; }
+.celebrate-burst:nth-child(2) { --dx: 30px; --dy: -18px; background: #c9a227; }
+.celebrate-burst:nth-child(3) { --dx: -22px; --dy: 24px; background: #9a4a12; }
+.celebrate-burst:nth-child(4) { --dx: 26px; --dy: 20px; background: #2471a3; }
+.celebrate-burst:nth-child(5) { --dx: 0; --dy: -32px; background: #7d3c98; }
+.celebrate-burst:nth-child(6) { --dx: 0; --dy: 30px; background: #1e8449; }
+@keyframes celebrateBurst {
+  0% { opacity: .9; transform: translate(0,0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3); }
+}
+
+</style>
+
 </head>
-<body>
+<body data-game-skin="24points-library">
+<header id="fgb-topbar"></header>
   <div class="wrap">
     <h1 class="brand">24<em>点</em></h1>
     <p class="lede">整数四则运算解法库。范围 0 .. 24 (inclusive)；仅整除合法。输入 4 个数查询，或浏览全部有解组合。</p>
-    <p style="margin:0 0 1.2rem"><a href="/" style="color:var(--accent);font-weight:600;text-decoration:none">← 返回大厅</a></p>
-
     <div class="stats">
       <div class="stat"><b id="stat-solvable">11513</b><span>有解组合</span></div>
       <div class="stat"><b id="stat-exprs">171198</b><span>解法条数</span></div>
@@ -375,6 +553,194 @@ footer {
   });
 
   applySearch();
+})();
+</script>
+
+<div id="fgb-result" class="fgb-result hidden" role="dialog" aria-modal="true" aria-labelledby="fgb-result-title">
+  <div class="fgb-result-box">
+    <h2 id="fgb-result-title" class="fgb-result-title">本局结束</h2>
+    <p id="fgb-result-sub" class="fgb-result-sub"></p>
+    <div id="fgb-result-stats" class="fgb-result-stats"></div>
+    <div class="fgb-result-actions">
+      <button type="button" class="fgb-btn" id="fgb-result-retry">再来一局</button>
+      <a class="fgb-btn-ghost" id="fgb-result-hall" href="/">回大厅</a>
+      <a class="fgb-btn-ghost" id="fgb-result-board" href="/leaderboard">排行榜</a>
+    </div>
+  </div>
+</div>
+
+
+<div class="confirm-mask hidden" id="confirm-mask" role="dialog" aria-modal="true">
+  <div class="confirm-box">
+    <p id="confirm-msg">确定？</p>
+    <div class="confirm-actions">
+      <button type="button" class="confirm-cancel" id="confirm-cancel">取消</button>
+      <button type="button" class="confirm-ok" id="confirm-ok">确定</button>
+    </div>
+  </div>
+</div>
+<div class="celebrate hidden" id="celebrate" aria-live="polite">
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <div class="celebrate-pill">
+    <span class="celebrate-mark">✓</span>
+    <span id="celebrate-text">完成！</span>
+  </div>
+</div>
+
+<script src="/js/fgb-daily.js"></script>
+<script src="/js/fgb-client.js"></script>
+<script src="/js/fgb-ui.js"></script>
+<script src="/js/fgb-shell.js"></script>
+<script>
+
+var FGB_MSG = {
+  exitConfirm: "退出并查看统计？",
+  done: "完成！",
+  sessionDone: "本局完成！"
+};
+
+var _confirmCb = null;
+function askConfirm(message, onYes, onNo) {
+  var mask = document.getElementById("confirm-mask");
+  var msg = document.getElementById("confirm-msg");
+  if (!mask || !msg) {
+    // 无页面内弹层时走 FGBUI；禁止回退到浏览器 confirm/alert
+    if (window.FGBUI && FGBUI.askConfirm) {
+      FGBUI.askConfirm(message, onYes, onNo);
+      return;
+    }
+    if (onYes) onYes();
+    return;
+  }
+  msg.textContent = message || FGB_MSG.exitConfirm;
+  _confirmCb = { yes: onYes, no: onNo };
+  mask.classList.remove("hidden");
+}
+function _resolveConfirm(ok) {
+  var mask = document.getElementById("confirm-mask");
+  if (mask) mask.classList.add("hidden");
+  var cb = _confirmCb;
+  _confirmCb = null;
+  if (!cb) return;
+  if (ok && cb.yes) cb.yes();
+  if (!ok && cb.no) cb.no();
+}
+(function bindConfirmUI() {
+  var ok = document.getElementById("confirm-ok");
+  var cancel = document.getElementById("confirm-cancel");
+  var mask = document.getElementById("confirm-mask");
+  if (ok) ok.addEventListener("click", function () { _resolveConfirm(true); });
+  if (cancel) cancel.addEventListener("click", function () { _resolveConfirm(false); });
+  if (mask) mask.addEventListener("click", function (e) {
+    if (e.target === mask) _resolveConfirm(false);
+  });
+})();
+
+var _celebrateTimer = null;
+/** 轻量完成动效：不挡点击，约 0.5s 自动消失 */
+function celebrate(message) {
+  var el = document.getElementById("celebrate");
+  var text = document.getElementById("celebrate-text");
+  if (!el || !text) return;
+  text.textContent = message || FGB_MSG.done;
+  el.classList.remove("show");
+  void el.offsetWidth;
+  el.classList.add("show");
+  el.classList.remove("hidden");
+  if (_celebrateTimer) clearTimeout(_celebrateTimer);
+  _celebrateTimer = setTimeout(function () {
+    el.classList.remove("show");
+    setTimeout(function () { el.classList.add("hidden"); }, 200);
+  }, 520);
+}
+/** 播完成动效后短延迟回调；默认 480ms，几乎不拖慢下一局 */
+function celebrateThen(message, callback, delayMs) {
+  celebrate(message);
+  var wait = delayMs == null ? 480 : delayMs;
+  setTimeout(function () {
+    if (callback) callback();
+  }, wait);
+}
+
+</script>
+<script>
+/* fgb-daily-boot */
+
+(function () {
+  var qraw = location.search || "";
+  if (!/(?:^|[?&])daily=1(?:&|$)/.test(qraw)) return;
+  var params = new URLSearchParams(qraw);
+  var q = {
+    daily: true,
+    runId: params.get("runId") || "",
+    tier: params.get("tier") || "normal",
+    seed: Number(params.get("seed") || "0") || 1,
+    stageIndex: Number(params.get("stageIndex") || "0") || 0,
+  };
+  window.__FGB_DAILY_Q__ = q;
+  window.__FGB_IS_DAILY__ = true;
+  document.documentElement.classList.add("fgb-daily-mode");
+  if (window.FGBDaily && FGBDaily.installMathRandom) {
+    FGBDaily.installMathRandom(q.seed);
+  }
+  if (window.FGBDaily && FGBDaily.installFitPlay) {
+    FGBDaily.installFitPlay({ min: 168, max: 480, pad: 16 });
+  }
+  window.fgbSubmitScore = function (payload) {
+    var ms = 0;
+    if (payload && payload.metrics && payload.metrics.timeMs != null) ms = payload.metrics.timeMs | 0;
+    if (window.FGBDaily && FGBDaily.notifyStageDone) FGBDaily.notifyStageDone(ms);
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-stage-done", timeMs: ms }, "*");
+    }
+  };
+  function abortDaily(e) {
+    if (e) {
+      e.preventDefault();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      else e.stopPropagation();
+    }
+    if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-abort" }, "*");
+    }
+  }
+  var base = (window.__FGB_BASE__ || "").replace(/\/$/, "");
+  var homeSel = 'a.linkish[href="/"], a[href="/"]';
+  if (base) {
+    homeSel += ', a.linkish[href="' + base + '/"], a[href="' + base + '/"], a.linkish[href="' + base + '"], a[href="' + base + '"]';
+  }
+  document.querySelectorAll(homeSel).forEach(function (a) {
+    a.textContent = "退出本关";
+    a.href = "#";
+    a.addEventListener("click", abortDaily);
+  });
+  // 游戏内退出按钮：每日模式禁止 show(home)，须通知父页结束挑战
+  ["btn-exit", "btn-exit-casual", "btn-exit-challenge"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", abortDaily, true);
+  });
+})();
+
+</script>
+<script>
+/* fgb-game-chrome-boot */
+(function () {
+  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) return;
+  var el = document.getElementById("fgb-topbar");
+  if (!el || !window.FGBShell || !FGBShell.mountTopbar) return;
+  FGBShell.mountTopbar(el, {
+    title: "24 点解法库",
+    showBack: true,
+    backHref: "/",
+    showUser: true
+  });
 })();
 </script>
 </body>

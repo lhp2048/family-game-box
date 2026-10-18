@@ -1137,3 +1137,44 @@ body[data-game-skin="sudoku"] .mode-btn:hover {
 body[data-game-skin="sudoku"] .choice-row button.active {
   color: #1a1208;
 }
+
+/* —— Yuwen + 24points skins (Task 10) —— */
+
+body[data-game-skin="yuwen"] {
+  --accent: #f0c14a;
+  --accent-deep: #c4922a;
+  --gold: #f0c14a;
+  --skin-glow: rgba(240, 193, 74, 0.16);
+  background:
+    radial-gradient(900px 480px at 14% -8%, rgba(240, 193, 74, 0.14), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(62, 207, 142, 0.07), transparent 50%),
+    linear-gradient(165deg, #12100a 0%, #14120c 45%, #1a1610 100%);
+}
+body[data-game-skin="yuwen"] .yuwen-card:hover {
+  border-color: rgba(240, 193, 74, 0.5);
+}
+body[data-game-skin="yuwen"] .yuwen-lane h2 {
+  color: var(--gold);
+}
+
+body[data-game-skin="24points"],
+body[data-game-skin="24points-library"] {
+  --accent: #3ecf8e;
+  --accent-deep: #1a9f68;
+  --skin-glow: rgba(62, 207, 142, 0.18);
+  background:
+    radial-gradient(900px 480px at 12% -8%, rgba(62, 207, 142, 0.18), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.08), transparent 50%),
+    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
+}
+body[data-game-skin="24points"] .brand em,
+body[data-game-skin="24points-library"] .brand em {
+  color: var(--accent);
+}
+body[data-game-skin="24points"] .card,
+body[data-game-skin="24points-library"] .card {
+  border-color: rgba(62, 207, 142, 0.2);
+}
+body[data-game-skin="24points-library"] > #fgb-topbar {
+  width: min(920px, calc(100% - 1.5rem));
+}

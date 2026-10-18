@@ -336,3 +336,23 @@ def leaderboard(
         "combos": combos,
         "items": items[: max(1, min(limit, 100))],
     }
+
+
+def reassign_terminal_to_user(terminal_id: str, user_id: str, username: str) -> int:
+    """Bind historical daily runs for ``terminal_id`` to ``user_id``; return count updated."""
+    tid = (terminal_id or "").strip()
+    if not tid or not user_id:
+        return 0
+    name = (username or "").strip()
+    data = _load()
+    count = 0
+    for run in (data.get("runs") or {}).values():
+        if not isinstance(run, dict) or run.get("terminalId") != tid:
+            continue
+        run["userId"] = user_id
+        run["username"] = name
+        run["nickname"] = name
+        count += 1
+    if count:
+        _save(data)
+    return count

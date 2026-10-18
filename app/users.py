@@ -191,3 +191,37 @@ def user_cookie_ok(cookie: str | None, now: int | None = None) -> bool:
 
 def user_id_from_cookie(cookie: str | None, now: int | None = None) -> str | None:
     return _parse_user_cookie(cookie, now=now)
+
+
+def claim_terminal(user_id: str, terminal_id: str) -> dict:
+    """Migrate one terminal's historical scores/runs onto ``user_id`` (once per terminal)."""
+    tid = (terminal_id or "").strip()
+    if not tid:
+        raise ValueError("缺少终端标识")
+    data = _load()
+    users_map = data.get("users") or {}
+    item = users_map.get(user_id)
+    if not isinstance(item, dict):
+        raise ValueError("用户不存在")
+    claimed = data.setdefault("claimedTerminals", {})
+    if tid in claimed:
+        raise ValueError("该终端成绩已认领")
+    username = str(item.get("username") or "")
+
+    from app import daily_runs, scores, yuwen_daily
+
+    scores_n = scores.reassign_terminal_to_user(tid, user_id, username)
+    daily_n = daily_runs.reassign_terminal_to_user(tid, user_id, username)
+    yuwen_n = yuwen_daily.reassign_terminal_to_user(tid, user_id, username)
+
+    claimed[tid] = user_id
+    _save(data)
+    return {
+        "ok": True,
+        "terminalId": tid,
+        "userId": user_id,
+        "username": username,
+        "scoresUpdated": scores_n,
+        "dailyUpdated": daily_n,
+        "yuwenUpdated": yuwen_n,
+    }

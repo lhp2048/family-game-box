@@ -32,7 +32,7 @@ def test_session_cookie_roundtrip():
 
 
 from fastapi.testclient import TestClient
-from helpers import url
+from helpers import login_as, url
 from app.main import app
 from app import daily_admin as da
 
@@ -137,3 +137,86 @@ def test_games_page_redirects_to_login_without_user():
     assert page.status_code == 307
     loc = page.headers["location"]
     assert "/login?next=" in loc
+
+
+def test_claim_terminal_once(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.storage.DATA_DIR", tmp_path)
+    import uuid
+    from app.terminals import register_terminal
+    from app import scores, daily_runs
+
+    tid = str(uuid.uuid4())
+    register_terminal(tid, "旧号")
+    scores.submit_score(
+        tid,
+        "stroop",
+        "challenge",
+        "normal",
+        {"correct": 5, "total": 10, "timeMs": 5000},
+    )
+    daily_runs.start_run(tid)
+
+    u1 = users.register_user("claimer1", "pass1234")
+    u2 = users.register_user("claimer2", "pass1234")
+
+    result = users.claim_terminal(u1["userId"], tid)
+    assert result["ok"] is True
+    assert result["terminalId"] == tid
+    assert result["userId"] == u1["userId"]
+
+    entries = [e for e in scores._load_entries() if e.get("terminalId") == tid]
+    assert entries
+    assert all(e.get("userId") == u1["userId"] for e in entries)
+    assert all(e.get("nickname") == "claimer1" for e in entries)
+
+    daily_data = daily_runs._load()
+    daily_matched = [
+        r
+        for r in (daily_data.get("runs") or {}).values()
+        if isinstance(r, dict) and r.get("terminalId") == tid
+    ]
+    assert daily_matched
+    assert all(r.get("userId") == u1["userId"] for r in daily_matched)
+    assert all(r.get("nickname") == "claimer1" for r in daily_matched)
+
+    with pytest.raises(ValueError, match="已认领|认领"):
+        users.claim_terminal(u2["userId"], tid)
+
+
+def test_claim_terminal_api():
+    import uuid
+    from app.terminals import register_terminal
+    from app import scores
+
+    client.cookies.clear()
+    tid = str(uuid.uuid4())
+    register_terminal(tid, "遗留终端")
+    scores.submit_score(
+        tid,
+        "stroop",
+        "challenge",
+        "normal",
+        {"correct": 3, "total": 5, "timeMs": 4000},
+    )
+
+    anon = client.post(url("/api/v1/auth/claim-terminal"), json={"terminalId": tid})
+    assert anon.status_code in (401, 403)
+
+    login_as(client, "claimapi1")
+    ok = client.post(url("/api/v1/auth/claim-terminal"), json={"terminalId": tid})
+    assert ok.status_code == 200
+    body = ok.json()
+    assert body["ok"] is True
+    assert body["terminalId"] == tid
+    assert body["userId"]
+
+    entries = [e for e in scores._load_entries() if e.get("terminalId") == tid]
+    assert entries
+    assert all(e.get("userId") == body["userId"] for e in entries)
+    assert all(e.get("nickname") == "claimapi1" for e in entries)
+
+    client.cookies.clear()
+    login_as(client, "claimapi2")
+    again = client.post(url("/api/v1/auth/claim-terminal"), json={"terminalId": tid})
+    assert again.status_code == 400
+    assert "认领" in again.json()["detail"]

@@ -360,3 +360,23 @@ def latest_for_terminal(terminal_id: str) -> Optional[Dict[str, Any]]:
         "display": best.get("display", ""),
         "playedAt": best.get("playedAt"),
     }
+
+
+def reassign_terminal_to_user(terminal_id: str, user_id: str, username: str) -> int:
+    """Bind historical score rows for ``terminal_id`` to ``user_id``; return count updated."""
+    tid = (terminal_id or "").strip()
+    if not tid or not user_id:
+        return 0
+    name = (username or "").strip()
+    entries = _load_entries()
+    count = 0
+    for item in entries:
+        if item.get("terminalId") != tid:
+            continue
+        item["userId"] = user_id
+        item["username"] = name
+        item["nickname"] = name
+        count += 1
+    if count:
+        _save_entries(entries)
+    return count

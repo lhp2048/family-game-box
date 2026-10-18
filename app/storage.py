@@ -21,9 +21,22 @@ def _on_vercel() -> bool:
     return bool(os.environ.get("VERCEL", "").strip())
 
 
+def _turso_store():
+    from app.turso_store import TursoStore
+
+    return TursoStore(
+        os.environ.get("TURSO_DATABASE_URL", "").strip(),
+        os.environ.get("TURSO_AUTH_TOKEN", "").strip(),
+    )
+
+
 def health() -> Dict[str, Any]:
     if turso_configured():
-        return {"storage": "turso", "ready": False}
+        try:
+            _turso_store().ping()
+        except StorageError:
+            return {"storage": "turso", "ready": False}
+        return {"storage": "turso", "ready": True}
     if _on_vercel():
         return {"storage": "turso", "ready": False}
     return {"storage": "file", "ready": True}
@@ -34,7 +47,9 @@ def data_path(name: str) -> Path:
 
 
 def load_json(name: str, default: Dict[str, Any]) -> Dict[str, Any]:
-    if turso_configured() or _on_vercel():
+    if turso_configured():
+        return _turso_store().load(name, default)
+    if _on_vercel():
         raise StorageError("暂时存不上")
     path = data_path(name)
     if not path.is_file():
@@ -49,7 +64,10 @@ def load_json(name: str, default: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def save_json(name: str, data: Dict[str, Any]) -> None:
-    if turso_configured() or _on_vercel():
+    if turso_configured():
+        _turso_store().save(name, data)
+        return
+    if _on_vercel():
         raise StorageError("暂时存不上")
     path = data_path(name)
     path.parent.mkdir(parents=True, exist_ok=True)

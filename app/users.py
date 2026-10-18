@@ -193,6 +193,20 @@ def user_id_from_cookie(cookie: str | None, now: int | None = None) -> str | Non
     return _parse_user_cookie(cookie, now=now)
 
 
+def claim_available(terminal_id: str | None) -> bool:
+    """True when terminal exists in store and has not been claimed yet."""
+    tid = (terminal_id or "").strip()
+    if not tid:
+        return False
+    from app.terminals import get_terminal
+
+    if not get_terminal(tid):
+        return False
+    data = _load()
+    claimed = data.get("claimedTerminals") or {}
+    return tid not in claimed
+
+
 def claim_terminal(user_id: str, terminal_id: str) -> dict:
     """Migrate one terminal's historical scores/runs onto ``user_id`` (once per terminal)."""
     tid = (terminal_id or "").strip()

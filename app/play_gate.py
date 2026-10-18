@@ -26,10 +26,11 @@ def safe_next(raw: str) -> str:
         return fallback
     if not decoded.startswith("/") or decoded.startswith("//"):
         return fallback
-    normalized = posixpath.normpath(decoded)
+    path_only, sep, query = decoded.partition("?")
+    normalized = posixpath.normpath(path_only)
     if normalized.startswith("//") or not normalized.startswith("/"):
         return fallback
-    return decoded
+    return path_only + (sep + query if sep else "")
 
 
 def _relative(path: str) -> str:
@@ -43,6 +44,8 @@ def needs_play(method: str, path: str) -> bool:
     rel = _relative(path)
     if rel.startswith("/yuwen-daily/leaderboard") or rel.startswith("/daily/leaderboard"):
         return False
+    if rel in ("/login", "/register") or rel.startswith("/login/") or rel.startswith("/register/"):
+        return True
     if rel == "/daily" or rel.startswith("/daily/"):
         return True
     if rel == "/yuwen-daily" or rel.startswith("/yuwen-daily/"):
@@ -84,7 +87,10 @@ def gate_location(path: str) -> str:
 
 
 def needs_user(method: str, path: str) -> bool:
-    """Same protected set as play-gate (games / daily play / score writes)."""
+    """Play/score paths need a user session; login/register only need play-gate."""
+    rel = _relative(path)
+    if rel in ("/login", "/register") or rel.startswith("/login/") or rel.startswith("/register/"):
+        return False
     return needs_play(method, path)
 
 

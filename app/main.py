@@ -149,15 +149,18 @@ def create_app() -> FastAPI:
         cookie = request.cookies.get("fgb_play")
         admin_token = request.headers.get("x-admin-token")
         try:
+            redirect_target = request.url.path
+            if request.url.query:
+                redirect_target = redirect_target + "?" + request.url.query
             if not allowed(request.method, request.url.path, cookie, admin_token):
                 if _relative(request.url.path).startswith("/api/"):
                     return JSONResponse({"detail": "需要口令"}, status_code=401)
-                return RedirectResponse(gate_location(request.url.path), status_code=307)
+                return RedirectResponse(gate_location(redirect_target), status_code=307)
             user_cookie = request.cookies.get(USER_COOKIE)
             if not user_allowed(request.method, request.url.path, user_cookie, admin_token):
                 if _relative(request.url.path).startswith("/api/"):
                     return JSONResponse({"detail": "需要登录"}, status_code=401)
-                return RedirectResponse(login_location(request.url.path), status_code=307)
+                return RedirectResponse(login_location(redirect_target), status_code=307)
         except StorageError:
             return JSONResponse({"detail": "暂时存不上"}, status_code=503)
         return await call_next(request)
@@ -583,16 +586,19 @@ def _register_routes(api: APIRouter) -> None:
     async def auth_me(request: Request):
         from app import users as users_mod
 
+        tid = (request.headers.get("x-terminal-id") or "").strip()
+        claim = users_mod.claim_available(tid) if tid else False
         uid = users_mod.user_id_from_cookie(request.cookies.get(users_mod.USER_COOKIE))
         if not uid:
-            return {"loggedIn": False}
+            return {"loggedIn": False, "claimAvailable": False}
         user = users_mod.get_user(uid)
         if not user:
-            return {"loggedIn": False}
+            return {"loggedIn": False, "claimAvailable": False}
         return {
             "loggedIn": True,
             "userId": user["userId"],
             "username": user["username"],
+            "claimAvailable": claim,
         }
 
     @api.post("/api/v1/auth/claim-terminal")
@@ -782,6 +788,20 @@ def _register_routes(api: APIRouter) -> None:
         if page.is_file():
             return FileResponse(page, media_type="text/html; charset=utf-8")
         raise HTTPException(status_code=404, detail="admin.html missing")
+
+    @api.get("/login")
+    async def login_page():
+        page = WEB_DIR / "login.html"
+        if page.is_file():
+            return FileResponse(page, media_type="text/html; charset=utf-8")
+        raise HTTPException(status_code=404, detail="login.html missing")
+
+    @api.get("/register")
+    async def register_page():
+        page = WEB_DIR / "register.html"
+        if page.is_file():
+            return FileResponse(page, media_type="text/html; charset=utf-8")
+        raise HTTPException(status_code=404, detail="register.html missing")
 
     @api.get("/play-gate")
     async def play_gate_page():

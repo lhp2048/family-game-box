@@ -7,15 +7,6 @@
 <link rel="stylesheet" href="/css/fgb-theme.css">
 </head>
 <body>
-<div id="register-modal" class="fgb-modal hidden">
-  <div class="fgb-modal-card">
-    <h2>欢迎来玩</h2>
-    <p>每台设备只需设置一次昵称，用于记录最高成绩和排行榜展示。</p>
-    <div class="fgb-err" id="register-err"></div>
-    <input class="fgb-input" id="nickname-input" type="text" maxlength="16" placeholder="输入昵称，例如：小明" autocomplete="nickname" style="margin-bottom:12px">
-    <button type="button" class="fgb-btn" id="register-btn" style="width:100%">进入大厅</button>
-  </div>
-</div>
 <main class="fgb-shell">
   <header class="fgb-topbar">
     <div>
@@ -24,8 +15,12 @@
     </div>
     <div class="fgb-nav">
       <div class="fgb-chip" id="user-chip" hidden>你好，<strong id="user-name">—</strong>
-        <a href="#" id="edit-nick" style="margin-left:6px;color:var(--muted);font-size:.85rem">修改</a>
+        <a href="#" id="logout-btn" style="margin-left:6px;color:var(--muted);font-size:.85rem">退出</a>
       </div>
+      <span id="auth-links">
+        <a class="fgb-nav-link" href="/login">登录</a>
+        <a class="fgb-nav-link" href="/register">注册</a>
+      </span>
       <a class="fgb-nav-link" href="/daily/leaderboard">专注力挑战榜</a>
       <a class="fgb-nav-link" href="/yuwen-daily/leaderboard">语文挑战榜</a>
       <a class="fgb-nav-link" href="/leaderboard">排行榜</a>
@@ -84,11 +79,9 @@
 <script src="/js/fgb-ui.js"></script>
 <script>
 (function () {
-  var modal = document.getElementById("register-modal");
-  var errEl = document.getElementById("register-err");
-  var input = document.getElementById("nickname-input");
   var userChip = document.getElementById("user-chip");
   var userName = document.getElementById("user-name");
+  var authLinks = document.getElementById("auth-links");
   var list = document.getElementById("game-list");
 
   function esc(s) {
@@ -116,28 +109,31 @@
     }
   }
 
-  function setLocked(locked) {
-    list.querySelectorAll(".fgb-train-card, .fgb-game-row").forEach(function (row) {
-      if (row.dataset.gameId === "24points-library") return;
-      row.classList.toggle("is-locked", locked);
-      if (locked) row.style.pointerEvents = "none";
-      else row.style.pointerEvents = "";
-    });
-  }
-
-  function showUser(nickname) {
-    userName.textContent = nickname;
+  function showLoggedIn(username) {
+    userName.textContent = username;
     userChip.hidden = false;
-    modal.classList.add("hidden");
-    setLocked(false);
+    authLinks.hidden = true;
   }
 
-  function openRegister(prefill) {
-    errEl.textContent = "";
-    input.value = prefill || "";
-    modal.classList.remove("hidden");
-    input.focus();
-    setLocked(true);
+  function showLoggedOut() {
+    userChip.hidden = true;
+    authLinks.hidden = false;
+  }
+
+  function maybeOfferClaim(me) {
+    if (!me || !me.loggedIn || !me.claimAvailable) return;
+    if (sessionStorage.getItem("fgb_claim_declined") === "1") return;
+    if (typeof FGBUI === "undefined" || !FGBUI.askConfirm) return;
+    FGBUI.askConfirm("本机有未认领的旧成绩，是否认领到当前账号？", function () {
+      FGB.claimTerminal().then(function () {
+        if (FGBUI.toast) FGBUI.toast("已认领本机旧成绩", "ok");
+        refreshSummary();
+      }).catch(function (err) {
+        if (FGBUI.toast) FGBUI.toast((err && err.message) || "认领失败", "err");
+      });
+    }, function () {
+      sessionStorage.setItem("fgb_claim_declined", "1");
+    });
   }
 
   function renderSummary(s) {
@@ -196,34 +192,25 @@
     return FGB.loadLobbySummary().then(renderSummary);
   }
 
-  function doRegister() {
-    var nick = (input.value || "").trim();
-    if (!nick) {
-      errEl.textContent = "请输入昵称";
-      return;
-    }
-    FGB.register(nick).then(function (data) {
-      showUser(data.nickname || nick);
-      refreshSummary();
-    }).catch(function (err) {
-      errEl.textContent = (err && err.message) || "注册失败";
-    });
-  }
-
-  document.getElementById("register-btn").addEventListener("click", doRegister);
-  input.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") doRegister();
-  });
-  document.getElementById("edit-nick").addEventListener("click", function (e) {
+  document.getElementById("logout-btn").addEventListener("click", function (e) {
     e.preventDefault();
-    openRegister(userName.textContent);
+    FGB.logout().then(function () {
+      showLoggedOut();
+      refreshSummary();
+    }).catch(function () {
+      showLoggedOut();
+    });
   });
 
-  FGB.ensureRegistered().then(function (data) {
-    if (data && data.registered) showUser(data.nickname);
-    else openRegister(localStorage.getItem("fgb_nickname") || "");
+  FGB.authMe().then(function (me) {
+    if (me && me.loggedIn) {
+      showLoggedIn(me.username || "—");
+      maybeOfferClaim(me);
+    } else {
+      showLoggedOut();
+    }
   }).catch(function () {
-    openRegister("");
+    showLoggedOut();
   }).then(refreshSummary);
 
   fetch(FGB.url("/api/v1/games")).then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {

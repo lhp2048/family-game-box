@@ -274,3 +274,52 @@ def test_claim_terminal_skips_already_bound(tmp_path, monkeypatch):
     yrun_after = yuwen_daily._load()["runs"][yrun_id]
     assert yrun_after["userId"] == user_b["userId"]
     assert yrun_after["nickname"] == "claimerB"
+
+
+def test_login_register_pages_return_200():
+    client.cookies.clear()
+    login = client.get(url("/login"))
+    assert login.status_code == 200
+    assert "登录" in login.text
+    register = client.get(url("/register"))
+    assert register.status_code == 200
+    assert "注册" in register.text
+
+
+def test_auth_me_claim_available():
+    import uuid
+    from app.terminals import register_terminal
+
+    client.cookies.clear()
+    tid = str(uuid.uuid4())
+    register_terminal(tid, "可认领终端")
+    login_as(client, "claimme1")
+    me = client.get(url("/api/v1/auth/me"), headers={"X-Terminal-Id": tid})
+    assert me.status_code == 200
+    body = me.json()
+    assert body["loggedIn"] is True
+    assert body["claimAvailable"] is True
+
+    claim = client.post(url("/api/v1/auth/claim-terminal"), json={"terminalId": tid})
+    assert claim.status_code == 200
+    me2 = client.get(url("/api/v1/auth/me"), headers={"X-Terminal-Id": tid})
+    assert me2.json()["claimAvailable"] is False
+
+
+def test_login_behind_play_gate_redirects(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.storage.DATA_DIR", tmp_path)
+    da.clear_play_gate_cache()
+    da.setup_password("adminpass")
+    token = da.login("adminpass")["token"]
+    client.put(
+        url("/api/v1/admin/play-gate"),
+        json={"enabled": True, "passphrase": "family"},
+        headers={"X-Admin-Token": token},
+    )
+    client.cookies.clear()
+    page = client.get(url("/login") + "?next=/games/stroop/index.html", follow_redirects=False)
+    assert page.status_code == 307
+    loc = page.headers["location"]
+    assert "/play-gate" in loc
+    assert "next=" in loc
+    assert "login" in loc

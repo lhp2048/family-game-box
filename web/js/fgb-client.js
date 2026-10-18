@@ -49,21 +49,46 @@
     };
   }
 
+  function redirectToLogin() {
+    var path = (global.location && (location.pathname + location.search)) || "/";
+    var next = path;
+    try {
+      var base = basePath();
+      if (base && next.indexOf(base) === 0) {
+        next = next.slice(base.length) || "/";
+      }
+    } catch (e) { /* ignore */ }
+    if (!next || next.charAt(0) !== "/") next = "/";
+    global.location.assign(withBase("/login") + "?next=" + encodeURIComponent(next));
+  }
+
   function api(path, options) {
     options = options || {};
     return fetch(withBase(path), {
       method: options.method || "GET",
       headers: Object.assign({}, headers(), options.headers || {}),
       body: options.body ? JSON.stringify(options.body) : undefined,
+      credentials: "same-origin",
     }).then(function (res) {
       return res.json().then(function (data) {
         if (!res.ok) {
-          var err = new Error((data && data.detail) || res.statusText || "request failed");
+          var detail = (data && data.detail) || res.statusText || "request failed";
+          if (res.status === 401 && String(detail).indexOf("需要登录") !== -1) {
+            if (!options.skipAuthRedirect) redirectToLogin();
+          }
+          var err = new Error(detail);
           err.status = res.status;
           err.data = data;
           throw err;
         }
         return data;
+      }, function () {
+        if (!res.ok) {
+          var err2 = new Error(res.statusText || "request failed");
+          err2.status = res.status;
+          throw err2;
+        }
+        return null;
       });
     });
   }
@@ -72,7 +97,7 @@
     return api("/api/v1/terminals/me");
   }
 
-  function register(nickname) {
+  function registerTerminal(nickname) {
     return api("/api/v1/terminals/register", {
       method: "POST",
       body: { terminalId: getTerminalId(), nickname: nickname },
@@ -89,6 +114,43 @@
         return data;
       }
       return null;
+    });
+  }
+
+  function authMe() {
+    return api("/api/v1/auth/me", { skipAuthRedirect: true });
+  }
+
+  function login(username, password) {
+    return api("/api/v1/auth/login", {
+      method: "POST",
+      body: { username: username, password: password },
+      skipAuthRedirect: true,
+    });
+  }
+
+  /** User account register (brief: FGB.register). Terminal nickname uses registerTerminal. */
+  function register(username, password, passphrase) {
+    var body = { username: username, password: password };
+    if (passphrase != null && passphrase !== "") body.passphrase = passphrase;
+    return api("/api/v1/auth/register", {
+      method: "POST",
+      body: body,
+      skipAuthRedirect: true,
+    });
+  }
+
+  function logout() {
+    return api("/api/v1/auth/logout", {
+      method: "POST",
+      skipAuthRedirect: true,
+    });
+  }
+
+  function claimTerminal(terminalId) {
+    return api("/api/v1/auth/claim-terminal", {
+      method: "POST",
+      body: { terminalId: terminalId || getTerminalId() },
     });
   }
 
@@ -154,7 +216,12 @@
     getTerminalId: getTerminalId,
     me: me,
     register: register,
+    registerTerminal: registerTerminal,
     ensureRegistered: ensureRegistered,
+    authMe: authMe,
+    login: login,
+    logout: logout,
+    claimTerminal: claimTerminal,
     submitScore: submitScore,
     getBests: getBests,
     getLeaderboard: getLeaderboard,

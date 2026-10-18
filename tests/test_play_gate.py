@@ -39,3 +39,71 @@ def test_disable_keeps_generation():
     da.put_play_gate(True, None)
     assert da._load()["playGeneration"] == first + 1
     assert da.play_cookie_ok(cookie, now=now) is False
+
+
+import uuid
+
+from fastapi.testclient import TestClient
+
+from helpers import url
+from app.main import app
+
+client = TestClient(app)
+TERMINAL = str(uuid.uuid4())
+
+
+def _play_on():
+    da.setup_password("secret123")
+    token = da.login("secret123")["token"]
+    client.put(
+        url("/api/v1/admin/play-gate"),
+        json={"enabled": True, "passphrase": "family"},
+        headers={"X-Admin-Token": token},
+    )
+    client.post(url("/api/v1/terminals/register"), json={"terminalId": TERMINAL, "nickname": "小明"})
+    return token
+
+
+def test_gate_off_allows_score():
+    client.post(url("/api/v1/terminals/register"), json={"terminalId": TERMINAL, "nickname": "小明"})
+    response = client.post(
+        url("/api/v1/scores"),
+        json={"gameId": "stroop", "mode": "challenge", "tier": "normal", "metrics": {"correct": 1, "total": 1, "timeMs": 1000}},
+        headers={"X-Terminal-Id": TERMINAL},
+    )
+    assert response.status_code == 200
+
+
+def test_gate_on_blocks_score_and_today_until_unlock():
+    _play_on()
+    headers = {"X-Terminal-Id": TERMINAL}
+    blocked = client.post(
+        url("/api/v1/scores"),
+        json={"gameId": "stroop", "mode": "challenge", "tier": "normal", "metrics": {"correct": 1, "total": 1, "timeMs": 1000}},
+        headers=headers,
+    )
+    assert blocked.status_code == 401
+    assert client.get(url("/api/v1/daily/today")).status_code == 401
+    assert client.get(url("/api/v1/leaderboard/recent")).status_code == 200
+    page = client.get(url("/daily"), follow_redirects=False)
+    assert page.status_code == 307
+    assert "/play-gate?next=" in page.headers["location"]
+    bad = client.post(url("/api/v1/play-gate/unlock"), json={"passphrase": "nope"})
+    assert bad.status_code == 401
+    assert bad.json()["detail"] == "口令不对"
+    ok = client.post(url("/api/v1/play-gate/unlock"), json={"passphrase": "family"})
+    assert ok.status_code == 200
+    unlocked = client.post(
+        url("/api/v1/scores"),
+        json={"gameId": "stroop", "mode": "challenge", "tier": "normal", "metrics": {"correct": 1, "total": 1, "timeMs": 1000}},
+        headers=headers,
+    )
+    assert unlocked.status_code == 200
+
+
+def test_safe_next_rejects_external():
+    from app.play_gate import safe_next
+    from app.root_path import with_root
+
+    assert safe_next("//evil.example") == with_root("/")
+    assert safe_next("/daily") == "/daily"

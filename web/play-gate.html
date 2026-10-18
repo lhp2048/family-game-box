@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>家庭口令 · 家庭游戏盒</title>
+<link rel="stylesheet" href="/css/fgb-theme.css">
+<style>
+.actions-row { display: flex; gap: 0.65rem; flex-wrap: wrap; margin-top: 0.85rem; }
+</style>
+</head>
+<body>
+<main class="fgb-shell">
+  <header class="fgb-topbar">
+    <div>
+      <a class="fgb-brand" href="/">家庭<em>游戏盒</em></a>
+      <span class="fgb-page-kicker">家庭口令</span>
+    </div>
+    <div class="fgb-nav">
+      <a class="fgb-nav-link" href="/">回大厅</a>
+    </div>
+  </header>
+
+  <section class="fgb-panel fgb-panel-pad" style="max-width:420px;margin:0 auto">
+    <h1 class="fgb-page-title" style="font-size:1.85rem">请输入家庭口令</h1>
+    <p class="fgb-lead">家长已开启游戏口令，输入正确口令后即可继续玩和提交成绩。</p>
+    <div class="fgb-err" id="err"></div>
+    <form id="unlock-form">
+      <label class="fgb-page-kicker" for="passphrase" style="display:block;margin-bottom:.35rem">口令</label>
+      <input type="password" id="passphrase" name="passphrase" autocomplete="current-password" required maxlength="128" style="width:100%;box-sizing:border-box;margin-bottom:.75rem">
+      <div class="actions-row">
+        <button type="submit" class="fgb-cta">解锁</button>
+      </div>
+    </form>
+  </section>
+</main>
+<script>
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var rawNext = params.get("next") || "/";
+  function safeNext(raw) {
+    if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/";
+    return raw;
+  }
+  var next = safeNext(rawNext);
+
+  var form = document.getElementById("unlock-form");
+  var errEl = document.getElementById("err");
+  form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    errEl.textContent = "";
+    var passphrase = document.getElementById("passphrase").value.trim();
+    if (!passphrase) return;
+    fetch("/api/v1/play-gate/unlock", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ passphrase: passphrase }),
+    })
+      .then(function (res) {
+        if (res.ok) {
+          window.location.assign(next);
+          return null;
+        }
+        return res.json().then(function (data) {
+          errEl.textContent = (data && data.detail) || "解锁失败";
+        });
+      })
+      .catch(function () {
+        errEl.textContent = "网络错误，请稍后再试";
+      });
+  });
+})();
+</script>
+</body>
+</html>

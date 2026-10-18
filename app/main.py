@@ -108,6 +108,15 @@ class GameEnableBody(BaseModel):
     enabled: bool = True
 
 
+class PlayUnlockBody(BaseModel):
+    passphrase: str = Field(min_length=1, max_length=128)
+
+
+class PlayGateBody(BaseModel):
+    enabled: bool
+    passphrase: Optional[str] = None
+
+
 def create_app() -> FastAPI:
     prefix = get_root_path()
     app = FastAPI(title="家庭游戏盒", version=_load_version())
@@ -116,6 +125,18 @@ def create_app() -> FastAPI:
     app.include_router(router, prefix=prefix)
 
     _mount_static(app, prefix)
+
+    @app.middleware("http")
+    async def play_gate_middleware(request: Request, call_next):
+        from app.play_gate import _relative, allowed, gate_location
+
+        cookie = request.cookies.get("fgb_play")
+        admin_token = request.headers.get("x-admin-token")
+        if allowed(request.method, request.url.path, cookie, admin_token):
+            return await call_next(request)
+        if _relative(request.url.path).startswith("/api/"):
+            return JSONResponse({"detail": "需要口令"}, status_code=401)
+        return RedirectResponse(gate_location(request.url.path), status_code=307)
 
     if prefix:
         @app.get("/api/v1/health")
@@ -443,6 +464,48 @@ def _register_routes(api: APIRouter) -> None:
         daily_admin_mod.logout(x_admin_token or "")
         return {"ok": True}
 
+    @api.get("/api/v1/play-gate")
+    async def play_gate_state(request: Request):
+        from app.daily_admin import _load, play_cookie_ok
+
+        data = _load()
+        enabled = bool(data.get("playGateEnabled"))
+        unlocked = (not enabled) or play_cookie_ok(request.cookies.get("fgb_play"))
+        return {"enabled": enabled, "unlocked": unlocked}
+
+    @api.post("/api/v1/play-gate/unlock")
+    async def play_gate_unlock(body: PlayUnlockBody, request: Request):
+        from app.daily_admin import PLAY_COOKIE, issue_play_cookie
+
+        try:
+            value = issue_play_cookie(body.passphrase)
+        except ValueError as exc:
+            raise HTTPException(status_code=401, detail="口令不对") from exc
+        response = JSONResponse({"ok": True})
+        response.set_cookie(
+            PLAY_COOKIE,
+            value,
+            max_age=30 * 24 * 3600,
+            httponly=True,
+            samesite="lax",
+            secure=request.url.scheme == "https",
+            path=get_root_path() or "/",
+        )
+        return response
+
+    @api.put("/api/v1/admin/play-gate")
+    async def admin_play_gate(
+        body: PlayGateBody,
+        x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token"),
+    ):
+        try:
+            daily_admin_mod.require_admin(x_admin_token)
+            return daily_admin_mod.put_play_gate(body.enabled, body.passphrase)
+        except PermissionError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     @api.get("/api/v1/admin/daily/template")
     async def admin_template_get(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
         try:
@@ -576,6 +639,13 @@ def _register_routes(api: APIRouter) -> None:
         if page.is_file():
             return FileResponse(page, media_type="text/html; charset=utf-8")
         raise HTTPException(status_code=404, detail="admin.html missing")
+
+    @api.get("/play-gate")
+    async def play_gate_page():
+        page = WEB_DIR / "play-gate.html"
+        if page.is_file():
+            return FileResponse(page, media_type="text/html; charset=utf-8")
+        raise HTTPException(status_code=404, detail="play-gate.html missing")
 
 
 app = create_app()

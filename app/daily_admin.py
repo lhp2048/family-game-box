@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import hashlib
+import hmac
 import secrets
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
@@ -10,6 +12,8 @@ from app.storage import load_json, save_json
 
 STORE = "daily_admin.json"
 SESSION_HOURS = 12
+PLAY_COOKIE = "fgb_play"
+PLAY_TTL = 30 * 24 * 3600
 
 
 def _playable_ids() -> List[str]:
@@ -35,11 +39,27 @@ def default_template() -> Dict[str, Any]:
     return {"stages": [{"gameId": g["id"], "tier": "normal"} for g in RANKABLE_GAMES]}
 
 
+def _play_fields(data: Dict[str, Any]) -> Dict[str, Any]:
+    data.setdefault("playGateEnabled", False)
+    data.setdefault("playPassphraseSalt", "")
+    data.setdefault("playPassphraseHash", "")
+    data.setdefault("playTokenKey", "")
+    data.setdefault("playGeneration", 0)
+    return data
+
+
+def _public_play(data: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "playGateEnabled": bool(data.get("playGateEnabled")),
+        "hasPlayPassphrase": bool(data.get("playPassphraseHash")),
+    }
+
+
 def _load() -> Dict[str, Any]:
     data = load_json(STORE, _empty())
     if not isinstance(data.get("template"), dict):
         data["template"] = default_template()
-    return data
+    return _play_fields(data)
 
 
 def _save(data: Dict[str, Any]) -> None:
@@ -81,6 +101,7 @@ def admin_status(token: Optional[str] = None) -> Dict[str, Any]:
     return {
         "hasPassword": bool(data.get("passwordHash")),
         "authenticated": _session_ok(data, token),
+        **_public_play(data),
     }
 
 
@@ -117,6 +138,61 @@ def logout(token: str) -> None:
 def require_admin(token: Optional[str]) -> None:
     if not _session_ok(_load(), token):
         raise PermissionError("admin auth required")
+
+
+def put_play_gate(enabled: bool, passphrase: Optional[str]) -> Dict[str, Any]:
+    data = _load()
+    passphrase = (passphrase or "").strip()
+    changed = False
+    if passphrase:
+        if len(passphrase) < 4:
+            raise ValueError("password too short")
+        if not data.get("playTokenKey"):
+            data["playTokenKey"] = secrets.token_hex(32)
+        data["playPassphraseSalt"] = secrets.token_hex(16)
+        data["playPassphraseHash"] = _hash(data["playPassphraseSalt"], passphrase)
+        changed = True
+    if enabled and not data.get("playPassphraseHash"):
+        raise ValueError("passphrase not set")
+    turning_on = enabled and not data.get("playGateEnabled")
+    if changed or turning_on:
+        data["playGeneration"] = int(data.get("playGeneration") or 0) + 1
+    data["playGateEnabled"] = bool(enabled)
+    _save(data)
+    return _public_play(data)
+
+
+def issue_play_cookie(passphrase: str, now: Optional[int] = None) -> str:
+    data = _load()
+    if not data.get("playPassphraseHash"):
+        raise ValueError("口令不对")
+    if _hash(data.get("playPassphraseSalt") or "", passphrase or "") != data["playPassphraseHash"]:
+        raise ValueError("口令不对")
+    current = int(now if now is not None else time.time())
+    exp = current + PLAY_TTL
+    payload = "%s.%s" % (int(data["playGeneration"]), exp)
+    sig = hmac.new(data["playTokenKey"].encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    return payload + "." + sig
+
+
+def play_cookie_ok(cookie: Optional[str], now: Optional[int] = None) -> bool:
+    data = _load()
+    if not cookie or not data.get("playTokenKey"):
+        return False
+    parts = cookie.split(".")
+    if len(parts) != 3:
+        return False
+    payload = parts[0] + "." + parts[1]
+    expect = hmac.new(data["playTokenKey"].encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expect, parts[2]):
+        return False
+    try:
+        generation = int(parts[0])
+        exp = int(parts[1])
+    except ValueError:
+        return False
+    current = int(now if now is not None else time.time())
+    return generation == int(data.get("playGeneration") or 0) and current <= exp
 
 
 def get_template() -> Dict[str, Any]:

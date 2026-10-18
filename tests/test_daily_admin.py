@@ -11,7 +11,12 @@ def _tmp_data(tmp_path, monkeypatch):
 
 def test_setup_login_and_status():
     st = da.admin_status(None)
-    assert st == {"hasPassword": False, "authenticated": False}
+    assert st == {
+        "hasPassword": False,
+        "authenticated": False,
+        "playGateEnabled": False,
+        "hasPlayPassphrase": False,
+    }
     out = da.setup_password("secret123")
     assert out["token"]
     assert da.admin_status(out["token"])["authenticated"] is True

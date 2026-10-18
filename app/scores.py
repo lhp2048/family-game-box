@@ -363,7 +363,7 @@ def latest_for_terminal(terminal_id: str) -> Optional[Dict[str, Any]]:
 
 
 def reassign_terminal_to_user(terminal_id: str, user_id: str, username: str) -> int:
-    """Bind historical score rows for ``terminal_id`` to ``user_id``; return count updated."""
+    """Bind unbound historical score rows for ``terminal_id`` to ``user_id``; return count updated."""
     tid = (terminal_id or "").strip()
     if not tid or not user_id:
         return 0
@@ -372,6 +372,8 @@ def reassign_terminal_to_user(terminal_id: str, user_id: str, username: str) -> 
     count = 0
     for item in entries:
         if item.get("terminalId") != tid:
+            continue
+        if item.get("userId"):
             continue
         item["userId"] = user_id
         item["username"] = name

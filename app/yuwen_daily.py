@@ -462,7 +462,7 @@ def lobby_slice(terminal_id: Optional[str]) -> Dict[str, Any]:
 
 
 def reassign_terminal_to_user(terminal_id: str, user_id: str, username: str) -> int:
-    """Bind historical yuwen runs for ``terminal_id`` to ``user_id``; return count updated."""
+    """Bind unbound historical yuwen runs for ``terminal_id`` to ``user_id``; return count updated."""
     tid = (terminal_id or "").strip()
     if not tid or not user_id:
         return 0
@@ -471,6 +471,8 @@ def reassign_terminal_to_user(terminal_id: str, user_id: str, username: str) -> 
     count = 0
     for run in (data.get("runs") or {}).values():
         if not isinstance(run, dict) or run.get("terminalId") != tid:
+            continue
+        if run.get("userId"):
             continue
         run["userId"] = user_id
         run["username"] = name

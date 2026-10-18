@@ -220,3 +220,57 @@ def test_claim_terminal_api():
     again = client.post(url("/api/v1/auth/claim-terminal"), json={"terminalId": tid})
     assert again.status_code == 400
     assert "认领" in again.json()["detail"]
+
+
+def test_claim_terminal_skips_already_bound(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.storage.DATA_DIR", tmp_path)
+    import uuid
+    from app.terminals import register_terminal
+    from app import scores, yuwen_daily
+
+    tid = str(uuid.uuid4())
+    register_terminal(tid, "混用终端")
+    user_a = users.register_user("boundA", "pass1234")
+    user_b = users.register_user("claimerB", "pass1234")
+
+    unbound = scores.submit_score(
+        tid,
+        "stroop",
+        "challenge",
+        "normal",
+        {"correct": 2, "total": 10, "timeMs": 8000},
+    )["entry"]
+    bound = scores.submit_score(
+        tid,
+        "stroop",
+        "challenge",
+        "simple",
+        {"correct": 9, "total": 10, "timeMs": 3000},
+        user_id=user_a["userId"],
+        username="boundA",
+    )["entry"]
+    assert not unbound.get("userId")
+    assert bound.get("userId") == user_a["userId"]
+
+    paper = yuwen_daily.paper_for(yuwen_daily.local_today())
+    ydata = yuwen_daily._load()
+    yrun = yuwen_daily._ensure_run(ydata, tid, paper)
+    assert not yrun.get("userId")
+    yuwen_daily._save(ydata)
+    yrun_id = yrun["runId"]
+
+    result = users.claim_terminal(user_b["userId"], tid)
+    assert result["ok"] is True
+    assert result["scoresUpdated"] == 1
+    assert result["yuwenUpdated"] == 1
+
+    entries = {e["id"]: e for e in scores._load_entries() if e.get("terminalId") == tid}
+    assert entries[unbound["id"]]["userId"] == user_b["userId"]
+    assert entries[unbound["id"]]["nickname"] == "claimerB"
+    assert entries[bound["id"]]["userId"] == user_a["userId"]
+    assert entries[bound["id"]]["nickname"] == "boundA"
+    assert entries[bound["id"]].get("username") == "boundA"
+
+    yrun_after = yuwen_daily._load()["runs"][yrun_id]
+    assert yrun_after["userId"] == user_b["userId"]
+    assert yrun_after["nickname"] == "claimerB"

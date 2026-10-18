@@ -117,6 +117,17 @@ class PlayGateBody(BaseModel):
     passphrase: Optional[str] = None
 
 
+class AuthRegisterBody(BaseModel):
+    username: str
+    password: str
+    passphrase: Optional[str] = None
+
+
+class AuthLoginBody(BaseModel):
+    username: str
+    password: str
+
+
 def create_app() -> FastAPI:
     prefix = get_root_path()
     app = FastAPI(title="家庭游戏盒", version=_load_version())
@@ -466,6 +477,79 @@ def _register_routes(api: APIRouter) -> None:
     async def admin_logout(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
         daily_admin_mod.logout(x_admin_token or "")
         return {"ok": True}
+
+    def _set_user_cookie(response: Response, value: str, request: Request) -> None:
+        from app.users import USER_COOKIE, USER_TTL
+
+        response.set_cookie(
+            USER_COOKIE,
+            value,
+            max_age=USER_TTL,
+            httponly=True,
+            samesite="lax",
+            secure=request.url.scheme == "https",
+            path=get_root_path() or "/",
+        )
+
+    def _clear_user_cookie(response: Response) -> None:
+        from app.users import USER_COOKIE
+
+        response.delete_cookie(
+            USER_COOKIE,
+            path=get_root_path() or "/",
+            samesite="lax",
+        )
+
+    @api.post("/api/v1/auth/register")
+    async def auth_register(body: AuthRegisterBody, request: Request):
+        from app.daily_admin import issue_play_cookie, play_gate_snapshot
+        from app import users as users_mod
+
+        try:
+            if play_gate_snapshot().get("playGateEnabled"):
+                issue_play_cookie(body.passphrase or "")
+            me = users_mod.register_user(body.username, body.password)
+            cookie = users_mod.issue_user_cookie(me["userId"])
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        response = JSONResponse(me)
+        _set_user_cookie(response, cookie, request)
+        return response
+
+    @api.post("/api/v1/auth/login")
+    async def auth_login(body: AuthLoginBody, request: Request):
+        from app import users as users_mod
+
+        try:
+            me = users_mod.authenticate(body.username, body.password)
+            cookie = users_mod.issue_user_cookie(me["userId"])
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        response = JSONResponse(me)
+        _set_user_cookie(response, cookie, request)
+        return response
+
+    @api.post("/api/v1/auth/logout")
+    async def auth_logout():
+        response = JSONResponse({"ok": True})
+        _clear_user_cookie(response)
+        return response
+
+    @api.get("/api/v1/auth/me")
+    async def auth_me(request: Request):
+        from app import users as users_mod
+
+        uid = users_mod.user_id_from_cookie(request.cookies.get(users_mod.USER_COOKIE))
+        if not uid:
+            return {"loggedIn": False}
+        user = users_mod.get_user(uid)
+        if not user:
+            return {"loggedIn": False}
+        return {
+            "loggedIn": True,
+            "userId": user["userId"],
+            "username": user["username"],
+        }
 
     @api.get("/api/v1/play-gate")
     async def play_gate_state(request: Request):

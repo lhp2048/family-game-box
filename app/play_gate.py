@@ -44,11 +44,11 @@ def needs_play(method: str, path: str) -> bool:
 
 
 def allowed(method: str, path: str, cookie: str | None, admin_token: str | None) -> bool:
+    if not needs_play(method, path):
+        return True
     from app.daily_admin import _load
 
     if not _load().get("playGateEnabled"):
-        return True
-    if not needs_play(method, path):
         return True
     try:
         require_admin(admin_token)

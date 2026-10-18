@@ -132,8 +132,11 @@ def create_app() -> FastAPI:
 
         cookie = request.cookies.get("fgb_play")
         admin_token = request.headers.get("x-admin-token")
-        if allowed(request.method, request.url.path, cookie, admin_token):
-            return await call_next(request)
+        try:
+            if allowed(request.method, request.url.path, cookie, admin_token):
+                return await call_next(request)
+        except StorageError:
+            return JSONResponse({"detail": "暂时存不上"}, status_code=503)
         if _relative(request.url.path).startswith("/api/"):
             return JSONResponse({"detail": "需要口令"}, status_code=401)
         return RedirectResponse(gate_location(request.url.path), status_code=307)

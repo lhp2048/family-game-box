@@ -107,3 +107,14 @@ def test_safe_next_rejects_external():
 
     assert safe_next("//evil.example") == with_root("/")
     assert safe_next("/daily") == "/daily"
+
+
+def test_health_not_blocked_when_turso_unconfigured(monkeypatch):
+    monkeypatch.delenv("TURSO_DATABASE_URL", raising=False)
+    monkeypatch.setenv("VERCEL", "1")
+    response = client.get(url("/api/v1/health"))
+    assert response.status_code == 200
+    body = response.json()
+    assert body["storage"] == "turso"
+    assert body["ready"] is False
+    assert body["status"] == "not_ready"

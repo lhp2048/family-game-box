@@ -75,10 +75,30 @@ def _save_entries(entries: List[Dict[str, Any]]) -> None:
     save_json("scores.json", {"version": 1, "entries": entries})
 
 
-def _best_for_terminal(entries: List[Dict[str, Any]], terminal_id: str, game_id: str, mode: str, tier: str):
+def _board_identity_key(item: Dict[str, Any]) -> str:
+    """One personal-best slot per user when bound; else per terminal."""
+    uid = str(item.get("userId") or "").strip()
+    if uid:
+        return "user:%s" % uid
+    tid = str(item.get("terminalId") or "").strip()
+    return "terminal:%s" % tid if tid else ""
+
+
+def _best_for_terminal(
+    entries: List[Dict[str, Any]],
+    terminal_id: str,
+    game_id: str,
+    mode: str,
+    tier: str,
+    user_id: str = "",
+):
     best = None
+    uid = (user_id or "").strip()
     for item in entries:
-        if item.get("terminalId") != terminal_id:
+        if uid:
+            if str(item.get("userId") or "") != uid:
+                continue
+        elif item.get("terminalId") != terminal_id:
             continue
         if item.get("gameId") != game_id or item.get("mode") != mode or item.get("tier") != tier:
             continue
@@ -127,7 +147,7 @@ def submit_score(
     shown = (display or "").strip() or format_display(game_id, mode, metrics)
     now = _now()
     entries = _load_entries()
-    previous = _best_for_terminal(entries, terminal_id, game_id, mode, tier)
+    previous = _best_for_terminal(entries, terminal_id, game_id, mode, tier, user_id=user_id)
     fresh = {"metrics": metrics, "score": score}
     is_personal_best = previous is None or _entry_beats(game_id, fresh, previous)
 
@@ -152,7 +172,7 @@ def submit_score(
     entries.append(entry)
     _save_entries(entries)
 
-    rank = leaderboard_rank(entries, game_id, mode, tier, score, terminal_id)
+    rank = leaderboard_rank(entries, game_id, mode, tier, score, terminal_id, user_id=user_id)
     return {
         "ok": True,
         "isPersonalBest": is_personal_best,
@@ -169,10 +189,15 @@ def leaderboard_rank(
     tier: str,
     score: int,
     terminal_id: str,
+    user_id: str = "",
 ) -> int:
     board = leaderboard_entries(entries, game_id, mode, tier, limit=1000)
+    uid = (user_id or "").strip()
     for idx, item in enumerate(board, start=1):
-        if item.get("terminalId") != terminal_id:
+        if uid:
+            if str(item.get("userId") or "") != uid:
+                continue
+        elif item.get("terminalId") != terminal_id:
             continue
         if game_id == "yuwen" or int(item.get("score", 0)) == score:
             return idx
@@ -191,22 +216,22 @@ def leaderboard_entries(
         for e in entries
         if e.get("gameId") == game_id and e.get("mode") == mode and e.get("tier") == tier
     ]
-    best_by_terminal: Dict[str, Dict[str, Any]] = {}
+    best_by_identity: Dict[str, Dict[str, Any]] = {}
     for item in filtered:
-        tid = str(item.get("terminalId", ""))
-        if not tid:
+        key = _board_identity_key(item)
+        if not key:
             continue
-        prev = best_by_terminal.get(tid)
+        prev = best_by_identity.get(key)
         if prev is None or _entry_beats(game_id, item, prev):
-            best_by_terminal[tid] = item
+            best_by_identity[key] = item
     if game_id == "yuwen":
         board = sorted(
-            best_by_terminal.values(),
+            best_by_identity.values(),
             key=lambda e: accuracy_time_key(e.get("metrics") or {}),
             reverse=True,
         )
     else:
-        board = sorted(best_by_terminal.values(), key=lambda e: int(e.get("score", 0)), reverse=True)
+        board = sorted(best_by_identity.values(), key=lambda e: int(e.get("score", 0)), reverse=True)
     return board[:limit]
 
 
@@ -242,6 +267,7 @@ def get_leaderboard(game_id: str, mode: str, tier: str, limit: int = 20) -> Dict
                 "rank": idx,
                 "nickname": _board_nickname(item, nicks),
                 "terminalId": item.get("terminalId", ""),
+                "userId": item.get("userId") or "",
                 "display": format_display(game_id, mode, item.get("metrics") or {})
                 if game_id == "yuwen"
                 else item.get("display", ""),
@@ -352,6 +378,23 @@ def latest_for_terminal(terminal_id: str) -> Optional[Dict[str, Any]]:
             continue
         if best is None or str(item.get("playedAt") or "") > str(best.get("playedAt") or ""):
             best = item
+    return _recent_slice(best)
+
+
+def latest_for_user(user_id: str) -> Optional[Dict[str, Any]]:
+    uid = (user_id or "").strip()
+    if not uid:
+        return None
+    best = None
+    for item in _load_entries():
+        if str(item.get("userId") or "") != uid:
+            continue
+        if best is None or str(item.get("playedAt") or "") > str(best.get("playedAt") or ""):
+            best = item
+    return _recent_slice(best)
+
+
+def _recent_slice(best: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     if not best:
         return None
     return {

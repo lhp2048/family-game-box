@@ -1,35 +1,41 @@
 import uuid
 
+import pytest
 from fastapi.testclient import TestClient
 
 from helpers import login_as, url
 from app.main import app
 
-client = TestClient(app)
-TERMINAL = str(uuid.uuid4())
+
+@pytest.fixture
+def client(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.storage.DATA_DIR", tmp_path)
+    monkeypatch.delenv("TURSO_DATABASE_URL", raising=False)
+    return TestClient(app)
 
 
-def _headers():
-    return {"X-Terminal-Id": TERMINAL}
+def _headers(tid):
+    return {"X-Terminal-Id": tid}
 
 
-def test_register_and_me():
+def test_register_and_me(client):
+    tid = str(uuid.uuid4())
     r = client.post(
         url("/api/v1/terminals/register"),
-        json={"terminalId": TERMINAL, "nickname": "测试玩家"},
+        json={"terminalId": tid, "nickname": "测试玩家"},
     )
     assert r.status_code == 200
     assert r.json()["registered"] is True
     assert r.json()["nickname"] == "测试玩家"
 
-    me = client.get(url("/api/v1/terminals/me"), headers=_headers())
+    me = client.get(url("/api/v1/terminals/me"), headers=_headers(tid))
     assert me.status_code == 200
     assert me.json()["registered"] is True
 
 
-def test_submit_score_and_leaderboard():
+def test_submit_score_and_leaderboard(client):
     tid = str(uuid.uuid4())
-    headers = {"X-Terminal-Id": tid}
+    headers = _headers(tid)
     client.post(
         url("/api/v1/terminals/register"),
         json={"terminalId": tid, "nickname": "测试玩家"},
@@ -48,6 +54,7 @@ def test_submit_score_and_leaderboard():
     assert body["isPersonalBest"] is True
     assert body["entry"]["userId"]
     assert body["entry"]["nickname"] == "score_player"
+    uid = body["entry"]["userId"]
 
     board = client.get(
         url("/api/v1/leaderboard"),
@@ -55,7 +62,7 @@ def test_submit_score_and_leaderboard():
     )
     assert board.status_code == 200
     items = board.json()["items"]
-    mine = [it for it in items if it.get("terminalId") == tid]
+    mine = [it for it in items if it.get("userId") == uid or it.get("terminalId") == tid]
     assert mine and mine[0]["nickname"] == "score_player"
 
     bests = client.get(url("/api/v1/scores/me/bests"), headers=headers)
@@ -63,7 +70,7 @@ def test_submit_score_and_leaderboard():
     assert "stroop" in bests.json()["bests"]
 
 
-def test_rank_meta():
+def test_rank_meta(client):
     r = client.get(url("/api/v1/rank/meta"))
     assert r.status_code == 200
     data = r.json()
@@ -74,9 +81,9 @@ def test_rank_meta():
         assert data["tiers"][gid] == standard
 
 
-def test_global_leaderboard():
+def test_global_leaderboard(client):
     tid = str(uuid.uuid4())
-    headers = {"X-Terminal-Id": tid}
+    headers = _headers(tid)
     client.post(
         url("/api/v1/terminals/register"),
         json={"terminalId": tid, "nickname": "测试玩家"},
@@ -103,9 +110,9 @@ def test_global_leaderboard():
     assert "gameId" not in mine[0]
 
 
-def test_recent_leaderboard():
+def test_recent_leaderboard(client):
     tid = str(uuid.uuid4())
-    headers = {"X-Terminal-Id": tid}
+    headers = _headers(tid)
     client.post(
         url("/api/v1/terminals/register"),
         json={"terminalId": tid, "nickname": "测试玩家"},
@@ -138,6 +145,7 @@ def test_recent_leaderboard():
 
 def test_leaderboard_nickname_follows_rename(tmp_path, monkeypatch):
     monkeypatch.setattr("app.storage.DATA_DIR", tmp_path)
+    monkeypatch.delenv("TURSO_DATABASE_URL", raising=False)
     tid = str(uuid.uuid4())
     from app import scores
     from app.terminals import register_terminal
@@ -162,6 +170,7 @@ def test_leaderboard_nickname_follows_rename(tmp_path, monkeypatch):
 
 def test_yuwen_board_accuracy_then_time(tmp_path, monkeypatch):
     monkeypatch.setattr("app.storage.DATA_DIR", tmp_path)
+    monkeypatch.delenv("TURSO_DATABASE_URL", raising=False)
     from app import scores
     from app.terminals import register_terminal
 
@@ -191,9 +200,8 @@ def test_yuwen_board_accuracy_then_time(tmp_path, monkeypatch):
     assert improved["isPersonalBest"] is True
 
 
-def test_score_stores_user_id():
+def test_score_stores_user_id(client):
     client.cookies.clear()
-    # brief: register as cara (login_as falls back if username already exists in shared store)
     login_as(client, "cara")
     tid = "22222222-2222-4222-8222-222222222222"
     client.post(url("/api/v1/terminals/register"), json={"terminalId": tid, "nickname": "cara"})
@@ -205,4 +213,31 @@ def test_score_stores_user_id():
     )
     assert r.status_code == 200
     assert r.json()["entry"]["userId"]
-    assert r.json()["entry"]["nickname"] == "cara"  # or username field per chosen schema
+    assert r.json()["entry"]["nickname"] == "cara"
+
+
+def test_leaderboard_one_row_per_user(tmp_path, monkeypatch):
+    """Bound scores collapse to one board row per userId (best across terminals)."""
+    monkeypatch.setattr("app.storage.DATA_DIR", tmp_path)
+    monkeypatch.delenv("TURSO_DATABASE_URL", raising=False)
+    from app import scores
+    from app.terminals import register_terminal
+
+    t1, t2 = str(uuid.uuid4()), str(uuid.uuid4())
+    register_terminal(t1, "a")
+    register_terminal(t2, "b")
+    uid = "user-same"
+    scores.submit_score(
+        t1, "stroop", "challenge", "normal",
+        {"correct": 10, "total": 10, "timeMs": 40000},
+        user_id=uid, username="same_user",
+    )
+    scores.submit_score(
+        t2, "stroop", "challenge", "normal",
+        {"correct": 10, "total": 10, "timeMs": 20000},
+        user_id=uid, username="same_user",
+    )
+    board = scores.get_leaderboard("stroop", "challenge", "normal")
+    mine = [it for it in board["items"] if it.get("userId") == uid]
+    assert len(mine) == 1
+    assert mine[0]["nickname"] == "same_user"

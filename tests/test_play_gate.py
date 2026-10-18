@@ -74,6 +74,26 @@ def test_gate_off_allows_score():
     assert response.status_code == 200
 
 
+def test_gated_score_post_storage_failure_returns_503(monkeypatch):
+    from app.storage import StorageError
+
+    monkeypatch.delenv("TURSO_DATABASE_URL", raising=False)
+    monkeypatch.delenv("VERCEL", raising=False)
+
+    def fail_load(*_args, **_kwargs):
+        raise StorageError("暂时存不上")
+
+    monkeypatch.setattr("app.daily_admin.load_json", fail_load)
+    client.post(url("/api/v1/terminals/register"), json={"terminalId": TERMINAL, "nickname": "小明"})
+    response = client.post(
+        url("/api/v1/scores"),
+        json={"gameId": "stroop", "mode": "challenge", "tier": "normal", "metrics": {"correct": 1, "total": 1, "timeMs": 1000}},
+        headers={"X-Terminal-Id": TERMINAL},
+    )
+    assert response.status_code == 503
+    assert response.json()["detail"] == "暂时存不上"
+
+
 def test_gate_on_blocks_score_and_today_until_unlock():
     _play_on()
     headers = {"X-Terminal-Id": TERMINAL}

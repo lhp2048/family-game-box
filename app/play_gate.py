@@ -81,3 +81,28 @@ def allowed(method: str, path: str, cookie: str | None, admin_token: str | None)
 
 def gate_location(path: str) -> str:
     return with_root("/play-gate") + "?next=" + quote(safe_next(path), safe="/")
+
+
+def needs_user(method: str, path: str) -> bool:
+    """Same protected set as play-gate (games / daily play / score writes)."""
+    return needs_play(method, path)
+
+
+def user_allowed(
+    method: str, path: str, user_cookie: str | None, admin_token: str | None
+) -> bool:
+    if not needs_user(method, path):
+        return True
+    if admin_token:
+        try:
+            require_admin(admin_token)
+            return True
+        except PermissionError:
+            pass
+    from app.users import user_cookie_ok
+
+    return user_cookie_ok(user_cookie)
+
+
+def login_location(path: str) -> str:
+    return with_root("/login") + "?next=" + quote(safe_next(path), safe="/")

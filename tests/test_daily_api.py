@@ -3,7 +3,7 @@ import uuid
 import pytest
 from fastapi.testclient import TestClient
 
-from helpers import url
+from helpers import login_as, url
 from app.main import app
 
 client = TestClient(app)
@@ -24,6 +24,7 @@ def _headers(tid):
 
 
 def test_today_auto_generate():
+    login_as(client, "daily_today")
     r = client.get(url("/api/v1/daily/today"))
     assert r.status_code == 200
     body = r.json()
@@ -32,6 +33,7 @@ def test_today_auto_generate():
 
 
 def test_start_run_requires_register():
+    login_as(client, "daily_run")
     tid = _tid()
     r = client.post(url("/api/v1/daily/runs"), headers=_headers(tid))
     assert r.status_code == 400
@@ -51,7 +53,7 @@ def test_admin_setup_template_regenerate():
     )
     assert put.status_code == 200
     assert put.json()["stages"][0]["gameId"] == "schulte"
-    first = client.get(url("/api/v1/daily/today")).json()
+    first = client.get(url("/api/v1/daily/today"), headers=ah).json()
     regen = client.post(url("/api/v1/admin/daily/regenerate"), headers=ah)
     assert regen.status_code == 200
     assert regen.json()["comboId"] != first["comboId"]
@@ -65,6 +67,7 @@ def test_leaderboard_and_pages():
     body = r.json()
     assert "items" in body
     assert "combos" in body
+    login_as(client, "daily_pages")
     assert client.get(url("/daily")).status_code == 200
     assert client.get(url("/daily/leaderboard")).status_code == 200
     page = client.get(url("/daily/leaderboard")).text

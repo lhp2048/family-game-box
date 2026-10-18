@@ -139,18 +139,24 @@ def create_app() -> FastAPI:
 
     @app.middleware("http")
     async def play_gate_middleware(request: Request, call_next):
-        from app.play_gate import _relative, allowed, gate_location
+        from app.play_gate import _relative, allowed, gate_location, user_allowed, login_location
+        from app.users import USER_COOKIE
 
         cookie = request.cookies.get("fgb_play")
         admin_token = request.headers.get("x-admin-token")
         try:
-            if allowed(request.method, request.url.path, cookie, admin_token):
-                return await call_next(request)
+            if not allowed(request.method, request.url.path, cookie, admin_token):
+                if _relative(request.url.path).startswith("/api/"):
+                    return JSONResponse({"detail": "需要口令"}, status_code=401)
+                return RedirectResponse(gate_location(request.url.path), status_code=307)
+            user_cookie = request.cookies.get(USER_COOKIE)
+            if not user_allowed(request.method, request.url.path, user_cookie, admin_token):
+                if _relative(request.url.path).startswith("/api/"):
+                    return JSONResponse({"detail": "需要登录"}, status_code=401)
+                return RedirectResponse(login_location(request.url.path), status_code=307)
         except StorageError:
             return JSONResponse({"detail": "暂时存不上"}, status_code=503)
-        if _relative(request.url.path).startswith("/api/"):
-            return JSONResponse({"detail": "需要口令"}, status_code=401)
-        return RedirectResponse(gate_location(request.url.path), status_code=307)
+        return await call_next(request)
 
     if prefix:
         @app.get("/api/v1/health")

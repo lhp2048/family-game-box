@@ -94,3 +94,46 @@ def test_auth_logout_clears_cookie():
     assert not client.cookies.get("fgb_user")
     me = client.get(url("/api/v1/auth/me"))
     assert me.json()["loggedIn"] is False
+
+
+def test_score_requires_user_even_when_gate_off():
+    client.cookies.clear()
+    tid = "11111111-1111-4111-8111-111111111111"
+    client.post(url("/api/v1/terminals/register"), json={"terminalId": tid, "nickname": "旧号"})
+    r = client.post(
+        url("/api/v1/scores"),
+        json={
+            "gameId": "stroop",
+            "mode": "challenge",
+            "tier": "normal",
+            "metrics": {"correct": 1, "total": 1, "timeMs": 1000},
+        },
+        headers={"X-Terminal-Id": tid},
+    )
+    assert r.status_code in (401, 403)
+
+    reg = client.post(
+        url("/api/v1/auth/register"),
+        json={"username": "scorer1", "password": "pass1234"},
+    )
+    assert reg.status_code == 200
+    assert client.cookies.get("fgb_user")
+    ok = client.post(
+        url("/api/v1/scores"),
+        json={
+            "gameId": "stroop",
+            "mode": "challenge",
+            "tier": "normal",
+            "metrics": {"correct": 1, "total": 1, "timeMs": 1000},
+        },
+        headers={"X-Terminal-Id": tid},
+    )
+    assert ok.status_code == 200
+
+
+def test_games_page_redirects_to_login_without_user():
+    client.cookies.clear()
+    page = client.get(url("/games/stroop/index.html"), follow_redirects=False)
+    assert page.status_code == 307
+    loc = page.headers["location"]
+    assert "/login?next=" in loc

@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from app.html_prefix import rewrite_html
 from app.main import _load_version, app
 from app.root_path import get_root_path
+from helpers import login_as
 
 client = TestClient(app)
 PREFIX = get_root_path()  # default /game-box
@@ -77,6 +78,7 @@ def test_games_catalog():
 
 
 def test_schulte_page():
+    login_as(client, "schulte_pg")
     r = client.get(p("/games/schulte/"))
     assert r.status_code == 200
     text = r.text
@@ -128,6 +130,7 @@ def test_build_packs_shell_pages():
 
 
 def test_home_back_to_lobby():
+    login_as(client, "home_back")
     play = client.get(p("/games/24points/play.html")).text
     assert "← 返回大厅" in play
     assert "/game-box" in play
@@ -136,6 +139,7 @@ def test_home_back_to_lobby():
 
 
 def test_attention_game_page():
+    login_as(client, "attn_game")
     r = client.get(p("/games/stroop/"))
     assert r.status_code == 200
     text = r.text
@@ -144,6 +148,7 @@ def test_attention_game_page():
 
 
 def test_24points_play_and_bank():
+    login_as(client, "pts24_play")
     page = client.get(p("/games/24points/play.html"))
     assert page.status_code == 200
     bank = client.get(p("/games/24points/bank.json"))

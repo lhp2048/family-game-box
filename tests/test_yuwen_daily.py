@@ -6,7 +6,7 @@ import uuid
 
 from fastapi.testclient import TestClient
 
-from helpers import url
+from helpers import login_as, url
 from app.main import app
 from app import yuwen_daily as yd
 from app.terminals import register_terminal
@@ -35,6 +35,7 @@ def test_grade_lock_and_leaderboard(monkeypatch, tmp_path):
     monkeypatch.setattr("app.daily_challenges.local_today", lambda: "2026-10-11")
     tid = _tid()
     register_terminal(tid, "小卷")
+    login_as(client, "yuwen_grade")
     paper = yd.paper_for("2026-10-11")
     first = paper["questions"][0]
     headers = {"X-Terminal-Id": tid}
@@ -104,6 +105,7 @@ def test_wrong_answer_adds_five_seconds(monkeypatch, tmp_path):
     monkeypatch.setattr("app.yuwen_daily.local_today", lambda: "2026-10-14")
     tid = _tid()
     register_terminal(tid, "罚时")
+    login_as(client, "yuwen_penalty")
     paper = yd.paper_for("2026-10-14")
     headers = {"X-Terminal-Id": tid}
     opened = client.get(url("/api/v1/yuwen-daily/today"), headers=headers)

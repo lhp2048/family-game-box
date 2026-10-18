@@ -2,7 +2,7 @@ import uuid
 
 from fastapi.testclient import TestClient
 
-from helpers import url
+from helpers import login_as, url
 from app.main import app
 
 client = TestClient(app)
@@ -32,6 +32,7 @@ def test_submit_score_and_leaderboard():
         url("/api/v1/terminals/register"),
         json={"terminalId": TERMINAL, "nickname": "测试玩家"},
     )
+    login_as(client, "score_player")
     payload = {
         "gameId": "stroop",
         "mode": "challenge",
@@ -74,6 +75,7 @@ def test_global_leaderboard():
         url("/api/v1/terminals/register"),
         json={"terminalId": TERMINAL, "nickname": "测试玩家"},
     )
+    login_as(client, "score_player")
     client.post(
         url("/api/v1/scores"),
         json={
@@ -99,6 +101,7 @@ def test_recent_leaderboard():
         url("/api/v1/terminals/register"),
         json={"terminalId": TERMINAL, "nickname": "测试玩家"},
     )
+    login_as(client, "score_player")
     client.post(
         url("/api/v1/scores"),
         json={

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from helpers import url
+from helpers import login_as, url
 from app.main import app
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -59,6 +59,7 @@ def test_hot_mark_highlights_annotated_character():
 
 
 def test_yuwen_page_and_score():
+    login_as(client, "yuwen_bank")
     page = client.get(url("/games/yuwen/"))
     assert page.status_code == 200
     assert "语文大擂台" in page.text

@@ -498,9 +498,13 @@ def _register_routes(api: APIRouter) -> None:
         return yuwen_daily_mod.leaderboard(date=date, limit=min(max(limit, 1), 100))
 
     @api.get("/api/v1/lobby/summary")
-    async def lobby_summary(x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id")):
+    async def lobby_summary(
+        request: Request,
+        x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
+    ):
         tid = (x_terminal_id or "").strip() or None
-        return lobby_mod.get_lobby_summary(tid)
+        user_id, _username = _current_user(request)
+        return lobby_mod.get_lobby_summary(tid, user_id=user_id or None)
 
     @api.get("/api/v1/admin/status")
     async def admin_status(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):

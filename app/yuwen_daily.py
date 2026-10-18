@@ -151,6 +151,19 @@ def _run_for(data: Dict[str, Any], terminal_id: str, paper_id: str) -> Optional[
     return found[-1]
 
 
+def _run_for_user(data: Dict[str, Any], user_id: str, paper_id: str) -> Optional[Dict[str, Any]]:
+    uid = str(user_id or "")
+    found = [
+        r
+        for r in _runs(data)
+        if str(r.get("userId") or "") == uid and r.get("paperId") == paper_id
+    ]
+    if not found:
+        return None
+    found.sort(key=lambda r: str(r.get("startedAt") or ""))
+    return found[-1]
+
+
 def _elapsed_cap(run: Dict[str, Any]) -> int:
     started = str(run.get("startedAt") or "")
     try:
@@ -419,7 +432,7 @@ def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
     return {"date": day, "dates": board_dates_payload(today), "title": "语文挑战榜", "items": items}
 
 
-def lobby_slice(terminal_id: Optional[str]) -> Dict[str, Any]:
+def lobby_slice(terminal_id: Optional[str], user_id: Optional[str] = None) -> Dict[str, Any]:
     day = local_today()
     paper = paper_for(day)
     board = leaderboard(date=day, limit=50)
@@ -430,12 +443,19 @@ def lobby_slice(terminal_id: Optional[str]) -> Dict[str, Any]:
     ]
     progress = {"status": "absent", "correct": 0, "total": len(paper["questions"]), "timeMs": 0, "display": ""}
     rank = None
-    if terminal_id:
-        run = _run_for(_load(), terminal_id, paper["paperId"])
+    uid = (user_id or "").strip() or None
+    tid = (terminal_id or "").strip() or None
+    if uid or tid:
+        data = _load()
+        if uid:
+            run = _run_for_user(data, uid, paper["paperId"])
+        else:
+            run = _run_for(data, tid, paper["paperId"])
         progress = _progress(run, paper)
-        if progress["status"] == "finished":
+        if progress["status"] == "finished" and run:
+            match_tid = str(run.get("terminalId") or "")
             for it in items:
-                if it.get("terminalId") == terminal_id:
+                if match_tid and it.get("terminalId") == match_tid:
                     rank = it.get("rank")
                     break
     status = progress["status"]

@@ -201,10 +201,10 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
         <h2>家庭口令</h2>
         <p class="meta">打开后，进入游戏和每日挑战需要口令。大厅和排行榜仍可查看。管理员密码不能用来玩游戏。</p>
         <div class="err" id="gate-err"></div>
-        <label><input id="gate-enabled" type="checkbox"> 开启家庭口令</label>
+        <label><input id="gate-enabled" type="checkbox" disabled> 开启家庭口令</label>
         <label for="gate-pass">设置或更换口令</label>
         <input id="gate-pass" type="password" autocomplete="new-password">
-        <button type="button" id="btn-save-gate">保存</button>
+        <button type="button" id="btn-save-gate" disabled>保存</button>
       </div>
     </div>
   </div>
@@ -333,6 +333,10 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
     return msg || "操作失败";
   }
 
+  function isAdminSessionExpired(err) {
+    return !!(err && err.status === 401 && err.message !== "需要口令");
+  }
+
   function showPanel() {
     document.getElementById("auth-card").classList.add("hidden");
     document.getElementById("panel").classList.remove("hidden");
@@ -355,8 +359,18 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
   }
 
   function loadPlayGate() {
-    api("/api/v1/admin/status", { headers: { "X-Admin-Token": token() } }).then(function (st) {
-      document.getElementById("gate-enabled").checked = !!st.playGateEnabled;
+    var err = document.getElementById("gate-err");
+    var saveBtn = document.getElementById("btn-save-gate");
+    var box = document.getElementById("gate-enabled");
+    err.textContent = "";
+    saveBtn.disabled = true;
+    api("/api/v1/admin/status", { admin: true }).then(function (st) {
+      box.checked = !!st.playGateEnabled;
+      box.disabled = false;
+      saveBtn.disabled = false;
+    }).catch(function (ex) {
+      err.textContent = (ex && ex.message) || "加载失败";
+      saveBtn.disabled = true;
     });
   }
 
@@ -574,7 +588,7 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
       renderDiffForm();
     }).catch(function (err) {
       document.getElementById("diff-err").textContent = err.message || "加载失败";
-      if (err.status === 401) {
+      if (isAdminSessionExpired(err)) {
         setToken("");
         boot();
       }
@@ -639,7 +653,7 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
       renderPkgList();
     }).catch(function (err) {
       document.getElementById("pkg-err").textContent = err.message || "加载失败";
-      if (err.status === 401) { setToken(""); boot(); }
+      if (isAdminSessionExpired(err)) { setToken(""); boot(); }
     });
   }
 
@@ -648,7 +662,7 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
       api("/api/v1/admin/games", { admin: true }),
       api("/api/v1/admin/daily/candidates", { admin: true }),
       api("/api/v1/admin/daily/template", { admin: true }),
-      api("/api/v1/daily/today"),
+      api("/api/v1/daily/today", { admin: true }),
       api("/api/v1/admin/daily/history", { admin: true }),
     ]).then(function (arr) {
       ALL_GAMES = arr[0].games || [];
@@ -686,7 +700,7 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
       if (currentTab === "diff") loadDifficultyPanel();
     }).catch(function (err) {
       document.getElementById("tpl-err").textContent = err.message || "加载失败";
-      if (err.status === 401) {
+      if (isAdminSessionExpired(err)) {
         setToken("");
         boot();
       }

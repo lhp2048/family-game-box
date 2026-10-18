@@ -1,15 +1,35 @@
 from __future__ import annotations
 
-from urllib.parse import quote
+import posixpath
+from urllib.parse import quote, unquote
 
-from app.daily_admin import play_cookie_ok, require_admin
+from app.daily_admin import play_cookie_ok, play_gate_snapshot, require_admin
 from app.root_path import get_root_path, with_root
 
 
+def _decode_next(raw: str) -> str:
+    prev = raw
+    for _ in range(5):
+        nxt = unquote(prev)
+        if nxt == prev:
+            return nxt
+        prev = nxt
+    return prev
+
+
 def safe_next(raw: str) -> str:
-    if not raw.startswith("/") or raw.startswith("//"):
-        return with_root("/")
-    return raw
+    fallback = with_root("/")
+    if not raw:
+        return fallback
+    decoded = _decode_next(raw)
+    if "\\" in decoded or any(ord(c) < 32 or ord(c) == 127 for c in decoded):
+        return fallback
+    if not decoded.startswith("/") or decoded.startswith("//"):
+        return fallback
+    normalized = posixpath.normpath(decoded)
+    if normalized.startswith("//") or not normalized.startswith("/"):
+        return fallback
+    return decoded
 
 
 def _relative(path: str) -> str:
@@ -29,6 +49,8 @@ def needs_play(method: str, path: str) -> bool:
         return True
     if rel == "/games" or rel.startswith("/games/"):
         return True
+    if rel == "/uploaded-games" or rel.startswith("/uploaded-games/"):
+        return True
     if method == "GET" and rel in ("/api/v1/daily/today", "/api/v1/yuwen-daily/today"):
         return True
     if method == "POST" and rel in (
@@ -46,15 +68,14 @@ def needs_play(method: str, path: str) -> bool:
 def allowed(method: str, path: str, cookie: str | None, admin_token: str | None) -> bool:
     if not needs_play(method, path):
         return True
-    from app.daily_admin import _load
-
-    if not _load().get("playGateEnabled"):
+    if not play_gate_snapshot()["playGateEnabled"]:
         return True
-    try:
-        require_admin(admin_token)
-        return True
-    except PermissionError:
-        pass
+    if admin_token:
+        try:
+            require_admin(admin_token)
+            return True
+        except PermissionError:
+            pass
     return play_cookie_ok(cookie)
 
 

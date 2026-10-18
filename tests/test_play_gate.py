@@ -10,6 +10,9 @@ def _tmp_data(tmp_path, monkeypatch):
     monkeypatch.setattr("app.storage.DATA_DIR", tmp_path)
     monkeypatch.delenv("TURSO_DATABASE_URL", raising=False)
     monkeypatch.delenv("VERCEL", raising=False)
+    da.clear_play_gate_cache()
+    yield
+    da.clear_play_gate_cache()
 
 
 def test_cannot_enable_without_passphrase():
@@ -53,6 +56,7 @@ TERMINAL = str(uuid.uuid4())
 
 
 def _play_on():
+    client.cookies.clear()
     da.setup_password("secret123")
     token = da.login("secret123")["token"]
     client.put(
@@ -127,6 +131,96 @@ def test_safe_next_rejects_external():
 
     assert safe_next("//evil.example") == with_root("/")
     assert safe_next("/daily") == "/daily"
+
+
+def test_safe_next_rejects_backslash_controls_and_protocol_relative():
+    from pathlib import Path
+
+    from app.play_gate import safe_next
+    from app.root_path import with_root
+
+    home = with_root("/")
+    assert safe_next("/\\") == home
+    assert safe_next("/%5C") == home
+    assert safe_next("/foo\nbar") == home
+    assert safe_next("/foo\x00bar") == home
+    assert safe_next("/%2F/evil.example") == home
+    assert safe_next("/daily") == "/daily"
+
+    html = Path(__file__).resolve().parents[1].joinpath("web/play-gate.html").read_text(encoding="utf-8")
+    assert "decodeURIComponent" in html
+    assert 'indexOf("\\\\")' in html or 'indexOf("\\")' in html
+    assert "charCodeAt" in html
+    assert 'startsWith("//")' in html
+
+
+def test_admin_token_allows_daily_today_without_play_cookie():
+    from pathlib import Path
+
+    html = Path(__file__).resolve().parents[1].joinpath("web/admin.html").read_text(encoding="utf-8")
+    assert 'api("/api/v1/daily/today", { admin: true })' in html
+    assert 'err.message !== "需要口令"' in html
+    token = _play_on()
+    response = client.get(
+        url("/api/v1/daily/today"),
+        headers={"X-Admin-Token": token},
+    )
+    assert response.status_code == 200
+
+
+def test_uploaded_games_gated_like_games():
+    client.cookies.clear()
+    _play_on()
+    page = client.get(url("/uploaded-games/pack-demo/index.html"), follow_redirects=False)
+    assert page.status_code == 307
+    assert "/play-gate?next=" in page.headers["location"]
+
+
+def test_issue_play_cookie_strips_passphrase():
+    da.put_play_gate(True, "family")
+    now = int(time.time())
+    cookie = da.issue_play_cookie("  family  ", now=now)
+    assert da.play_cookie_ok(cookie, now=now) is True
+
+
+def test_play_cookie_ok_non_ascii_signature():
+    da.put_play_gate(True, "family")
+    now = int(time.time())
+    cookie = da.issue_play_cookie("family", now=now)
+    bad = cookie.rsplit(".", 1)[0] + ".签名"
+    assert da.play_cookie_ok(bad, now=now) is False
+
+
+def test_play_gate_cache_avoids_repeat_reads(monkeypatch):
+    da.put_play_gate(True, "family")
+    da.put_play_gate(False, None)
+    calls = {"n": 0}
+    real = da.load_json
+
+    def wrapped(name, default):
+        calls["n"] += 1
+        return real(name, default)
+
+    monkeypatch.setattr(da, "load_json", wrapped)
+    from app.play_gate import allowed
+
+    assert allowed("GET", "/games/stroop/index.html", None, None) is True
+    first = calls["n"]
+    assert first >= 1
+    assert allowed("GET", "/games/simon/index.html", None, None) is True
+    assert allowed("GET", "/games/simon/audio/x.mp3", None, None) is True
+    assert calls["n"] == first
+    now = int(time.time())
+    cookie = da.issue_play_cookie("family", now=now)
+    after_issue = calls["n"]
+    assert da.play_cookie_ok(cookie, now=now) is True
+    filled = calls["n"]
+    assert da.play_cookie_ok(cookie, now=now) is True
+    assert da.play_cookie_ok(cookie, now=now) is True
+    assert calls["n"] == filled
+    da.put_play_gate(True, None)
+    assert allowed("GET", "/games/stroop/index.html", None, None) is False
+    assert calls["n"] > after_issue
 
 
 def test_health_not_blocked_when_turso_unconfigured(monkeypatch):

@@ -38,9 +38,52 @@
 (function () {
   var params = new URLSearchParams(window.location.search);
   var rawNext = params.get("next") || "/";
+  function decodeNext(raw) {
+    var prev = raw;
+    for (var n = 0; n < 5; n++) {
+      var nxt;
+      try { nxt = decodeURIComponent(prev); }
+      catch (e) { return ""; }
+      if (nxt === prev) return nxt;
+      prev = nxt;
+    }
+    return prev;
+  }
+  function posixNormpath(path) {
+    if (!path) return ".";
+    var initial = 0;
+    if (path.charAt(0) === "/") {
+      initial = 1;
+      if (path.indexOf("//") === 0 && path.indexOf("///") !== 0) initial = 2;
+    }
+    var comps = path.split("/");
+    var out = [];
+    for (var i = 0; i < comps.length; i++) {
+      var comp = comps[i];
+      if (comp === "" || comp === ".") continue;
+      if (comp !== ".." || (initial === 0 && !out.length) || (out.length && out[out.length - 1] === "..")) {
+        out.push(comp);
+      } else if (out.length) {
+        out.pop();
+      }
+    }
+    var joined = out.join("/");
+    if (initial) joined = new Array(initial + 1).join("/") + joined;
+    return joined || ".";
+  }
   function safeNext(raw) {
-    if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return "/";
-    return raw;
+    if (!raw) return "/";
+    var decoded = decodeNext(raw);
+    if (!decoded) return "/";
+    if (decoded.indexOf("\\") !== -1) return "/";
+    for (var i = 0; i < decoded.length; i++) {
+      var code = decoded.charCodeAt(i);
+      if (code < 32 || code === 127) return "/";
+    }
+    if (!decoded.startsWith("/") || decoded.startsWith("//")) return "/";
+    var normalized = posixNormpath(decoded);
+    if (!normalized.startsWith("/") || normalized.startsWith("//")) return "/";
+    return decoded;
   }
   var next = safeNext(rawNext);
 

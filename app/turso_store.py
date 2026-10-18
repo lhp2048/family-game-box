@@ -25,6 +25,9 @@ class TursoStore:
         self._client = client or httpx.Client(timeout=10.0)
         self._ready = False
 
+    def close(self) -> None:
+        self._client.close()
+
     def ping(self) -> None:
         self._execute("SELECT 1")
 

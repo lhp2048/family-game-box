@@ -34,8 +34,14 @@ def _turso_store():
     key = (url, token)
     if _cached_turso_store is not None and _cached_turso_key == key:
         return _cached_turso_store
+    previous = _cached_turso_store
     _cached_turso_store = TursoStore(url, token)
     _cached_turso_key = key
+    if previous is not None:
+        try:
+            previous.close()
+        except Exception:
+            pass
     return _cached_turso_store
 
 

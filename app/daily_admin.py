@@ -14,6 +14,8 @@ STORE = "daily_admin.json"
 SESSION_HOURS = 12
 PLAY_COOKIE = "fgb_play"
 PLAY_TTL = 30 * 24 * 3600
+_play_gate_cache: Optional[Dict[str, Any]] = None
+_play_gate_cache_dir: Optional[str] = None
 
 
 def _playable_ids() -> List[str]:
@@ -60,6 +62,28 @@ def _load() -> Dict[str, Any]:
     if not isinstance(data.get("template"), dict):
         data["template"] = default_template()
     return _play_fields(data)
+
+
+def clear_play_gate_cache() -> None:
+    global _play_gate_cache, _play_gate_cache_dir
+    _play_gate_cache = None
+    _play_gate_cache_dir = None
+
+
+def play_gate_snapshot() -> Dict[str, Any]:
+    global _play_gate_cache, _play_gate_cache_dir
+    from app.storage import DATA_DIR
+
+    here = str(DATA_DIR)
+    if _play_gate_cache is None or _play_gate_cache_dir != here:
+        data = _load()
+        _play_gate_cache = {
+            "playGateEnabled": bool(data.get("playGateEnabled")),
+            "playGeneration": int(data.get("playGeneration") or 0),
+            "playTokenKey": str(data.get("playTokenKey") or ""),
+        }
+        _play_gate_cache_dir = here
+    return _play_gate_cache
 
 
 def _save(data: Dict[str, Any]) -> None:
@@ -159,11 +183,13 @@ def put_play_gate(enabled: bool, passphrase: Optional[str]) -> Dict[str, Any]:
         data["playGeneration"] = int(data.get("playGeneration") or 0) + 1
     data["playGateEnabled"] = bool(enabled)
     _save(data)
+    clear_play_gate_cache()
     return _public_play(data)
 
 
 def issue_play_cookie(passphrase: str, now: Optional[int] = None) -> str:
     data = _load()
+    passphrase = (passphrase or "").strip()
     if not data.get("playPassphraseHash"):
         raise ValueError("口令不对")
     if _hash(data.get("playPassphraseSalt") or "", passphrase or "") != data["playPassphraseHash"]:
@@ -176,15 +202,20 @@ def issue_play_cookie(passphrase: str, now: Optional[int] = None) -> str:
 
 
 def play_cookie_ok(cookie: Optional[str], now: Optional[int] = None) -> bool:
-    data = _load()
-    if not cookie or not data.get("playTokenKey"):
+    snap = play_gate_snapshot()
+    if not cookie or not snap.get("playTokenKey"):
         return False
     parts = cookie.split(".")
     if len(parts) != 3:
         return False
     payload = parts[0] + "." + parts[1]
-    expect = hmac.new(data["playTokenKey"].encode("utf-8"), payload.encode("utf-8"), hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(expect, parts[2]):
+    try:
+        expect = hmac.new(
+            snap["playTokenKey"].encode("utf-8"), payload.encode("utf-8"), hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(expect, parts[2]):
+            return False
+    except (TypeError, ValueError):
         return False
     try:
         generation = int(parts[0])
@@ -192,7 +223,7 @@ def play_cookie_ok(cookie: Optional[str], now: Optional[int] = None) -> bool:
     except ValueError:
         return False
     current = int(now if now is not None else time.time())
-    return generation == int(data.get("playGeneration") or 0) and current <= exp
+    return generation == int(snap.get("playGeneration") or 0) and current <= exp
 
 
 def get_template() -> Dict[str, Any]:

@@ -73,6 +73,28 @@ def test_turso_store_reused_for_same_env(monkeypatch):
     assert first is second
 
 
+def test_turso_store_replaced_closes_previous(monkeypatch):
+    import app.storage as storage_module
+
+    storage_module._cached_turso_store = None
+    storage_module._cached_turso_key = None
+    monkeypatch.setenv("TURSO_DATABASE_URL", "libsql://one.turso.io")
+    monkeypatch.setenv("TURSO_AUTH_TOKEN", "t1")
+    first = storage_module._turso_store()
+    closed = {"n": 0}
+    orig_close = first._client.close
+
+    def tracking_close():
+        closed["n"] += 1
+        orig_close()
+
+    first._client.close = tracking_close
+    monkeypatch.setenv("TURSO_DATABASE_URL", "libsql://two.turso.io")
+    second = storage_module._turso_store()
+    assert first is not second
+    assert closed["n"] == 1
+
+
 def test_turso_http_error_raises(monkeypatch):
     def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(500, text="down")

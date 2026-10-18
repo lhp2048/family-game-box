@@ -138,7 +138,7 @@
 - Create or update: `.superpowers/sdd/` note or checklist in plan progress only — optional `docs/` not required
 - Test: full manual + existing pytest suite green (no intentional API changes)
 
-- [ ] **Step 1: Run** `pytest -q` — must stay green
+- [x] **Step 1: Run** `pytest -q` — must stay green
 - [ ] **Step 2: Manual checklist**
   - [ ] Gate unlock → register → login → hall
   - [ ] Logout → other user login on same device
@@ -232,9 +232,9 @@
 - Test: pytest green; P1+P2 checklist in PR body
 
 - [ ] **Step 1: Run** `pytest -q`
-- [ ] **Step 2: Self-review** against spec §1–§4
-- [ ] **Step 3: Push** and open PR with phased notes (what shipped vs follow-ups)
-- [ ] **Step 4: Do not merge** until user asks to deploy
+- [x] **Step 2: Self-review** against spec §1–§4
+- [x] **Step 3: Push** and open PR with phased notes (what shipped vs follow-ups)
+- [x] **Step 4: Do not merge** until user asks to deploy
 
 ---
 

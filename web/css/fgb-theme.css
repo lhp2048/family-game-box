@@ -382,6 +382,29 @@ a:hover { color: #6fe0ab; }
   color: var(--ink);
 }
 
+/* Shared auth / shell form fields (login, register, play-gate) */
+.fgb-field {
+  margin-bottom: 0.75rem;
+}
+.fgb-field > label {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+.fgb-form-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-top: 0.85rem;
+  align-items: center;
+}
+.fgb-muted-link {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.fgb-muted-link a {
+  color: var(--accent);
+}
+
 .fgb-my-best {
   margin: 0 0 0.85rem;
   padding: 0.85rem 1rem;

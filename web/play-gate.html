@@ -5,39 +5,39 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>家庭口令 · 家庭游戏盒</title>
 <link rel="stylesheet" href="/css/fgb-theme.css">
-<style>
-.actions-row { display: flex; gap: 0.65rem; flex-wrap: wrap; margin-top: 0.85rem; }
-</style>
 </head>
 <body>
 <main class="fgb-shell">
-  <header class="fgb-topbar">
-    <div>
-      <a class="fgb-brand" href="/">家庭<em>游戏盒</em></a>
-      <span class="fgb-page-kicker">家庭口令</span>
-    </div>
-    <div class="fgb-nav">
-      <a class="fgb-nav-link" href="/">回大厅</a>
-    </div>
-  </header>
+  <header id="fgb-topbar"></header>
 
   <section class="fgb-panel fgb-panel-pad" style="max-width:420px;margin:0 auto">
     <h1 class="fgb-page-title" style="font-size:1.85rem">请输入家庭口令</h1>
     <p class="fgb-lead">家长已开启游戏口令，输入正确口令后即可继续玩和提交成绩。</p>
     <div class="fgb-err" id="err"></div>
     <form id="unlock-form">
-      <label class="fgb-page-kicker" for="passphrase" style="display:block;margin-bottom:.35rem">口令</label>
-      <input type="password" id="passphrase" name="passphrase" autocomplete="current-password" required maxlength="128" style="width:100%;box-sizing:border-box;margin-bottom:.75rem">
-      <div class="actions-row">
-        <button type="submit" class="fgb-cta">解锁</button>
+      <div class="fgb-field">
+        <label class="fgb-page-kicker" for="passphrase">口令</label>
+        <input class="fgb-input" type="password" id="passphrase" name="passphrase" autocomplete="current-password" required maxlength="128">
+      </div>
+      <div class="fgb-form-actions">
+        <button type="submit" class="fgb-btn">解锁</button>
       </div>
     </form>
   </section>
 </main>
+<script src="/js/fgb-client.js"></script>
+<script src="/js/fgb-ui.js"></script>
+<script src="/js/fgb-shell.js"></script>
 <script>
 (function () {
-  var params = new URLSearchParams(window.location.search);
-  var rawNext = params.get("next") || "/";
+  /*
+   * Gate-specific safeNext: middleware can send users to
+   * /play-gate?next=/login or ?next=/register when the family gate
+   * protects those pages (needs_play includes login/register).
+   * FGBShell.safeNext blocks /login|/register to avoid auth loops on
+   * login/register themselves — after unlock we must allow them.
+   * Same open-redirect rules otherwise (relative /, no //, no \).
+   */
   function decodeNext(raw) {
     var prev = raw;
     for (var n = 0; n < 5; n++) {
@@ -71,7 +71,7 @@
     if (initial) joined = new Array(initial + 1).join("/") + joined;
     return joined || ".";
   }
-  function safeNext(raw) {
+  function safeNextAllowAuth(raw) {
     if (!raw) return "/";
     var decoded = decodeNext(raw);
     if (!decoded) return "/";
@@ -86,10 +86,18 @@
     var query = q === -1 ? "" : decoded.slice(q);
     var normalized = posixNormpath(pathOnly);
     if (!normalized.startsWith("/") || normalized.startsWith("//")) return "/";
-    // Allow /login and /register (and paths with their next= query) after unlock
     return pathOnly + query;
   }
-  var next = safeNext(rawNext);
+  var params = new URLSearchParams(window.location.search);
+  var rawNext = params.get("next") || "/";
+  var next = safeNextAllowAuth(rawNext);
+
+  FGBShell.mountTopbar(document.getElementById("fgb-topbar"), {
+    title: "家庭口令",
+    showBack: true,
+    backHref: "/",
+    showUser: false,
+  });
 
   var form = document.getElementById("unlock-form");
   var errEl = document.getElementById("err");
@@ -98,13 +106,14 @@
     errEl.textContent = "";
     var passphrase = document.getElementById("passphrase").value.trim();
     if (!passphrase) return;
-    fetch("/api/v1/play-gate/unlock", {
+    fetch(FGB.url("/api/v1/play-gate/unlock"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ passphrase: passphrase }),
     })
       .then(function (res) {
         if (res.ok) {
+          // next may already include root prefix from middleware; do not FGB.url again
           window.location.assign(next);
           return null;
         }

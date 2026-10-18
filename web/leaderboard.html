@@ -8,17 +8,7 @@
 </head>
 <body>
 <main class="fgb-shell">
-  <header class="fgb-topbar">
-    <div>
-      <a class="fgb-brand" href="/">家庭<em>游戏盒</em></a>
-      <span class="fgb-page-kicker">游戏排行</span>
-    </div>
-    <div class="fgb-nav">
-      <a class="fgb-nav-link" href="/">回大厅</a>
-      <a class="fgb-nav-link" href="/daily/leaderboard">专注力挑战榜</a>
-      <a class="fgb-nav-link" href="/yuwen-daily/leaderboard">语文挑战榜</a>
-    </div>
-  </header>
+  <header id="fgb-topbar"></header>
 
   <h1 class="fgb-page-title">排行榜</h1>
   <p class="fgb-lead" id="page-desc">最近 20 条游戏完成记录。</p>
@@ -57,8 +47,29 @@
 </main>
 <script src="/js/fgb-client.js"></script>
 <script src="/js/fgb-ui.js"></script>
+<script src="/js/fgb-shell.js"></script>
 <script>
 (function () {
+  FGBShell.mountTopbar(document.getElementById("fgb-topbar"), {
+    title: "排行榜",
+    showBack: true,
+    backHref: "/",
+    showUser: true,
+  });
+  var topNav = document.querySelector("#fgb-topbar .fgb-nav");
+  if (topNav) {
+    [
+      { href: "/daily/leaderboard", label: "专注力挑战榜" },
+      { href: "/yuwen-daily/leaderboard", label: "语文挑战榜" },
+    ].forEach(function (item) {
+      var a = document.createElement("a");
+      a.className = "fgb-nav-link";
+      a.href = FGB.url(item.href);
+      a.textContent = item.label;
+      topNav.appendChild(a);
+    });
+  }
+
   var meta = null;
   var view = "recent";
   var gameEl = document.getElementById("game");

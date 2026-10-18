@@ -9,16 +9,8 @@
 </head>
 <body>
 <main class="fgb-shell yuwen">
-  <header class="yuwen-top">
-    <div class="fgb-nav">
-      <a class="fgb-nav-link" href="/">← 返回大厅</a>
-      <a class="fgb-nav-link" href="/yuwen-daily/leaderboard">语文挑战榜</a>
-    </div>
-    <div>
-      <h1>每日语文挑战</h1>
-      <p class="yuwen-lead" id="lead">今天全家人同一份卷子。答错一题，用时加 5 秒。第一次交卷记入语文挑战榜。</p>
-    </div>
-  </header>
+  <header id="fgb-topbar"></header>
+  <p class="yuwen-lead" id="lead">今天全家人同一份卷子。答错一题，用时加 5 秒。第一次交卷记入语文挑战榜。</p>
   <p class="yuwen-err" id="err"></p>
   <section id="view-prep"></section>
   <section id="view-play" hidden></section>
@@ -26,6 +18,25 @@
 </main>
 <script src="/js/fgb-client.js"></script>
 <script src="/js/fgb-ui.js"></script>
+<script src="/js/fgb-shell.js"></script>
+<script>
+(function () {
+  FGBShell.mountTopbar(document.getElementById("fgb-topbar"), {
+    title: "每日语文挑战",
+    showBack: true,
+    backHref: "/",
+    showUser: true,
+  });
+  var topNav = document.querySelector("#fgb-topbar .fgb-nav");
+  if (topNav) {
+    var a = document.createElement("a");
+    a.className = "fgb-nav-link";
+    a.href = FGB.url("/yuwen-daily/leaderboard");
+    a.textContent = "语文挑战榜";
+    topNav.appendChild(a);
+  }
+})();
+</script>
 <script src="/js/yuwen-daily.js"></script>
 </body>
 </html>

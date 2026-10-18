@@ -21,6 +21,7 @@ from app.html_prefix import read_response_body, rewrite_html
 from app.rank_config import rank_meta
 from app.root_path import get_root_path
 from app.scores import get_global_leaderboard, get_leaderboard, get_personal_bests, get_recent_leaderboard, submit_score
+from app.storage import storage_backend
 from app.terminals import get_me, register_terminal, validate_terminal_id
 from app import yuwen_daily as yuwen_daily_mod
 
@@ -44,6 +45,7 @@ def _health_payload() -> Dict[str, Any]:
         "version": _load_version(),
         "port": 18029,
         "rootPath": get_root_path() or "/",
+        "storage": storage_backend(),
     }
 
 

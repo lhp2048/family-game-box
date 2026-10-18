@@ -47,6 +47,7 @@ def test_health_ok():
     assert body["status"] == "running"
     assert body["version"] == _load_version()
     assert body["rootPath"] == PREFIX
+    assert body["storage"] == "file"
 
 
 def test_health_alias_unprefixed():

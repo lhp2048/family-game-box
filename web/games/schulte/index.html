@@ -1,0 +1,1068 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>舒尔特挑战</title>
+<link rel="stylesheet" href="/css/fgb-theme.css">
+<style>
+:root {
+  --ink: #e8f2ec;
+  --muted: #8fa399;
+  --line: rgba(232, 242, 236, 0.12);
+  --paper: #0c1411;
+  --panel: rgba(18, 32, 28, 0.88);
+  --accent: #3ecf8e;
+  --accent-deep: #1a9f68;
+  --warn: #e8a04a;
+  --danger: #e07060;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
+  --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background:
+    radial-gradient(900px 480px at 12% -8%, rgba(62, 207, 142, 0.14), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.06), transparent 50%),
+    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
+}
+body::before {
+  content: "";
+  position: fixed; inset: 0; pointer-events: none; opacity: .2;
+  background-image:
+    linear-gradient(rgba(232,242,236,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,242,236,.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
+.hidden { display: none !important; }
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .wrap { padding: .55rem 0 1rem; width: min(560px, calc(100% - 1rem)); }
+  h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); }
+  .sub { margin: 0 0 .65rem; font-size: .88rem; }
+  .card { padding: .75rem; border-radius: 14px; }
+  .topbar { margin-bottom: .4rem; }
+  .target-banner { margin: 0 0 .45rem; font-size: .95rem; }
+  .target-banner em { font-size: 1.25rem; }
+  .hint { margin: 0 0 .4rem; min-height: 1.1em; }
+  .board { width: min(100%, 520px, 86vmin); max-height: min(86vmin, 520px); gap: clamp(.18rem, .8vw, .35rem); }
+  .cell { font-size: clamp(.75rem, 2.8vw, 1.15rem); border-radius: 8px; }
+  .actions { margin-top: .3rem; gap: .35rem; }
+  .actions button { padding: .35rem .2rem; font-size: .82rem; border-radius: 10px; }
+}
+h1 {
+  font-family: var(--display);
+  font-size: clamp(2.2rem, 8vw, 3.2rem);
+  margin: 0 0 .35rem;
+  letter-spacing: -.02em;
+  line-height: .95;
+}
+.sub { margin: 0 0 1.4rem; color: var(--muted); line-height: 1.5; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: .85rem;
+}
+.mode-grid { display: grid; gap: .75rem; }
+.mode-btn {
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1rem 1.05rem;
+  background: rgba(255,255,255,.04);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.mode-btn strong { display: block; font-size: 1.15rem; margin-bottom: .25rem; }
+.mode-btn span { color: var(--muted); font-size: .92rem; }
+.choice-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin: 1rem 0; }
+.choice-row.tier-row { margin: .75rem 0 .5rem; }
+.choice-row button {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: .75rem .35rem;
+  font: inherit;
+  font-weight: 700;
+  background: rgba(255,255,255,.04);
+  color: var(--ink);
+  cursor: pointer;
+}
+.choice-row button.active {
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #062016;
+  border-color: transparent;
+}
+.setup-label {
+  margin: 0;
+  font-size: .88rem;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: .04em;
+}
+.diff-desc {
+  margin: 0 0 1rem;
+  padding: .75rem .85rem;
+  border-radius: 12px;
+  background: rgba(62, 207, 142, 0.1);
+  font-size: .92rem;
+  line-height: 1.55;
+  white-space: pre-line;
+  min-height: 4.5em;
+}
+.primary {
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  padding: .95rem;
+  font: inherit;
+  font-weight: 700;
+  color: #062016;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  cursor: pointer;
+}
+.ghost {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: .75rem;
+  font: inherit;
+  background: rgba(255,255,255,.04);
+  cursor: pointer;
+  color: inherit;
+}
+.linkish {
+  display: inline-block;
+  margin-top: 1rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .75rem;
+  font-size: .92rem;
+  color: var(--muted);
+  flex-wrap: wrap;
+}
+.topbar strong { color: var(--ink); }
+.target-banner {
+  text-align: center;
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0 0 .85rem;
+}
+.target-banner em {
+  font-style: normal;
+  color: var(--accent);
+  font-size: 1.6rem;
+}
+.board {
+  display: grid;
+  gap: clamp(.28rem, 1.2vw, .45rem);
+  margin: 0 auto;
+  width: min(100%, 480px, 82vmin);
+  max-height: min(82vmin, 480px);
+  aspect-ratio: 1 / 1;
+  flex: 0 0 auto;
+}
+.cell {
+  min-width: 0;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  border: 1px solid var(--line);
+  border-radius: clamp(8px, 2vw, 12px);
+  background: rgba(232,242,236,.08);
+  font: inherit;
+  font-weight: 700;
+  font-size: clamp(.85rem, 3.6vw, 1.35rem);
+  color: var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background .12s ease, transform .08s ease, border-color .12s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.cell:active { transform: scale(.96); }
+.cell.ok {
+  background: rgba(62, 207, 142, 0.22);
+  border-color: rgba(62, 207, 142, 0.45);
+}
+.cell.bad {
+  background: rgba(224, 112, 96, 0.22);
+  border-color: rgba(224, 112, 96, 0.45);
+}
+.cell.hint {
+  box-shadow: 0 0 0 3px rgba(62, 207, 142, 0.45);
+}
+.cell.done {
+  opacity: .35;
+  cursor: default;
+}
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .55rem;
+  flex: 0 0 auto;
+  margin: 0;
+  position: relative;
+  z-index: 1;
+}
+.actions .wide { grid-column: 1 / -1; }
+.hint {
+  margin: 0 0 .75rem;
+  min-height: 1.3em;
+  color: var(--muted);
+  font-size: .92rem;
+}
+.hint.err { color: var(--danger); }
+.stats-list { list-style: none; margin: 0 0 1rem; padding: 0; }
+.stats-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: .55rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.stats-list li:last-child { border-bottom: 0; }
+</style>
+
+<script>
+(function fgbDailyHead() {
+  if (/(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+    document.documentElement.classList.add("fgb-daily-mode");
+  }
+})();
+</script>
+<style>
+html.fgb-daily-mode #view-home,
+html.fgb-daily-mode #view-setup,
+html.fgb-daily-mode #view-casual,
+html.fgb-daily-mode #view-size,
+html.fgb-daily-mode #view-result,
+html.fgb-daily-mode #view-casual-done { display: none !important; }
+html.fgb-daily-mode .mode-btn,
+html.fgb-daily-mode #casual-extra,
+html.fgb-daily-mode #btn-next,
+html.fgb-daily-mode #btn-restart { display: none !important; }
+/* 闯关 iframe 内：收掉重复顶栏/长说明；棋盘边长由 --fgb-board 动态计算 */
+html.fgb-daily-mode {
+  --fgb-board: 280px;
+  height: 100%;
+}
+html.fgb-daily-mode body { height: 100%; }
+html.fgb-daily-mode:not(.fgb-play-scroll),
+html.fgb-daily-mode:not(.fgb-play-scroll) body { overflow: hidden; }
+html.fgb-daily-mode.fgb-play-scroll,
+html.fgb-daily-mode.fgb-play-scroll body { overflow: auto; }
+html.fgb-daily-mode .wrap {
+  width: min(720px, calc(100% - 0.75rem));
+  padding: 0.35rem 0 0.4rem;
+  box-sizing: border-box;
+}
+html.fgb-daily-mode #view-play > .topbar { display: none !important; }
+html.fgb-daily-mode #view-play > .hint { margin: 0 0 0.3rem; min-height: 1.05em; font-size: 0.88rem; }
+html.fgb-daily-mode #view-play .tip { display: none !important; }
+html.fgb-daily-mode .clover {
+  width: var(--fgb-board) !important;
+  height: var(--fgb-board) !important;
+}
+html.fgb-daily-mode .clover-wrap { margin: 0.1rem 0 0.3rem; }
+html.fgb-daily-mode .leaf { font-size: calc(var(--fgb-board) * 0.11) !important; }
+html.fgb-daily-mode .sudoku-wrap { width: min(100%, var(--fgb-board)) !important; }
+html.fgb-daily-mode .sudoku { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .maze-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .grid-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .diff-panels { max-height: var(--fgb-board) !important; overflow: auto; }
+html.fgb-daily-mode .board {
+  width: min(100%, var(--fgb-board)) !important;
+  max-height: var(--fgb-board) !important;
+}
+
+.confirm-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(6, 14, 12, 0.72);
+  backdrop-filter: blur(2px);
+}
+.confirm-mask.hidden { display: none !important; }
+.confirm-box {
+  width: min(360px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.2rem 1.1rem;
+}
+.confirm-box p {
+  margin: 0 0 1.1rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .55rem;
+}
+.confirm-actions button {
+  border-radius: 14px;
+  padding: .75rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.confirm-actions .confirm-cancel {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+}
+.confirm-actions .confirm-ok {
+  border: 0;
+  color: #062016;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+}
+/* 统一完成反馈：轻量、不挡操作 */
+.celebrate {
+  position: fixed;
+  left: 50%;
+  top: 18%;
+  transform: translate(-50%, -12px) scale(.92);
+  z-index: 1100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease, transform .28s cubic-bezier(.2,.9,.3,1.2);
+}
+.celebrate.show {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+.celebrate-pill {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .7rem 1.1rem .7rem .85rem;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid rgba(62,207,142,.35);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+.celebrate-mark {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #062016;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .95rem;
+  line-height: 1;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(62,207,142,.35);
+  animation: celebratePulse .55s ease;
+}
+@keyframes celebratePulse {
+  0% { box-shadow: 0 0 0 0 rgba(15,122,90,.4); transform: scale(.85); }
+  60% { box-shadow: 0 0 0 10px rgba(15,122,90,0); transform: scale(1.06); }
+  100% { box-shadow: 0 0 0 0 rgba(15,122,90,0); transform: scale(1); }
+}
+.celebrate-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+}
+.celebrate.show .celebrate-burst {
+  animation: celebrateBurst .5s ease forwards;
+}
+.celebrate-burst:nth-child(1) { --dx: -28px; --dy: -22px; }
+.celebrate-burst:nth-child(2) { --dx: 30px; --dy: -18px; background: #c9a227; }
+.celebrate-burst:nth-child(3) { --dx: -22px; --dy: 24px; background: #9a4a12; }
+.celebrate-burst:nth-child(4) { --dx: 26px; --dy: 20px; background: #2471a3; }
+.celebrate-burst:nth-child(5) { --dx: 0; --dy: -32px; background: #7d3c98; }
+.celebrate-burst:nth-child(6) { --dx: 0; --dy: 30px; background: #1e8449; }
+@keyframes celebrateBurst {
+  0% { opacity: .9; transform: translate(0,0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3); }
+}
+
+</style>
+
+</head>
+<body>
+<div class="wrap">
+
+  <section id="view-home">
+    <h1>舒尔特<em>挑战</em></h1>
+    <p class="sub">按顺序点击格子中的数字，训练注意力与扫视速度。</p>
+    <div class="card mode-grid">
+      <button type="button" class="mode-btn" id="btn-casual">
+        <strong>休闲模式</strong>
+        <span>单局计时，可提示、可重来</span>
+      </button>
+      <button type="button" class="mode-btn" id="btn-challenge">
+        <strong>挑战模式</strong>
+        <span>多局累计计时，须依次完成</span>
+      </button>
+    </div>
+    <a class="linkish" href="/">← 返回大厅</a>
+  </section>
+
+  <section id="view-setup" class="hidden">
+    <h1 id="setup-title">开始</h1>
+    <p class="sub" id="setup-sub">选择难度后开始。</p>
+    <div class="card">
+      <p class="setup-label">难度</p>
+      <div class="choice-row tier-row" id="tier-choices">
+        <button type="button" data-tier="intro">入门</button>
+        <button type="button" data-tier="simple">简单</button>
+        <button type="button" data-tier="normal" class="active">普通</button>
+        <button type="button" data-tier="hard">困难</button>
+        <button type="button" data-tier="master">大师</button>
+        <button type="button" data-tier="god">大神</button>
+      </div>
+      <p class="diff-desc" id="diff-desc"></p>
+      <div id="count-block">
+        <p class="setup-label">局数</p>
+        <div class="choice-row" id="count-choices">
+          <button type="button" data-n="5">5 局</button>
+          <button type="button" data-n="10" class="active">10 局</button>
+          <button type="button" data-n="20">20 局</button>
+        </div>
+      </div>
+      <button type="button" class="primary" id="btn-start">开始</button>
+      <div style="height:.65rem"></div>
+      <button type="button" class="ghost" id="btn-setup-back" style="width:100%">返回</button>
+    </div>
+  </section>
+
+  <section id="view-play" class="hidden">
+    <div class="topbar">
+      <span id="play-mode-label">休闲</span>
+      <span id="play-progress"></span>
+      <span id="play-timer"><strong id="timer-text">00:00</strong></span>
+    </div>
+    <p class="target-banner">下一个：<em id="next-num">1</em></p>
+    <p class="hint" id="play-hint">按顺序点击数字</p>
+    <div class="card">
+      <div class="board" id="board" style="grid-template-columns: repeat(5, 1fr);"></div>
+      <div class="actions" id="casual-actions">
+        <button type="button" class="ghost" id="btn-hint">提示</button>
+        <button type="button" class="ghost" id="btn-restart">重来</button>
+        <button type="button" class="ghost wide" id="btn-exit-casual">退出</button>
+      </div>
+      <div class="actions hidden" id="challenge-actions">
+        <button type="button" class="ghost wide" id="btn-exit-challenge">退出并结算</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-result" class="hidden">
+    <h1>结算</h1>
+    <p class="sub" id="result-sub">本局挑战结束</p>
+    <div class="card">
+      <ul class="stats-list">
+        <li><span>局数</span><strong id="st-total">0</strong></li>
+        <li><span>完成</span><strong id="st-done">0</strong></li>
+        <li><span>总用时</span><strong id="st-time">00:00</strong></li>
+        <li><span>平均每局</span><strong id="st-avg">00:00</strong></li>
+      </ul>
+      <button type="button" class="primary" id="btn-again">再来一局</button>
+      <div style="height:.65rem"></div>
+      <button type="button" class="ghost" id="btn-home" style="width:100%">回首页</button>
+    </div>
+  </section>
+
+  <section id="view-casual-done" class="hidden">
+    <h1>完成本局</h1>
+    <p class="sub">用时 <strong id="casual-time">00:00</strong></p>
+    <div class="card">
+      <button type="button" class="primary" id="btn-casual-again">再来一局</button>
+      <div style="height:.65rem"></div>
+      <button type="button" class="ghost" id="btn-casual-home" style="width:100%">回首页</button>
+    </div>
+  </section>
+
+</div>
+<script src="/js/fgb-daily.js"></script>
+<script src="/js/fgb-client.js"></script>
+<script src="/js/fgb-ui.js"></script>
+<script>
+(function () {
+  var dailyQ = (window.FGBDaily && FGBDaily.parseQuery()) || { daily: false };
+  if (!dailyQ.daily) {
+    dailyQ = {
+      daily: /(?:^|[?&])daily=1(?:&|$)/.test(location.search || ""),
+      tier: (new URLSearchParams(location.search || "")).get("tier") || "normal",
+      seed: Number((new URLSearchParams(location.search || "")).get("seed") || "0") || 1,
+    };
+  }
+  var isDaily = !!(dailyQ.daily || window.__FGB_IS_DAILY__);
+  if (isDaily && window.FGBDaily) FGBDaily.installMathRandom(dailyQ.seed || 1);
+
+  const TIERS = {
+    intro:  { size: 3, reverse: false, label: "入门" },
+    simple: { size: 4, reverse: false, label: "简单" },
+    normal: { size: 5, reverse: false, label: "普通" },
+    hard:   { size: 5, reverse: true,  label: "困难" },
+    master: { size: 6, reverse: false, label: "大师" },
+    god:    { size: 6, reverse: true,  label: "大神" },
+  };
+  const TIER_DESCS = {
+    intro: "网格大小：3×3（数字 1–9）。\n点击顺序：正序，从 1 点到 9。\n视觉：单色格子，无额外干扰。",
+    simple: "网格大小：4×4（数字 1–16）。\n点击顺序：正序，从 1 点到 16。\n视觉：单色格子，无额外干扰。",
+    normal: "网格大小：5×5（数字 1–25）（推荐）。\n点击顺序：正序，从 1 点到 25。\n视觉：单色格子，无额外干扰。",
+    hard: "网格大小：5×5（数字 1–25）。\n点击顺序：倒序，从 25 点到 1。\n视觉：单色格子，无额外干扰。",
+    master: "网格大小：6×6（数字 1–36）。\n点击顺序：正序，从 1 点到 36。\n视觉：单色格子，无额外干扰。",
+    god: "网格大小：6×6（数字 1–36）。\n点击顺序：倒序，从 36 点到 1。\n视觉：单色格子，无额外干扰。",
+  };
+
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!TIERS[k]) return;
+      Object.assign(TIERS[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("schulte").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
+
+  const views = {
+    home: document.getElementById("view-home"),
+    setup: document.getElementById("view-setup"),
+    play: document.getElementById("view-play"),
+    result: document.getElementById("view-result"),
+    casualDone: document.getElementById("view-casual-done"),
+  };
+
+  function show(name) {
+    if (isDaily && name !== "play") return;
+    Object.keys(views).forEach(function (k) {
+      views[k].classList.toggle("hidden", k !== name);
+    });
+  }
+
+  function fmtTime(ms) {
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return String(m).padStart(2, "0") + ":" + String(r).padStart(2, "0");
+  }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = (Math.random() * (i + 1)) | 0;
+      const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  let mode = "casual";
+  let selectedTier = "normal";
+  let challengeCount = 10;
+  let challengeTotal = 0;
+  let remaining = [];
+  let done = 0;
+  let roundTimes = [];
+  let startedAt = 0;
+  let roundStartedAt = 0;
+  let timerId = null;
+
+  let size = 5;
+  let reverse = false;
+  let nextTarget = 1;
+  let endTarget = 25;
+  let step = 1;
+  let cells = [];
+  let playing = false;
+
+  const board = document.getElementById("board");
+  const nextNum = document.getElementById("next-num");
+  const hintEl = document.getElementById("play-hint");
+  const diffDesc = document.getElementById("diff-desc");
+  const countBlock = document.getElementById("count-block");
+
+  function setHint(text, cls) {
+    hintEl.textContent = text;
+    hintEl.className = "hint" + (cls ? " " + cls : "");
+  }
+
+  function updateDiffDesc() {
+    diffDesc.textContent = TIER_DESCS[selectedTier] || "";
+  }
+
+  function openSetup(nextMode) {
+    mode = nextMode;
+    document.getElementById("setup-title").textContent =
+      nextMode === "challenge" ? "挑战" : "休闲";
+    document.getElementById("setup-sub").textContent =
+      nextMode === "challenge"
+        ? "选择难度与局数，开始后累计计时。"
+        : "选择难度后开始，可提示、可重来。";
+    countBlock.classList.toggle("hidden", nextMode !== "challenge");
+    updateDiffDesc();
+    show("setup");
+  }
+
+  function applyTier() {
+    const t = TIERS[selectedTier] || TIERS.normal;
+    size = t.size;
+    reverse = t.reverse;
+    const max = size * size;
+    if (reverse) {
+      nextTarget = max;
+      endTarget = 1;
+      step = -1;
+    } else {
+      nextTarget = 1;
+      endTarget = max;
+      step = 1;
+    }
+  }
+
+  function stopTimer() {
+    if (timerId) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+  }
+
+  function startTimer(fromChallengeGlobal) {
+    stopTimer();
+    if (!fromChallengeGlobal) {
+      startedAt = Date.now();
+    }
+    roundStartedAt = Date.now();
+    timerId = window.setInterval(function () {
+      const base = mode === "challenge" ? startedAt : roundStartedAt;
+      document.getElementById("timer-text").textContent = fmtTime(Date.now() - base);
+    }, 200);
+  }
+
+  function updatePlayChrome() {
+    const tierName = (TIERS[selectedTier] || {}).label || "";
+    document.getElementById("play-mode-label").textContent =
+      (mode === "casual" ? "休闲" : "挑战") + (tierName ? " · " + tierName : "");
+    const prog = document.getElementById("play-progress");
+    if (mode === "challenge") {
+      prog.textContent = Math.min(done + 1, challengeTotal) + " / " + challengeTotal;
+      document.getElementById("casual-actions").classList.add("hidden");
+      document.getElementById("challenge-actions").classList.remove("hidden");
+    } else {
+      prog.textContent = "";
+      document.getElementById("casual-actions").classList.remove("hidden");
+      document.getElementById("challenge-actions").classList.add("hidden");
+    }
+    nextNum.textContent = String(nextTarget);
+  }
+
+  function buildBoard() {
+    applyTier();
+    const max = size * size;
+    const nums = shuffle(Array.from({ length: max }, function (_, i) { return i + 1; }));
+    board.style.gridTemplateColumns = "repeat(" + size + ", minmax(0, 1fr))";
+    board.style.gridTemplateRows = "repeat(" + size + ", minmax(0, 1fr))";
+    board.innerHTML = "";
+    cells = [];
+    nums.forEach(function (n) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "cell";
+      btn.textContent = String(n);
+      btn.dataset.n = String(n);
+      btn.addEventListener("click", function () { onCell(btn, n); });
+      board.appendChild(btn);
+      cells.push(btn);
+    });
+    playing = true;
+    updatePlayChrome();
+    setHint(reverse ? "倒序点击：从大到小" : "正序点击：从小到大");
+  }
+
+  function clearHints() {
+    cells.forEach(function (c) { c.classList.remove("hint"); });
+  }
+
+  function onCell(btn, n) {
+    if (!playing) return;
+    if (btn.classList.contains("done")) return;
+    if (n !== nextTarget) {
+      btn.classList.add("bad");
+      setHint("点错了，下一个是 " + nextTarget, "err");
+      window.setTimeout(function () { btn.classList.remove("bad"); }, 220);
+      return;
+    }
+    clearHints();
+    btn.classList.add("ok");
+    window.setTimeout(function () {
+      btn.classList.remove("ok");
+      btn.classList.add("done");
+    }, 120);
+
+    if (nextTarget === endTarget) {
+      playing = false;
+      onRoundComplete();
+      return;
+    }
+    nextTarget += step;
+    nextNum.textContent = String(nextTarget);
+    setHint("下一个：" + nextTarget);
+  }
+
+  function onRoundComplete() {
+    const elapsed = Date.now() - roundStartedAt;
+    if (isDaily) {
+      stopTimer();
+      playing = false;
+      if (window.FGBDaily) FGBDaily.notifyStageDone(elapsed);
+      return;
+    }
+    if (mode === "casual") {
+      stopTimer();
+      document.getElementById("casual-time").textContent = fmtTime(elapsed);
+      celebrateThen(FGB_MSG.done, function () {
+        show("casualDone");
+        if (typeof fgbSubmitScore === "function") fgbSubmitScore({
+          gameId: "schulte", mode: "casual", tier: selectedTier,
+          tierLabel: (TIERS[selectedTier] || {}).label || selectedTier,
+          metrics: { timeMs: elapsed }
+        });
+      });
+      return;
+    }
+    done += 1;
+    roundTimes.push(elapsed);
+    remaining.shift();
+    if (!remaining.length) {
+      finishChallenge();
+      return;
+    }
+    celebrateThen(FGB_MSG.done, function () { startRound(); }, 480);
+  }
+
+  function startRound() {
+    buildBoard();
+    roundStartedAt = Date.now();
+  }
+
+  function startCasual() {
+    ensureDifficulty(function () {
+      mode = "casual";
+      show("play");
+      startTimer(false);
+      startRound();
+    });
+  }
+
+  function startChallenge() {
+    ensureDifficulty(function () {
+      mode = "challenge";
+      done = 0;
+      roundTimes = [];
+      remaining = [];
+      for (let i = 0; i < challengeCount; i++) remaining.push(i);
+      challengeTotal = remaining.length;
+      show("play");
+      startTimer(false);
+      startRound();
+    });
+  }
+
+  function finishChallenge() {
+    stopTimer();
+    const elapsed = Date.now() - startedAt;
+    document.getElementById("st-total").textContent = String(challengeTotal);
+    document.getElementById("st-done").textContent = String(done);
+    document.getElementById("st-time").textContent = fmtTime(elapsed);
+    const avg = roundTimes.length
+      ? Math.round(roundTimes.reduce(function (a, b) { return a + b; }, 0) / roundTimes.length)
+      : 0;
+    document.getElementById("st-avg").textContent = fmtTime(avg);
+    document.getElementById("result-sub").textContent =
+      done === challengeTotal ? "全部完成，漂亮！" : "本局挑战结束";
+    show("result");
+    celebrate(FGB_MSG.sessionDone);
+    if (typeof fgbSubmitScore === "function") fgbSubmitScore({
+      gameId: "schulte", mode: "challenge", tier: selectedTier,
+      tierLabel: (TIERS[selectedTier] || {}).label || selectedTier,
+      metrics: { done: done, total: challengeTotal, timeMs: elapsed, skip: 0 }
+    });
+  }
+
+  document.getElementById("btn-casual").addEventListener("click", function () { openSetup("casual"); });
+  document.getElementById("btn-challenge").addEventListener("click", function () { openSetup("challenge"); });
+  document.getElementById("btn-setup-back").addEventListener("click", function () { show("home"); });
+  document.getElementById("btn-start").addEventListener("click", function () {
+    if (mode === "challenge") startChallenge();
+    else startCasual();
+  });
+
+  document.querySelectorAll("#tier-choices button").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll("#tier-choices button").forEach(function (b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      selectedTier = btn.dataset.tier;
+      updateDiffDesc();
+    });
+  });
+
+  document.querySelectorAll("#count-choices button").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll("#count-choices button").forEach(function (b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      challengeCount = Number(btn.dataset.n);
+    });
+  });
+
+  document.getElementById("btn-hint").addEventListener("click", function () {
+    if (!playing || mode !== "casual") return;
+    clearHints();
+    const target = cells.find(function (c) {
+      return Number(c.dataset.n) === nextTarget && !c.classList.contains("done");
+    });
+    if (target) target.classList.add("hint");
+  });
+
+  document.getElementById("btn-restart").addEventListener("click", function () {
+    if (mode !== "casual") return;
+    startTimer(false);
+    startRound();
+  });
+
+  document.getElementById("btn-exit-casual").addEventListener("click", function () {
+    stopTimer();
+    if (isDaily && window.FGBDaily) { FGBDaily.notifyAbort(); return; }
+    show("home");
+  });
+
+  document.getElementById("btn-exit-challenge").addEventListener("click", function () {
+    if (isDaily && window.FGBDaily) { askConfirm(FGB_MSG.exitConfirm, function () { FGBDaily.notifyAbort(); }); return; }
+    askConfirm(FGB_MSG.exitConfirm, finishChallenge);
+  });
+
+  document.getElementById("btn-again").addEventListener("click", function () { openSetup("challenge"); });
+  document.getElementById("btn-home").addEventListener("click", function () {
+    stopTimer();
+    if (isDaily && window.FGBDaily) { FGBDaily.notifyAbort(); return; }
+    show("home");
+  });
+  document.getElementById("btn-casual-again").addEventListener("click", function () { openSetup("casual"); });
+  document.getElementById("btn-casual-home").addEventListener("click", function () {
+    if (isDaily && window.FGBDaily) { FGBDaily.notifyAbort(); return; }
+    show("home");
+  });
+
+  updateDiffDesc();
+  ensureDifficulty(function () {
+    updateDiffDesc();
+    if (isDaily) {
+      selectedTier = dailyQ.tier && TIERS[dailyQ.tier] ? dailyQ.tier : "normal";
+      document.documentElement.classList.add("fgb-daily-mode");
+      var lobbyLink = document.querySelector('#view-home a.linkish[href="/"]');
+      if (lobbyLink) {
+        lobbyLink.textContent = "退出本关";
+        lobbyLink.href = "#";
+        lobbyLink.addEventListener("click", function (e) {
+          e.preventDefault();
+          if (window.FGBDaily) FGBDaily.notifyAbort();
+        });
+      }
+      startCasual();
+    } else {
+      show("home");
+    }
+  });
+})();
+</script>
+
+<div class="confirm-mask hidden" id="confirm-mask" role="dialog" aria-modal="true">
+  <div class="confirm-box">
+    <p id="confirm-msg">确定？</p>
+    <div class="confirm-actions">
+      <button type="button" class="confirm-cancel" id="confirm-cancel">取消</button>
+      <button type="button" class="confirm-ok" id="confirm-ok">确定</button>
+    </div>
+  </div>
+</div>
+<div class="celebrate hidden" id="celebrate" aria-live="polite">
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <div class="celebrate-pill">
+    <span class="celebrate-mark">✓</span>
+    <span id="celebrate-text">完成！</span>
+  </div>
+</div>
+
+<script>
+
+var FGB_MSG = {
+  exitConfirm: "退出并查看统计？",
+  done: "完成！",
+  sessionDone: "本局完成！"
+};
+
+var _confirmCb = null;
+function askConfirm(message, onYes, onNo) {
+  var mask = document.getElementById("confirm-mask");
+  var msg = document.getElementById("confirm-msg");
+  if (!mask || !msg) {
+    // 无页面内弹层时走 FGBUI；禁止回退到浏览器 confirm/alert
+    if (window.FGBUI && FGBUI.askConfirm) {
+      FGBUI.askConfirm(message, onYes, onNo);
+      return;
+    }
+    if (onYes) onYes();
+    return;
+  }
+  msg.textContent = message || FGB_MSG.exitConfirm;
+  _confirmCb = { yes: onYes, no: onNo };
+  mask.classList.remove("hidden");
+}
+function _resolveConfirm(ok) {
+  var mask = document.getElementById("confirm-mask");
+  if (mask) mask.classList.add("hidden");
+  var cb = _confirmCb;
+  _confirmCb = null;
+  if (!cb) return;
+  if (ok && cb.yes) cb.yes();
+  if (!ok && cb.no) cb.no();
+}
+(function bindConfirmUI() {
+  var ok = document.getElementById("confirm-ok");
+  var cancel = document.getElementById("confirm-cancel");
+  var mask = document.getElementById("confirm-mask");
+  if (ok) ok.addEventListener("click", function () { _resolveConfirm(true); });
+  if (cancel) cancel.addEventListener("click", function () { _resolveConfirm(false); });
+  if (mask) mask.addEventListener("click", function (e) {
+    if (e.target === mask) _resolveConfirm(false);
+  });
+})();
+
+var _celebrateTimer = null;
+/** 轻量完成动效：不挡点击，约 0.5s 自动消失 */
+function celebrate(message) {
+  var el = document.getElementById("celebrate");
+  var text = document.getElementById("celebrate-text");
+  if (!el || !text) return;
+  text.textContent = message || FGB_MSG.done;
+  el.classList.remove("show");
+  void el.offsetWidth;
+  el.classList.add("show");
+  el.classList.remove("hidden");
+  if (_celebrateTimer) clearTimeout(_celebrateTimer);
+  _celebrateTimer = setTimeout(function () {
+    el.classList.remove("show");
+    setTimeout(function () { el.classList.add("hidden"); }, 200);
+  }, 520);
+}
+/** 播完成动效后短延迟回调；默认 480ms，几乎不拖慢下一局 */
+function celebrateThen(message, callback, delayMs) {
+  celebrate(message);
+  var wait = delayMs == null ? 480 : delayMs;
+  setTimeout(function () {
+    if (callback) callback();
+  }, wait);
+}
+
+</script>
+<script>
+/* fgb-daily-boot */
+
+(function () {
+  var qraw = location.search || "";
+  if (!/(?:^|[?&])daily=1(?:&|$)/.test(qraw)) return;
+  var params = new URLSearchParams(qraw);
+  var q = {
+    daily: true,
+    runId: params.get("runId") || "",
+    tier: params.get("tier") || "normal",
+    seed: Number(params.get("seed") || "0") || 1,
+    stageIndex: Number(params.get("stageIndex") || "0") || 0,
+  };
+  window.__FGB_DAILY_Q__ = q;
+  window.__FGB_IS_DAILY__ = true;
+  document.documentElement.classList.add("fgb-daily-mode");
+  if (window.FGBDaily && FGBDaily.installMathRandom) {
+    FGBDaily.installMathRandom(q.seed);
+  }
+  if (window.FGBDaily && FGBDaily.installFitPlay) {
+    FGBDaily.installFitPlay({ min: 168, max: 480, pad: 16 });
+  }
+  window.fgbSubmitScore = function (payload) {
+    var ms = 0;
+    if (payload && payload.metrics && payload.metrics.timeMs != null) ms = payload.metrics.timeMs | 0;
+    if (window.FGBDaily && FGBDaily.notifyStageDone) FGBDaily.notifyStageDone(ms);
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-stage-done", timeMs: ms }, "*");
+    }
+  };
+  function abortDaily(e) {
+    if (e) {
+      e.preventDefault();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      else e.stopPropagation();
+    }
+    if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-abort" }, "*");
+    }
+  }
+  var base = (window.__FGB_BASE__ || "").replace(/\/$/, "");
+  var homeSel = 'a.linkish[href="/"], a[href="/"]';
+  if (base) {
+    homeSel += ', a.linkish[href="' + base + '/"], a[href="' + base + '/"], a.linkish[href="' + base + '"], a[href="' + base + '"]';
+  }
+  document.querySelectorAll(homeSel).forEach(function (a) {
+    a.textContent = "退出本关";
+    a.href = "#";
+    a.addEventListener("click", abortDaily);
+  });
+  // 游戏内退出按钮：每日模式禁止 show(home)，须通知父页结束挑战
+  ["btn-exit", "btn-exit-casual", "btn-exit-challenge"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", abortDaily, true);
+  });
+})();
+
+</script>
+</body>
+</html>

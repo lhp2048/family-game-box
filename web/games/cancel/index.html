@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>划销训练</title>
+<link rel="stylesheet" href="/css/fgb-theme.css">
+
+<script>
+(function fgbDailyHead() {
+  if (/(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+    document.documentElement.classList.add("fgb-daily-mode");
+  }
+})();
+</script>
+<style>
+html.fgb-daily-mode #view-home,
+html.fgb-daily-mode #view-setup,
+html.fgb-daily-mode #view-casual,
+html.fgb-daily-mode #view-size,
+html.fgb-daily-mode #view-result,
+html.fgb-daily-mode #view-casual-done { display: none !important; }
+html.fgb-daily-mode .mode-btn,
+html.fgb-daily-mode #casual-extra,
+html.fgb-daily-mode #btn-next,
+html.fgb-daily-mode #btn-restart { display: none !important; }
+/* 闯关 iframe 内：收掉重复顶栏/长说明；棋盘边长由 --fgb-board 动态计算 */
+html.fgb-daily-mode {
+  --fgb-board: 280px;
+  height: 100%;
+}
+html.fgb-daily-mode body { height: 100%; }
+html.fgb-daily-mode:not(.fgb-play-scroll),
+html.fgb-daily-mode:not(.fgb-play-scroll) body { overflow: hidden; }
+html.fgb-daily-mode.fgb-play-scroll,
+html.fgb-daily-mode.fgb-play-scroll body { overflow: auto; }
+html.fgb-daily-mode .wrap {
+  width: min(720px, calc(100% - 0.75rem));
+  padding: 0.35rem 0 0.4rem;
+  box-sizing: border-box;
+}
+html.fgb-daily-mode #view-play > .topbar { display: none !important; }
+html.fgb-daily-mode #view-play > .hint { margin: 0 0 0.3rem; min-height: 1.05em; font-size: 0.88rem; }
+html.fgb-daily-mode #view-play .tip { display: none !important; }
+html.fgb-daily-mode .clover {
+  width: var(--fgb-board) !important;
+  height: var(--fgb-board) !important;
+}
+html.fgb-daily-mode .clover-wrap { margin: 0.1rem 0 0.3rem; }
+html.fgb-daily-mode .leaf { font-size: calc(var(--fgb-board) * 0.11) !important; }
+html.fgb-daily-mode .sudoku-wrap { width: min(100%, var(--fgb-board)) !important; }
+html.fgb-daily-mode .sudoku { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .maze-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .grid-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .diff-panels { max-height: var(--fgb-board) !important; overflow: auto; }
+html.fgb-daily-mode .board {
+  width: min(100%, var(--fgb-board)) !important;
+  max-height: var(--fgb-board) !important;
+}
+</style>
+
+<style>
+
+:root {
+  --ink: #e8f2ec;
+  --muted: #8fa399;
+  --line: rgba(232, 242, 236, 0.12);
+  --paper: #0c1411;
+  --panel: rgba(18, 32, 28, 0.88);
+  --accent: #3ecf8e;
+  --accent-deep: #1a9f68;
+  --warn: #e8a04a;
+  --danger: #e07060;
+  --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
+  --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background:
+    radial-gradient(900px 480px at 12% -8%, rgba(62, 207, 142, 0.14), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.06), transparent 50%),
+    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
+}
+body::before {
+  content: "";
+  position: fixed; inset: 0; pointer-events: none; opacity: .2;
+  background-image:
+    linear-gradient(rgba(232,242,236,.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,242,236,.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
+.wrap.wide { width: min(720px, calc(100% - 1.5rem)); }
+.hidden { display: none !important; }
+/* 平板横屏 / 矮视口：压缩边距；棋盘尺寸由各游戏用 vmin 吃满短边 */
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .wrap { padding: .55rem 0 1rem; width: min(560px, calc(100% - 1rem)); }
+  .wrap.wide { width: min(960px, calc(100% - 1rem)); }
+  h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); margin-bottom: .2rem; }
+  .sub { margin: 0 0 .65rem; font-size: .88rem; }
+  .card { padding: .75rem; border-radius: 14px; }
+  .topbar { margin-bottom: .45rem; }
+  .hint { margin: 0 0 .4rem; min-height: 1.1em; font-size: .88rem; }
+  .actions { margin-top: .3rem; gap: .35rem; }
+  .actions button { padding: .35rem .2rem; font-size: .82rem; border-radius: 10px; }
+  .task-bar { padding: .45rem .65rem; margin-bottom: .5rem; }
+  .mode-btn { padding: .75rem .85rem; }
+  .choice-row { margin: .65rem 0; }
+  .choice-row button { padding: .65rem .3rem; }
+}
+h1 {
+  font-family: var(--display);
+  font-size: clamp(2rem, 8vw, 3rem);
+  margin: 0 0 .35rem;
+  letter-spacing: -.02em;
+  line-height: .95;
+}
+h1 em { font-style: italic; color: var(--accent); }
+.sub { margin: 0 0 1.4rem; color: var(--muted); line-height: 1.5; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 1.15rem;
+}
+.mode-grid { display: grid; gap: .75rem; }
+.mode-btn {
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1rem 1.05rem;
+  background: rgba(255,255,255,.04);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: transform .15s ease, border-color .15s ease;
+}
+.mode-btn:hover { transform: translateY(-1px); border-color: rgba(62,207,142,.4); }
+.mode-btn strong { display: block; font-size: 1.15rem; margin-bottom: .25rem; }
+.mode-btn span { color: var(--muted); font-size: .92rem; }
+.choice-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin: 1rem 0; }
+.choice-row.two { grid-template-columns: repeat(2, 1fr); }
+.choice-row.six { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 640px) {
+  .choice-row.six { grid-template-columns: repeat(6, 1fr); }
+}
+.choice-row button {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: .9rem .4rem;
+  font: inherit;
+  font-weight: 700;
+  background: rgba(255,255,255,.04);
+  color: var(--ink);
+  cursor: pointer;
+}
+.choice-row button.active {
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #062016;
+  border-color: transparent;
+}
+.primary {
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  padding: .85rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  color: #062016;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  cursor: pointer;
+}
+.ghost {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: .7rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: .9rem;
+  color: var(--muted);
+  font-size: .92rem;
+  flex-wrap: wrap;
+}
+.topbar strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.hint {
+  text-align: center;
+  min-height: 1.4em;
+  margin: 0 0 .8rem;
+  color: var(--muted);
+  font-size: .95rem;
+}
+.hint.err { color: var(--danger); }
+.hint.ok { color: var(--accent); font-weight: 600; }
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .55rem;
+  margin-top: .75rem;
+}
+.actions.two { grid-template-columns: repeat(2, 1fr); }
+.actions button {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: .7rem .3rem;
+  font: inherit;
+  font-weight: 600;
+  background: rgba(255,255,255,.04);
+  cursor: pointer;
+  color: var(--ink);
+}
+.actions button.warn { color: var(--warn); }
+.actions button.danger { color: var(--danger); }
+.stats-list { margin: .8rem 0 1.1rem; padding: 0; list-style: none; }
+.stats-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: .55rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.stats-list li:last-child { border-bottom: 0; }
+.linkish {
+  display: inline-block;
+  margin-top: 1rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.grid-cells {
+  display: grid;
+  gap: 2px;
+  margin: .5rem 0;
+  user-select: none;
+}
+.grid-wrap { overflow: auto; max-height: min(82vmin, 720px); }
+.grid-cells button, .grid-cells .cell {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: rgba(232,242,236,.08);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  aspect-ratio: 1;
+  /* Safari：button+flex 会多出一块空壳，改用 grid 居中 */
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  min-width: 0;
+  line-height: 1;
+}
+.grid-cells button.marked {
+  background: rgba(62,207,142,.18);
+  color: var(--accent);
+  text-decoration: line-through;
+}
+.grid-cells button.found {
+  background: rgba(62,207,142,.25);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.grid-cells button.wrong-flash {
+  animation: wrongFlash .5s ease;
+}
+@keyframes wrongFlash {
+  0%, 100% { background: rgba(232,242,236,.08); }
+  50% { background: rgba(163,59,45,.35); }
+}
+.task-bar {
+  text-align: center;
+  padding: .65rem .8rem;
+  border-radius: 12px;
+  background: rgba(62,207,142,.1);
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: .85rem;
+}
+
+
+.confirm-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(6, 14, 12, 0.72);
+  backdrop-filter: blur(2px);
+}
+.confirm-mask.hidden { display: none !important; }
+.confirm-box {
+  width: min(360px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.2rem 1.1rem;
+}
+.confirm-box p {
+  margin: 0 0 1.1rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .55rem;
+}
+.confirm-actions button {
+  border-radius: 14px;
+  padding: .75rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.confirm-actions .confirm-cancel {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+}
+.confirm-actions .confirm-ok {
+  border: 0;
+  color: #062016;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+}
+/* 统一完成反馈：轻量、不挡操作 */
+.celebrate {
+  position: fixed;
+  left: 50%;
+  top: 18%;
+  transform: translate(-50%, -12px) scale(.92);
+  z-index: 1100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease, transform .28s cubic-bezier(.2,.9,.3,1.2);
+}
+.celebrate.show {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+.celebrate-pill {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .7rem 1.1rem .7rem .85rem;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid rgba(62,207,142,.35);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+.celebrate-mark {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #062016;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .95rem;
+  line-height: 1;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(62,207,142,.35);
+  animation: celebratePulse .55s ease;
+}
+@keyframes celebratePulse {
+  0% { box-shadow: 0 0 0 0 rgba(15,122,90,.4); transform: scale(.85); }
+  60% { box-shadow: 0 0 0 10px rgba(15,122,90,0); transform: scale(1.06); }
+  100% { box-shadow: 0 0 0 0 rgba(15,122,90,0); transform: scale(1); }
+}
+.celebrate-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+}
+.celebrate.show .celebrate-burst {
+  animation: celebrateBurst .5s ease forwards;
+}
+.celebrate-burst:nth-child(1) { --dx: -28px; --dy: -22px; }
+.celebrate-burst:nth-child(2) { --dx: 30px; --dy: -18px; background: #c9a227; }
+.celebrate-burst:nth-child(3) { --dx: -22px; --dy: 24px; background: #9a4a12; }
+.celebrate-burst:nth-child(4) { --dx: 26px; --dy: 20px; background: #2471a3; }
+.celebrate-burst:nth-child(5) { --dx: 0; --dy: -32px; background: #7d3c98; }
+.celebrate-burst:nth-child(6) { --dx: 0; --dy: 30px; background: #1e8449; }
+@keyframes celebrateBurst {
+  0% { opacity: .9; transform: translate(0,0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3); }
+}
+
+
+.target-bar {
+  text-align: center;
+  font-size: 1.15rem;
+  margin-bottom: .65rem;
+}
+.target-bar strong {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  color: var(--accent-deep);
+}
+.grid-wrap {
+  overflow: auto;
+  max-height: min(82vmin, 720px);
+  display: flex;
+  justify-content: center;
+}
+.grid-cells.dense {
+  width: min(100%, 82vmin, 640px);
+  margin: 0;
+}
+.grid-cells.dense button {
+  min-height: 0;
+  aspect-ratio: 1;
+  /* Safari 会给 grid/flex 按钮再套一层空壳，和数字叠成两行。 */
+  display: block;
+  width: 100%;
+  position: relative;
+  font-size: clamp(.72rem, 2.6cqi, 1.25rem);
+  font-weight: 700;
+}
+.grid-cells.dense button > span {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.grid-cells.dense { container-type: inline-size; }
+.target-bar strong {
+  color: var(--accent);
+}
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .target-bar { margin-bottom: .35rem; font-size: 1rem; }
+  .target-bar strong { font-size: 1.25rem; }
+  .grid-wrap { max-height: min(86vmin, 720px); }
+  .grid-cells.dense { width: min(100%, 86vmin, 720px); }
+}
+
+</style>
+</head>
+<body>
+<div class="wrap wide">
+
+  <section id="view-home">
+    <h1>划销<em>训练</em></h1>
+    <p class="sub">在矩阵中找出所有目标数字或汉字并点击标记。难度由格子规模决定。</p>
+    <div class="card mode-grid">
+      <button type="button" class="mode-btn" id="btn-casual">
+        <strong>休闲模式</strong>
+        <span>自选规模与题型，找齐后下一题</span>
+      </button>
+      <button type="button" class="mode-btn" id="btn-challenge">
+        <strong>挑战模式</strong>
+        <span>固定规模连做，统计误点与用时</span>
+      </button>
+    </div>
+    <a class="linkish fgb-nav-link" href="/">← 返回大厅</a>
+  </section>
+
+  <section id="view-casual" class="hidden">
+    <h1>休闲</h1>
+    <p class="sub">选择题型与格子规模。</p>
+    <div class="card">
+      <p style="margin:0 0 .5rem;color:var(--muted);font-size:.9rem">题型</p>
+      <div class="choice-row two" id="casual-type">
+        <button type="button" data-type="digit" class="active">数字</button>
+        <button type="button" data-type="hanzi">汉字</button>
+      </div>
+      <p style="margin:1rem 0 .5rem;color:var(--muted);font-size:.9rem">难度</p>
+      <div class="choice-row six" id="casual-diff">
+<button type="button" data-diff="intro">入门<br><span style="font-weight:500;font-size:.72rem">8×8</span></button>
+<button type="button" data-diff="simple">简单<br><span style="font-weight:500;font-size:.72rem">10×10</span></button>
+<button type="button" data-diff="normal" class="active">普通<br><span style="font-weight:500;font-size:.72rem">12×12</span></button>
+<button type="button" data-diff="hard">困难<br><span style="font-weight:500;font-size:.72rem">14×14</span></button>
+<button type="button" data-diff="master">大师<br><span style="font-weight:500;font-size:.72rem">16×16</span></button>
+<button type="button" data-diff="god">大神<br><span style="font-weight:500;font-size:.72rem">18×18</span></button>
+</div>
+      <button type="button" class="primary" id="btn-casual-start">开始</button>
+      <div style="height:.65rem"></div>
+      <button type="button" class="ghost" id="btn-casual-back" style="width:100%">返回</button>
+    </div>
+  </section>
+
+  <section id="view-setup" class="hidden">
+    <h1>挑战</h1>
+    <p class="sub">选择题型、规模与题量。</p>
+    <div class="card">
+      <p style="margin:0 0 .5rem;color:var(--muted);font-size:.9rem">题型</p>
+      <div class="choice-row two" id="type-choices">
+        <button type="button" data-type="digit" class="active">数字</button>
+        <button type="button" data-type="hanzi">汉字</button>
+      </div>
+      <p style="margin:1rem 0 .5rem;color:var(--muted);font-size:.9rem">难度</p>
+      <div class="choice-row six" id="diff-choices">
+<button type="button" data-diff="intro">入门<br><span style="font-weight:500;font-size:.72rem">8×8</span></button>
+<button type="button" data-diff="simple">简单<br><span style="font-weight:500;font-size:.72rem">10×10</span></button>
+<button type="button" data-diff="normal" class="active">普通<br><span style="font-weight:500;font-size:.72rem">12×12</span></button>
+<button type="button" data-diff="hard">困难<br><span style="font-weight:500;font-size:.72rem">14×14</span></button>
+<button type="button" data-diff="master">大师<br><span style="font-weight:500;font-size:.72rem">16×16</span></button>
+<button type="button" data-diff="god">大神<br><span style="font-weight:500;font-size:.72rem">18×18</span></button>
+</div>
+      <p style="margin:1rem 0 .5rem;color:var(--muted);font-size:.9rem">题量</p>
+      <div class="choice-row" id="count-choices">
+        <button type="button" data-n="5" class="active">5 题</button>
+        <button type="button" data-n="10">10 题</button>
+        <button type="button" data-n="15">15 题</button>
+      </div>
+      <button type="button" class="primary" id="btn-start">开始挑战</button>
+      <div style="height:.65rem"></div>
+      <button type="button" class="ghost" id="btn-setup-back" style="width:100%">返回</button>
+    </div>
+  </section>
+
+  <section id="view-play" class="hidden">
+    <div class="topbar">
+      <span id="play-label">休闲</span>
+      <span id="play-progress"></span>
+      <span>已找 <strong id="found-n">0</strong> / <strong id="total-n">0</strong></span>
+      <span id="play-timer"><strong id="timer-text">00:00</strong></span>
+    </div>
+    <div class="target-bar">请找出所有的：<strong id="target-display">7</strong></div>
+    <p class="hint" id="play-hint">点击目标格进行划销</p>
+    <div class="card">
+      <div class="grid-wrap">
+        <div class="grid-cells dense" id="grid"></div>
+      </div>
+      <div class="actions">
+        <button type="button" class="danger" id="btn-exit">退出</button>
+        <button type="button" id="btn-restart">重来</button>
+        <button type="button" id="btn-done">完成</button>
+      </div>
+      <div class="actions two" id="casual-extra">
+        <button type="button" class="ghost" id="btn-next" style="grid-column:1/-1">下一题</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-result" class="hidden">
+    <h1>结算</h1>
+    <p class="sub" id="result-sub">本局挑战结束</p>
+    <div class="card">
+      <ul class="stats-list">
+        <li><span>题量</span><strong id="st-rounds">0</strong></li>
+        <li><span>规模</span><strong id="st-size">10×10</strong></li>
+        <li><span>完成</span><strong id="st-done">0</strong></li>
+        <li><span>总用时</span><strong id="st-time">00:00</strong></li>
+        <li><span>误点</span><strong id="st-wrong">0</strong></li>
+        <li><span>漏划</span><strong id="st-miss">0</strong></li>
+      </ul>
+      <button type="button" class="primary" id="btn-again">再来一局</button>
+      <div style="height:.65rem"></div>
+      <button type="button" class="ghost" id="btn-home" style="width:100%">回首页</button>
+    </div>
+  </section>
+
+</div>
+
+<div class="confirm-mask hidden" id="confirm-mask" role="dialog" aria-modal="true">
+  <div class="confirm-box">
+    <p id="confirm-msg">确定？</p>
+    <div class="confirm-actions">
+      <button type="button" class="confirm-cancel" id="confirm-cancel">取消</button>
+      <button type="button" class="confirm-ok" id="confirm-ok">确定</button>
+    </div>
+  </div>
+</div>
+<div class="celebrate hidden" id="celebrate" aria-live="polite">
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <div class="celebrate-pill">
+    <span class="celebrate-mark">✓</span>
+    <span id="celebrate-text">完成！</span>
+  </div>
+</div>
+
+<script src="/js/fgb-daily.js"></script>
+<script src="/js/fgb-client.js"></script>
+<script src="/js/fgb-ui.js"></script>
+<script>
+/* fgb-daily-boot */
+
+function showView(views, name) {
+  if (window.__FGB_IS_DAILY__ && name !== "play") return;
+  Object.keys(views).forEach(function (k) {
+    views[k].classList.toggle("hidden", k !== name);
+  });
+}
+function fmtTime(ms) {
+  var s = Math.floor(ms / 1000);
+  var m = Math.floor(s / 60);
+  var r = s % 60;
+  return String(m).padStart(2, "0") + ":" + String(r).padStart(2, "0");
+}
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = (Math.random() * (i + 1)) | 0;
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function randInt(n) { return (Math.random() * n) | 0; }
+function pick(arr) { return arr[randInt(arr.length)]; }
+
+var FGB_MSG = {
+  exitConfirm: "退出并查看统计？",
+  done: "完成！",
+  sessionDone: "本局完成！"
+};
+
+var _confirmCb = null;
+function askConfirm(message, onYes, onNo) {
+  var mask = document.getElementById("confirm-mask");
+  var msg = document.getElementById("confirm-msg");
+  if (!mask || !msg) {
+    // 无页面内弹层时走 FGBUI；禁止回退到浏览器 confirm/alert
+    if (window.FGBUI && FGBUI.askConfirm) {
+      FGBUI.askConfirm(message, onYes, onNo);
+      return;
+    }
+    if (onYes) onYes();
+    return;
+  }
+  msg.textContent = message || FGB_MSG.exitConfirm;
+  _confirmCb = { yes: onYes, no: onNo };
+  mask.classList.remove("hidden");
+}
+function _resolveConfirm(ok) {
+  var mask = document.getElementById("confirm-mask");
+  if (mask) mask.classList.add("hidden");
+  var cb = _confirmCb;
+  _confirmCb = null;
+  if (!cb) return;
+  if (ok && cb.yes) cb.yes();
+  if (!ok && cb.no) cb.no();
+}
+(function bindConfirmUI() {
+  var ok = document.getElementById("confirm-ok");
+  var cancel = document.getElementById("confirm-cancel");
+  var mask = document.getElementById("confirm-mask");
+  if (ok) ok.addEventListener("click", function () { _resolveConfirm(true); });
+  if (cancel) cancel.addEventListener("click", function () { _resolveConfirm(false); });
+  if (mask) mask.addEventListener("click", function (e) {
+    if (e.target === mask) _resolveConfirm(false);
+  });
+})();
+
+var _celebrateTimer = null;
+/** 轻量完成动效：不挡点击，约 0.5s 自动消失 */
+function celebrate(message) {
+  var el = document.getElementById("celebrate");
+  var text = document.getElementById("celebrate-text");
+  if (!el || !text) return;
+  text.textContent = message || FGB_MSG.done;
+  el.classList.remove("show");
+  void el.offsetWidth;
+  el.classList.add("show");
+  el.classList.remove("hidden");
+  if (_celebrateTimer) clearTimeout(_celebrateTimer);
+  _celebrateTimer = setTimeout(function () {
+    el.classList.remove("show");
+    setTimeout(function () { el.classList.add("hidden"); }, 200);
+  }, 520);
+}
+/** 播完成动效后短延迟回调；默认 480ms，几乎不拖慢下一局 */
+function celebrateThen(message, callback, delayMs) {
+  celebrate(message);
+  var wait = delayMs == null ? 480 : delayMs;
+  setTimeout(function () {
+    if (callback) callback();
+  }, wait);
+}
+
+
+(function () {
+  var qraw = location.search || "";
+  if (!/(?:^|[?&])daily=1(?:&|$)/.test(qraw)) return;
+  var params = new URLSearchParams(qraw);
+  var q = {
+    daily: true,
+    runId: params.get("runId") || "",
+    tier: params.get("tier") || "normal",
+    seed: Number(params.get("seed") || "0") || 1,
+    stageIndex: Number(params.get("stageIndex") || "0") || 0,
+  };
+  window.__FGB_DAILY_Q__ = q;
+  window.__FGB_IS_DAILY__ = true;
+  document.documentElement.classList.add("fgb-daily-mode");
+  if (window.FGBDaily && FGBDaily.installMathRandom) {
+    FGBDaily.installMathRandom(q.seed);
+  }
+  if (window.FGBDaily && FGBDaily.installFitPlay) {
+    FGBDaily.installFitPlay({ min: 168, max: 480, pad: 16 });
+  }
+  window.fgbSubmitScore = function (payload) {
+    var ms = 0;
+    if (payload && payload.metrics && payload.metrics.timeMs != null) ms = payload.metrics.timeMs | 0;
+    if (window.FGBDaily && FGBDaily.notifyStageDone) FGBDaily.notifyStageDone(ms);
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-stage-done", timeMs: ms }, "*");
+    }
+  };
+  function abortDaily(e) {
+    if (e) {
+      e.preventDefault();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      else e.stopPropagation();
+    }
+    if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-abort" }, "*");
+    }
+  }
+  var base = (window.__FGB_BASE__ || "").replace(/\/$/, "");
+  var homeSel = 'a.linkish[href="/"], a[href="/"]';
+  if (base) {
+    homeSel += ', a.linkish[href="' + base + '/"], a[href="' + base + '/"], a.linkish[href="' + base + '"], a[href="' + base + '"]';
+  }
+  document.querySelectorAll(homeSel).forEach(function (a) {
+    a.textContent = "退出本关";
+    a.href = "#";
+    a.addEventListener("click", abortDaily);
+  });
+  // 游戏内退出按钮：每日模式禁止 show(home)，须通知父页结束挑战
+  ["btn-exit", "btn-exit-casual", "btn-exit-challenge"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", abortDaily, true);
+  });
+})();
+
+
+(function () {
+  var HANZI = "的一是在不了有和人这中大为上个国我以要他时来用们生到作地于出就分对成会可主发年动同工也能下过子说产种面而方后多定行学法所民得经十三之进着等部度家电力里如水化高自二理起小物现实加量都两体制机当使点从业本去把性好应开它合还因由其些然前外天政四日那社义事平形相全表间样与关各重新线内数正心反你明看原又么利比或但质气第向道命此变条只没结解问意建月公无系军很情者最立代想已通并提直题党程展五果料象员革位入常文总次品式活设及管特件长求老头基资边流路级少图山统接知较将组见计别她手角期根论运农指几九区强放决西被干做必战先回";
+  var views = {
+    home: document.getElementById("view-home"),
+    casual: document.getElementById("view-casual"),
+    setup: document.getElementById("view-setup"),
+    play: document.getElementById("view-play"),
+    result: document.getElementById("view-result")
+  };
+
+  var mode = "casual";
+  var puzzleType = "digit";
+  var diffKey = "normal";
+  var challengeTotal = 5;
+  var roundIndex = 0;
+  var roundsDone = 0;
+  var totalWrong = 0;
+  var totalMiss = 0;
+  var startedAt = 0;
+  var roundStart = 0;
+  var timerId = null;
+
+  var puzzle = null;
+  var marked = {};
+  var frozenUntil = 0;
+
+  var DIFF = {
+    intro: { size: 8, pct: 0.12, label: "入门" },
+    simple: { size: 10, pct: 0.11, label: "简单" },
+    normal: { size: 12, pct: 0.10, label: "普通" },
+    hard: { size: 14, pct: 0.09, label: "困难" },
+    master: { size: 16, pct: 0.07, label: "大师" },
+    god: { size: 18, pct: 0.06, label: "大神" }
+  };
+
+  function mergeDifficultyConfig(cfg) {
+    if (!cfg || !cfg.tiers) return;
+    Object.keys(cfg.tiers).forEach(function (k) {
+      if (!DIFF[k]) return;
+      Object.assign(DIFF[k], cfg.tiers[k]);
+    });
+  }
+  function ensureDifficulty(thenFn) {
+    if (!window.FGB || !FGB.loadDifficulty) { thenFn(); return; }
+    FGB.loadDifficulty("cancel").then(function (cfg) {
+      mergeDifficultyConfig(cfg);
+      thenFn();
+    });
+  }
+
+  function diffLabel(key) {
+    var d = DIFF[key];
+    return d ? d.label : key;
+  }
+
+  function stopTimer() {
+    if (timerId) { clearInterval(timerId); timerId = null; }
+  }
+  function updateTimer() {
+    document.getElementById("timer-text").textContent = fmtTime(Date.now() - startedAt);
+  }
+  function startTimer() {
+    stopTimer();
+    timerId = setInterval(updateTimer, 500);
+    updateTimer();
+  }
+
+  function pickTargetDigit() {
+    return String(randInt(10));
+  }
+  function pickTargetHanzi() {
+    return HANZI.charAt(randInt(HANZI.length));
+  }
+  function pickFillDigit(exclude) {
+    var d;
+    do { d = String(randInt(10)); } while (d === exclude);
+    return d;
+  }
+  function pickFillHanzi(exclude) {
+    var c;
+    do { c = HANZI.charAt(randInt(HANZI.length)); } while (c === exclude);
+    return c;
+  }
+
+  function genPuzzle(type) {
+    var diff = DIFF[diffKey] || DIFF.normal;
+    var n = diff.size;
+    var target = type === "digit" ? pickTargetDigit() : pickTargetHanzi();
+    var count = Math.max(3, Math.round(n * n * diff.pct));
+    var cells = [];
+    var targets = {};
+    var positions = [];
+    for (var r = 0; r < n; r++) {
+      for (var c = 0; c < n; c++) positions.push(r * n + c);
+    }
+    positions = shuffle(positions);
+    for (var i = 0; i < count; i++) targets[positions[i]] = true;
+    for (var i = 0; i < n * n; i++) {
+      if (targets[i]) cells.push(target);
+      else cells.push(type === "digit" ? pickFillDigit(target) : pickFillHanzi(target));
+    }
+    return { n: n, target: target, type: type, cells: cells, targetCount: count };
+  }
+
+  function modeLabel() {
+    var d = DIFF[diffKey];
+    return (mode === "casual" ? "休闲" : "挑战")
+      + " · " + (puzzleType === "digit" ? "数字" : "汉字")
+      + " · " + diffLabel(diffKey);
+  }
+
+  function renderGrid() {
+    var grid = document.getElementById("grid");
+    grid.style.gridTemplateColumns = "repeat(" + puzzle.n + ", 1fr)";
+    grid.innerHTML = "";
+    marked = {};
+    for (var i = 0; i < puzzle.cells.length; i++) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      var label = document.createElement("span");
+      label.textContent = puzzle.cells[i];
+      btn.appendChild(label);
+      btn.dataset.i = String(i);
+      btn.addEventListener("click", function () { onCellClick(Number(this.dataset.i), this); });
+      grid.appendChild(btn);
+    }
+    document.getElementById("target-display").textContent = puzzle.target;
+    document.getElementById("found-n").textContent = "0";
+    document.getElementById("total-n").textContent = String(puzzle.targetCount);
+    document.getElementById("play-hint").className = "hint";
+    document.getElementById("play-hint").textContent = "点击目标格进行划销";
+  }
+
+  function isTarget(i) {
+    return puzzle.cells[i] === puzzle.target;
+  }
+
+  function foundCount() {
+    var n = 0;
+    Object.keys(marked).forEach(function (k) { if (marked[k]) n++; });
+    return n;
+  }
+
+  function onCellClick(i, el) {
+    if (Date.now() < frozenUntil || marked[i]) return;
+    if (isTarget(i)) {
+      marked[i] = true;
+      el.classList.add("marked");
+      var fc = foundCount();
+      document.getElementById("found-n").textContent = String(fc);
+      if (fc >= puzzle.targetCount) onRoundComplete(false);
+    } else {
+      totalWrong++;
+      el.classList.add("wrong-flash");
+      frozenUntil = Date.now() + 500;
+      document.getElementById("play-hint").className = "hint err";
+      document.getElementById("play-hint").textContent = "点错了，再找找";
+    }
+  }
+
+  function onRoundComplete(skipped) {
+    if (!skipped) {
+      roundsDone++;
+    } else {
+      var miss = puzzle.targetCount - foundCount();
+      totalMiss += miss;
+    }
+    if (mode === "challenge") {
+      roundIndex++;
+      document.getElementById("play-progress").textContent =
+        roundIndex + " / " + challengeTotal;
+      if (roundIndex >= challengeTotal) {
+        celebrateThen(FGB_MSG.sessionDone, finishChallenge, 500);
+      } else {
+        celebrateThen(FGB_MSG.done, loadRound, 480);
+      }
+    } else {
+      celebrate(FGB_MSG.done);
+      document.getElementById("play-hint").className = "hint ok";
+      document.getElementById("play-hint").textContent = "找齐了！可点下一题";
+      if (typeof fgbSubmitScore === "function") fgbSubmitScore({
+        gameId: "cancel", mode: "casual", tier: diffKey,
+        metrics: { timeMs: Date.now() - roundStart, correct: 1, total: 1 }
+      });
+    }
+  }
+
+  function loadRound() {
+    roundStart = Date.now();
+    puzzle = genPuzzle(puzzleType);
+    renderGrid();
+  }
+
+  function startCasual() {
+    ensureDifficulty(function () {
+      mode = "casual";
+      stopTimer();
+      document.getElementById("play-label").textContent = modeLabel();
+      document.getElementById("play-progress").textContent = "";
+      document.getElementById("timer-text").textContent = "—";
+      document.getElementById("casual-extra").classList.remove("hidden");
+      showView(views, "play");
+      loadRound();
+    });
+  }
+
+  function startChallenge() {
+    ensureDifficulty(function () {
+      mode = "challenge";
+      roundIndex = 0;
+      roundsDone = 0;
+      totalWrong = 0;
+      totalMiss = 0;
+      startedAt = Date.now();
+      document.getElementById("play-label").textContent = modeLabel();
+      document.getElementById("casual-extra").classList.add("hidden");
+      showView(views, "play");
+      startTimer();
+      loadRound();
+    });
+  }
+
+  function finishChallenge() {
+    stopTimer();
+    var d = DIFF[diffKey];
+    document.getElementById("st-rounds").textContent = String(challengeTotal);
+    document.getElementById("st-size").textContent = d.size + "×" + d.size;
+    document.getElementById("st-done").textContent = String(roundsDone);
+    document.getElementById("st-time").textContent = fmtTime(Date.now() - startedAt);
+    document.getElementById("st-wrong").textContent = String(totalWrong);
+    document.getElementById("st-miss").textContent = String(totalMiss);
+    showView(views, "result");
+    celebrate(FGB_MSG.sessionDone);
+    if (typeof fgbSubmitScore === "function") {
+      fgbSubmitScore({
+        gameId: "cancel", mode: "challenge", tier: diffKey,
+        metrics: {
+          correct: roundsDone, total: challengeTotal, timeMs: Date.now() - startedAt,
+          wrong: totalWrong, miss: totalMiss
+        }
+      });
+    }
+  }
+
+  function bindChoice(selector, onPick) {
+    document.querySelectorAll(selector).forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll(selector).forEach(function (b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+        onPick(btn);
+      });
+    });
+  }
+
+  document.getElementById("btn-casual").addEventListener("click", function () { showView(views, "casual"); });
+  document.getElementById("btn-challenge").addEventListener("click", function () { showView(views, "setup"); });
+  document.getElementById("btn-casual-back").addEventListener("click", function () { showView(views, "home"); });
+  document.getElementById("btn-setup-back").addEventListener("click", function () { showView(views, "home"); });
+  bindChoice("#casual-type button", function (btn) { puzzleType = btn.dataset.type; });
+  bindChoice("#type-choices button", function (btn) { puzzleType = btn.dataset.type; });
+  bindChoice("#casual-diff button", function (btn) { diffKey = btn.dataset.diff; });
+  bindChoice("#diff-choices button", function (btn) { diffKey = btn.dataset.diff; });
+  bindChoice("#count-choices button", function (btn) { challengeTotal = Number(btn.dataset.n); });
+  document.getElementById("btn-casual-start").addEventListener("click", startCasual);
+  document.getElementById("btn-start").addEventListener("click", startChallenge);
+  document.getElementById("btn-exit").addEventListener("click", function () {
+    function doExit() {
+      stopTimer();
+      if (mode === "challenge" && roundIndex > 0) finishChallenge();
+      else showView(views, "home");
+    }
+    if (mode === "challenge" && roundIndex > 0) {
+      askConfirm(FGB_MSG.exitConfirm, doExit);
+      return;
+    }
+    doExit();
+  });
+  document.getElementById("btn-restart").addEventListener("click", renderGrid);
+  document.getElementById("btn-done").addEventListener("click", function () {
+    var miss = puzzle.targetCount - foundCount();
+    if (miss > 0) {
+      totalMiss += miss;
+      document.getElementById("play-hint").className = "hint err";
+      document.getElementById("play-hint").textContent = "还有 " + miss + " 个未找到";
+      if (mode === "challenge") {
+        roundIndex++;
+        if (roundIndex >= challengeTotal) finishChallenge();
+        else loadRound();
+      }
+      return;
+    }
+    onRoundComplete(false);
+  });
+  document.getElementById("btn-next").addEventListener("click", loadRound);
+  document.getElementById("btn-again").addEventListener("click", function () { showView(views, "setup"); });
+  document.getElementById("btn-home").addEventListener("click", function () { stopTimer(); showView(views, "home"); });
+
+  ensureDifficulty(function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      var dq = window.__FGB_DAILY_Q__ || {};
+      if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+      if (dq.tier && DIFF[dq.tier]) diffKey = dq.tier;
+      startCasual();
+    } else {
+      showView(views, "home");
+    }
+  });
+})();
+
+</script>
+</body>
+</html>

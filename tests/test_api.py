@@ -86,6 +86,18 @@ def test_schulte_page():
     assert '__FGB_BASE__="/game-box"' in text
     assert 'href="/game-box/"' in text or 'href="/game-box"' in text
     assert 'src="/game-box/js/fgb-client.js"' in text
+    # Task 7 shared game chrome hooks
+    assert 'data-game-skin="schulte"' in text
+    assert 'id="fgb-topbar"' in text
+    assert 'id="fgb-result"' in text
+    assert 'id="fgb-result-retry"' in text
+    assert 'id="fgb-result-hall"' in text
+    assert 'id="fgb-result-board"' in text
+    assert "fgb-shell.js" in text
+    assert "FGBShell.mountTopbar" in text
+    # Existing in-page result + score submit path unchanged
+    assert 'id="view-result"' in text
+    assert "fgbSubmitScore" in text
 
 
 def test_lobby_html():

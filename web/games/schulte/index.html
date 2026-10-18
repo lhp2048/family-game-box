@@ -274,6 +274,8 @@ html.fgb-daily-mode .wrap {
   box-sizing: border-box;
 }
 html.fgb-daily-mode #view-play > .topbar { display: none !important; }
+html.fgb-daily-mode #fgb-topbar,
+html.fgb-daily-mode #fgb-result { display: none !important; }
 html.fgb-daily-mode #view-play > .hint { margin: 0 0 0.3rem; min-height: 1.05em; font-size: 0.88rem; }
 html.fgb-daily-mode #view-play .tip { display: none !important; }
 html.fgb-daily-mode .clover {
@@ -417,7 +419,8 @@ html.fgb-daily-mode .board {
 </style>
 
 </head>
-<body>
+<body data-game-skin="schulte">
+<header id="fgb-topbar"></header>
 <div class="wrap">
 
   <section id="view-home">
@@ -515,6 +518,7 @@ html.fgb-daily-mode .board {
 <script src="/js/fgb-daily.js"></script>
 <script src="/js/fgb-client.js"></script>
 <script src="/js/fgb-ui.js"></script>
+<script src="/js/fgb-shell.js"></script>
 <script>
 (function () {
   var dailyQ = (window.FGBDaily && FGBDaily.parseQuery()) || { daily: false };
@@ -909,6 +913,20 @@ html.fgb-daily-mode .board {
 })();
 </script>
 
+<div id="fgb-result" class="fgb-result hidden" role="dialog" aria-modal="true" aria-labelledby="fgb-result-title">
+  <div class="fgb-result-box">
+    <h2 id="fgb-result-title" class="fgb-result-title">本局结束</h2>
+    <p id="fgb-result-sub" class="fgb-result-sub"></p>
+    <div id="fgb-result-stats" class="fgb-result-stats"></div>
+    <div class="fgb-result-actions">
+      <button type="button" class="fgb-btn" id="fgb-result-retry">再来一局</button>
+      <a class="fgb-btn-ghost" id="fgb-result-hall" href="/">回大厅</a>
+      <a class="fgb-btn-ghost" id="fgb-result-board" href="/leaderboard">排行榜</a>
+    </div>
+  </div>
+</div>
+
+
 <div class="confirm-mask hidden" id="confirm-mask" role="dialog" aria-modal="true">
   <div class="confirm-box">
     <p id="confirm-msg">确定？</p>
@@ -1063,6 +1081,20 @@ function celebrateThen(message, callback, delayMs) {
   });
 })();
 
+</script>
+<script>
+/* fgb-game-chrome-boot */
+(function () {
+  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) return;
+  var el = document.getElementById("fgb-topbar");
+  if (!el || !window.FGBShell || !FGBShell.mountTopbar) return;
+  FGBShell.mountTopbar(el, {
+    title: "舒尔特挑战",
+    showBack: true,
+    backHref: "/",
+    showUser: true
+  });
+})();
 </script>
 </body>
 </html>

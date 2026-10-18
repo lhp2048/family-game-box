@@ -163,10 +163,10 @@
   - shared result overlay markup/classes
   - body/root `data-game-skin="schulte"` (or class) for per-game skin
 
-- [ ] **Step 1: Design** minimal DOM contract for result overlay (retry / hall / leaderboard links)
-- [ ] **Step 2: Implement** hooks in `game_common` without changing score submit logic
-- [ ] **Step 3: Regenerate** schulte; fix until play + submit still works
-- [ ] **Step 4: Commit** `feat(games): shared chrome hooks in game_common`
+- [x] **Step 1: Design** minimal DOM contract for result overlay (retry / hall / leaderboard links)
+- [x] **Step 2: Implement** hooks in `game_common` without changing score submit logic
+- [x] **Step 3: Regenerate** schulte; fix until play + submit still works
+- [x] **Step 4: Commit** `feat(games): shared chrome hooks in game_common`
 
 ---
 

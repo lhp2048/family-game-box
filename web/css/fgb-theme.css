@@ -876,3 +876,93 @@ body.fgb-daily-playing .fgb-frame iframe {
   border-color: rgba(62, 207, 142, 0.45);
   color: #062016;
 }
+
+/* —— Game chrome: shared result overlay + skin topbar (P2) —— */
+body[data-game-skin] > #fgb-topbar {
+  position: relative;
+  z-index: 1;
+  width: min(560px, calc(100% - 1.5rem));
+  margin: 0.85rem auto 0;
+  padding-bottom: 0.65rem;
+  margin-bottom: 0;
+}
+body[data-game-skin] > #fgb-topbar + .wrap {
+  padding-top: 0.85rem;
+}
+@media (min-width: 640px) {
+  body[data-game-skin] > #fgb-topbar {
+    width: min(720px, calc(100% - 1.5rem));
+  }
+}
+
+.fgb-result {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(4, 10, 8, 0.72);
+  backdrop-filter: blur(4px);
+}
+.fgb-result.hidden { display: none !important; }
+
+.fgb-result-box {
+  width: min(400px, 100%);
+  background: var(--panel-solid);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 1.35rem 1.25rem 1.2rem;
+  color: var(--ink);
+}
+
+.fgb-result-title {
+  font-family: var(--display);
+  font-size: clamp(1.45rem, 4vw, 1.85rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.35rem;
+  line-height: 1.15;
+}
+
+.fgb-result-sub {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+  min-height: 1.2em;
+}
+
+.fgb-result-stats {
+  margin: 0 0 1.15rem;
+}
+.fgb-result-stats .stats-list,
+.fgb-result-stats ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.fgb-result-stats li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px dashed var(--line);
+  font-size: 0.95rem;
+}
+.fgb-result-stats li:last-child { border-bottom: 0; }
+.fgb-result-stats strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.fgb-result-actions {
+  display: grid;
+  gap: 0.55rem;
+}
+.fgb-result-actions .fgb-btn,
+.fgb-result-actions .fgb-btn-ghost {
+  width: 100%;
+  border-radius: 14px;
+  padding: 0.8rem 1rem;
+  font-size: 0.95rem;
+}

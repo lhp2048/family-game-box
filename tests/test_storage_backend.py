@@ -60,3 +60,16 @@ def test_upload_rejected_when_turso_configured(monkeypatch):
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "请到家里的管理页上传游戏包"
+
+
+def test_storage_error_returns_503(monkeypatch):
+    monkeypatch.delenv("TURSO_DATABASE_URL", raising=False)
+    monkeypatch.delenv("VERCEL", raising=False)
+
+    def fail_load(*_args, **_kwargs):
+        raise StorageError("暂时存不上")
+
+    monkeypatch.setattr("app.daily_admin.load_json", fail_load)
+    response = client.get(url("/api/v1/admin/status"))
+    assert response.status_code == 503
+    assert response.json()["detail"] == "暂时存不上"

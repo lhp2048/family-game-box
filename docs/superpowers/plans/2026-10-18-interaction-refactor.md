@@ -191,10 +191,10 @@
 - Regenerate: remaining `web/games/*` via build scripts
 - Test: smoke each game launch + one score path where applicable
 
-- [ ] **Step 1: List** remaining games from hall grid
-- [ ] **Step 2: Regenerate** all with shared chrome; add light per-game skin accents
-- [ ] **Step 3: Smoke** each opens and returns to hall
-- [ ] **Step 4: Commit** `feat(games): apply shared chrome to remaining free-train games`
+- [x] **Step 1: List** remaining games from hall grid
+- [x] **Step 2: Regenerate** all with shared chrome; add light per-game skin accents
+- [x] **Step 3: Smoke** each opens and returns to hall
+- [x] **Step 4: Commit** `feat(games): apply shared chrome to remaining free-train games`
 
 ---
 

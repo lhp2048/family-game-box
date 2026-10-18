@@ -168,6 +168,30 @@ def test_attention_game_page():
     assert "fgbSubmitScore" in text or "submitScore" in text or "view-result" in text
 
 
+
+def test_remaining_free_train_chrome():
+    """Task 9: cancel/simon/spot-diff/maze/sudoku share chrome + skin hooks."""
+    root = Path(__file__).resolve().parents[1]
+    expected = {
+        "cancel": "cancel",
+        "simon": "simon",
+        "spot-diff": "spot-diff",
+        "maze": "maze",
+        "sudoku": "sudoku",
+    }
+    for slug, skin in expected.items():
+        html = (root / "web" / "games" / slug / "index.html").read_text(encoding="utf-8")
+        assert 'data-game-skin="%s"' % skin in html, slug
+        assert 'id="fgb-topbar"' in html, slug
+        assert 'id="fgb-result"' in html, slug
+        assert "fgb-shell.js" in html, slug
+        assert "FGBShell.mountTopbar" in html, slug
+        assert "← 返回大厅" in html or "回大厅" in html, slug
+    theme = (root / "web" / "css" / "fgb-theme.css").read_text(encoding="utf-8")
+    for skin in expected.values():
+        assert 'data-game-skin="%s"' % skin in theme, skin
+
+
 def test_24points_play_and_bank():
     login_as(client, "pts24_play")
     page = client.get(p("/games/24points/play.html"))

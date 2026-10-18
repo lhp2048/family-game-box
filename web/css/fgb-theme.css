@@ -1034,3 +1034,106 @@ body[data-game-skin="stroop"] .color-grid button {
 body[data-game-skin="stroop"] .mode-btn:hover {
   border-color: rgba(107, 155, 255, 0.45);
 }
+
+/* —— Remaining free-train skins (Task 9): light accents; shared chrome unchanged —— */
+
+body[data-game-skin="cancel"] {
+  --accent: #3ecf8e;
+  --accent-deep: #1a9f68;
+  --skin-glow: rgba(62, 207, 142, 0.18);
+  background:
+    radial-gradient(900px 480px at 10% -8%, rgba(62, 207, 142, 0.16), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.07), transparent 50%),
+    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
+}
+body[data-game-skin="cancel"] .target-bar {
+  background: rgba(62, 207, 142, 0.12);
+  border: 1px solid rgba(62, 207, 142, 0.28);
+  border-radius: 12px;
+}
+body[data-game-skin="cancel"] .grid-cells button.marked,
+body[data-game-skin="cancel"] .grid-cells .cell.marked {
+  background: rgba(62, 207, 142, 0.2);
+  color: var(--accent);
+}
+
+body[data-game-skin="simon"] {
+  --accent: #c084fc;
+  --accent-deep: #9333ea;
+  --skin-glow: rgba(192, 132, 252, 0.2);
+  background:
+    radial-gradient(900px 480px at 16% -8%, rgba(192, 132, 252, 0.18), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(62, 207, 142, 0.06), transparent 50%),
+    linear-gradient(165deg, #100a16 0%, #120c18 45%, #16101c 100%);
+}
+body[data-game-skin="simon"] .task-bar {
+  background: rgba(192, 132, 252, 0.14);
+  color: var(--accent);
+  border: 1px solid rgba(192, 132, 252, 0.3);
+}
+body[data-game-skin="simon"] .mode-btn:hover {
+  border-color: rgba(192, 132, 252, 0.45);
+}
+
+body[data-game-skin="spot-diff"] {
+  --accent: #38bdf8;
+  --accent-deep: #0284c7;
+  --skin-glow: rgba(56, 189, 248, 0.18);
+  background:
+    radial-gradient(900px 480px at 14% -8%, rgba(56, 189, 248, 0.18), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.07), transparent 50%),
+    linear-gradient(165deg, #0a1218 0%, #0c1419 45%, #10161c 100%);
+}
+body[data-game-skin="spot-diff"] .diff-panels,
+body[data-game-skin="spot-diff"] .diff-panel {
+  border-color: rgba(56, 189, 248, 0.28);
+}
+body[data-game-skin="spot-diff"] .panel-label {
+  color: var(--accent);
+}
+body[data-game-skin="spot-diff"] .mode-btn:hover {
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+body[data-game-skin="maze"] {
+  --accent: #34d399;
+  --accent-deep: #059669;
+  --skin-glow: rgba(52, 211, 153, 0.18);
+  background:
+    radial-gradient(900px 480px at 12% -8%, rgba(52, 211, 153, 0.16), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(125, 211, 252, 0.08), transparent 50%),
+    linear-gradient(165deg, #0a1412 0%, #0c1614 45%, #101a18 100%);
+}
+body[data-game-skin="maze"] .maze-wrap,
+body[data-game-skin="maze"] .maze {
+  box-shadow:
+    inset 0 0 0 1px rgba(52, 211, 153, 0.25),
+    0 12px 32px rgba(0, 0, 0, 0.28);
+  border-radius: 12px;
+}
+body[data-game-skin="maze"] .mode-btn:hover {
+  border-color: rgba(52, 211, 153, 0.45);
+}
+
+body[data-game-skin="sudoku"] {
+  --accent: #fbbf24;
+  --accent-deep: #d97706;
+  --skin-glow: rgba(251, 191, 36, 0.16);
+  background:
+    radial-gradient(900px 480px at 12% -8%, rgba(251, 191, 36, 0.14), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(62, 207, 142, 0.06), transparent 50%),
+    linear-gradient(165deg, #12100a 0%, #14120c 45%, #1a1610 100%);
+}
+body[data-game-skin="sudoku"] .sudoku-wrap,
+body[data-game-skin="sudoku"] .sudoku {
+  box-shadow:
+    inset 0 0 0 1px rgba(251, 191, 36, 0.28),
+    0 12px 32px rgba(0, 0, 0, 0.28);
+  border-radius: 10px;
+}
+body[data-game-skin="sudoku"] .mode-btn:hover {
+  border-color: rgba(251, 191, 36, 0.45);
+}
+body[data-game-skin="sudoku"] .choice-row button.active {
+  color: #1a1208;
+}

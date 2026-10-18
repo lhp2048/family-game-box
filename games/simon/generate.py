@@ -707,7 +707,13 @@ def sync_audio(web_index: Path) -> None:
 
 
 def build_html() -> str:
-    return build_page("Simon Says · 老师说", EXTRA_CSS, inject_lobby_link(BODY), SCRIPT)
+    return build_page(
+        "Simon Says · 老师说",
+        EXTRA_CSS,
+        inject_lobby_link(BODY),
+        SCRIPT,
+        game_skin="simon",
+    )
 
 
 def main() -> None:

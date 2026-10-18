@@ -753,7 +753,14 @@ SCRIPT = r"""
 
 
 def build_html() -> str:
-    return build_page("迷宫追踪", EXTRA_CSS, inject_lobby_link(BODY), SCRIPT, wide=True)
+    return build_page(
+        "迷宫追踪",
+        EXTRA_CSS,
+        inject_lobby_link(BODY),
+        SCRIPT,
+        wide=True,
+        game_skin="maze",
+    )
 
 
 def main() -> None:

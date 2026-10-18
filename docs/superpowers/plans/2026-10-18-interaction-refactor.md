@@ -218,10 +218,10 @@
 - Related prior art: `docs/superpowers/specs/2026-09-02-landscape-bottom-compress-design.md`
 - Test: tablet-width DevTools + real device if available
 
-- [ ] **Step 1: Audit** hit targets (<44px) on shell + result overlays
-- [ ] **Step 2: Align** landscape bottom compress with shared chrome
-- [ ] **Step 3: Smoke** portrait/landscape on hall + one game
-- [ ] **Step 4: Commit** `fix(ui): touch and landscape polish`
+- [x] **Step 1: Audit** hit targets (<44px) on shell + result overlays
+- [x] **Step 2: Align** landscape bottom compress with shared chrome
+- [x] **Step 3: Smoke** portrait/landscape on hall + one game
+- [x] **Step 4: Commit** `fix(ui): touch and landscape polish`
 
 ---
 

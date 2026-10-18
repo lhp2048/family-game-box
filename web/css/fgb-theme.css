@@ -1178,3 +1178,124 @@ body[data-game-skin="24points-library"] .card {
 body[data-game-skin="24points-library"] > #fgb-topbar {
   width: min(920px, calc(100% - 1.5rem));
 }
+
+/* —— P3 touch + landscape polish (Task 11) —— */
+/* Audit: shared chrome controls should be ≥44px; game board .actions stay compact in landscape */
+
+.fgb-btn,
+.fgb-btn-ghost,
+.fgb-nav-link {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.65rem 1.15rem;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.fgb-chip {
+  min-height: 44px;
+  padding: 0.55rem 1rem;
+  box-sizing: border-box;
+}
+
+.fgb-chip [data-fgb-logout] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 0.4rem;
+  margin-left: 0.15rem;
+  box-sizing: border-box;
+}
+
+.fgb-confirm-actions button {
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+.fgb-result-actions .fgb-btn,
+.fgb-result-actions .fgb-btn-ghost {
+  min-height: 48px;
+  padding: 0.85rem 1rem;
+}
+
+/* Safe-area insets (notch / home indicator) */
+.fgb-shell,
+main.fgb-shell {
+  padding-left: max(0px, env(safe-area-inset-left, 0px));
+  padding-right: max(0px, env(safe-area-inset-right, 0px));
+  padding-bottom: max(3.5rem, calc(2rem + env(safe-area-inset-bottom, 0px)));
+}
+
+body[data-game-skin] > #fgb-topbar {
+  padding-left: max(0px, env(safe-area-inset-left, 0px));
+  padding-right: max(0px, env(safe-area-inset-right, 0px));
+}
+
+.fgb-result {
+  padding-top: max(1rem, env(safe-area-inset-top, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+}
+
+.fgb-confirm-mask {
+  padding-top: max(1rem, env(safe-area-inset-top, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+}
+
+body.fgb-daily-playing .fgb-shell,
+body.fgb-daily-playing main.fgb-shell {
+  padding-bottom: max(0.55rem, env(safe-area-inset-bottom, 0px));
+  padding-left: max(0px, env(safe-area-inset-left, 0px));
+  padding-right: max(0px, env(safe-area-inset-right, 0px));
+}
+
+/* Landscape / short viewport: compress shared chrome like game_common .wrap */
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .fgb-topbar {
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+    gap: 0.5rem;
+  }
+  .fgb-page-kicker { font-size: 0.75rem; margin-top: 0.15rem; }
+
+  body[data-game-skin] > #fgb-topbar {
+    margin-top: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
+  body[data-game-skin] > #fgb-topbar + .wrap,
+  body[data-game-skin] > #fgb-topbar + .fgb-shell {
+    padding-top: 0.35rem;
+  }
+
+  .fgb-shell,
+  main.fgb-shell {
+    padding-bottom: max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)));
+  }
+
+  .fgb-result-box {
+    width: min(400px, 100%);
+    max-height: min(88dvh, 100%);
+    overflow: auto;
+    padding: 1rem 1rem 0.9rem;
+    border-radius: 16px;
+  }
+  .fgb-result-title { margin-bottom: 0.2rem; }
+  .fgb-result-sub { margin-bottom: 0.65rem; }
+  .fgb-result-stats { margin-bottom: 0.75rem; }
+  .fgb-result-actions { gap: 0.45rem; }
+
+  /* Keep chrome hit targets ≥44px even when page chrome is compressed */
+  .fgb-btn,
+  .fgb-btn-ghost,
+  .fgb-nav-link,
+  .fgb-result-actions .fgb-btn,
+  .fgb-result-actions .fgb-btn-ghost,
+  .fgb-confirm-actions button {
+    min-height: 44px;
+  }
+}

@@ -31,3 +31,32 @@ def test_vercel_without_turso_refuses_writes(tmp_path, monkeypatch):
     with pytest.raises(StorageError):
         save_json("scores.json", {"version": 1})
     assert not (tmp_path / "scores.json").exists()
+
+
+from fastapi.testclient import TestClient
+
+from app.main import app
+from helpers import url
+
+client = TestClient(app)
+
+
+def test_health_reports_file_storage(monkeypatch):
+    monkeypatch.delenv("TURSO_DATABASE_URL", raising=False)
+    monkeypatch.delenv("VERCEL", raising=False)
+    body = client.get(url("/api/v1/health")).json()
+    assert body["status"] == "running"
+    assert body["storage"] == "file"
+    assert body["ready"] is True
+
+
+def test_upload_rejected_when_turso_configured(monkeypatch):
+    monkeypatch.setenv("TURSO_DATABASE_URL", "libsql://box.turso.io")
+    monkeypatch.setenv("TURSO_AUTH_TOKEN", "token")
+    response = client.post(
+        url("/api/v1/admin/games/upload"),
+        files={"file": ("game.zip", b"PK", "application/zip")},
+        headers={"X-Admin-Token": "nope"},
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "请到家里的管理页上传游戏包"

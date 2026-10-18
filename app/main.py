@@ -23,6 +23,7 @@ from app.root_path import get_root_path
 from app.scores import get_global_leaderboard, get_leaderboard, get_personal_bests, get_recent_leaderboard, submit_score
 from app.terminals import get_me, register_terminal, validate_terminal_id
 from app import yuwen_daily as yuwen_daily_mod
+from app.storage import StorageError
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB_DIR = ROOT / "web"
@@ -38,12 +39,18 @@ def _load_version() -> str:
 
 
 def _health_payload() -> Dict[str, Any]:
+    from app.storage import health as storage_health
+
+    info = storage_health()
+    status = "running" if info["ready"] else "not_ready"
     return {
-        "status": "running",
+        "status": status,
         "service": "family_game_box",
         "version": _load_version(),
         "port": 18029,
         "rootPath": get_root_path() or "/",
+        "storage": info["storage"],
+        "ready": info["ready"],
     }
 
 
@@ -138,6 +145,10 @@ def create_app() -> FastAPI:
                 media_type="text/html; charset=utf-8",
             )
 
+    @app.exception_handler(StorageError)
+    async def storage_unavailable(_request: Request, _exc: StorageError):
+        return JSONResponse({"detail": "暂时存不上"}, status_code=503)
+
     return app
 
 
@@ -192,6 +203,10 @@ def _register_routes(api: APIRouter) -> None:
         file: UploadFile = File(...),
         x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token"),
     ):
+        from app.storage import turso_configured
+
+        if turso_configured():
+            raise HTTPException(status_code=400, detail="请到家里的管理页上传游戏包")
         try:
             daily_admin_mod.require_admin(x_admin_token)
             raw = await file.read()

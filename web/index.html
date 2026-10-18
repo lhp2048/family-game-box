@@ -8,24 +8,7 @@
 </head>
 <body>
 <main class="fgb-shell">
-  <header class="fgb-topbar">
-    <div>
-      <h1 class="fgb-brand">家庭<em>游戏盒</em></h1>
-      <span class="fgb-page-kicker">竞技厅</span>
-    </div>
-    <div class="fgb-nav">
-      <div class="fgb-chip" id="user-chip" hidden>你好，<strong id="user-name">—</strong>
-        <a href="#" id="logout-btn" style="margin-left:6px;color:var(--muted);font-size:.85rem">退出</a>
-      </div>
-      <span id="auth-links">
-        <a class="fgb-nav-link" href="/login">登录</a>
-        <a class="fgb-nav-link" href="/register">注册</a>
-      </span>
-      <a class="fgb-nav-link" href="/daily/leaderboard">专注力挑战榜</a>
-      <a class="fgb-nav-link" href="/yuwen-daily/leaderboard">语文挑战榜</a>
-      <a class="fgb-nav-link" href="/leaderboard">排行榜</a>
-    </div>
-  </header>
+  <header id="fgb-topbar"></header>
 
   <section class="fgb-stat-strip" id="stat-strip" aria-label="我的战绩">
     <div class="cell">
@@ -77,12 +60,31 @@
 </main>
 <script src="/js/fgb-client.js"></script>
 <script src="/js/fgb-ui.js"></script>
+<script src="/js/fgb-shell.js"></script>
 <script>
 (function () {
-  var userChip = document.getElementById("user-chip");
-  var userName = document.getElementById("user-name");
-  var authLinks = document.getElementById("auth-links");
   var list = document.getElementById("game-list");
+
+  FGBShell.mountTopbar(document.getElementById("fgb-topbar"), {
+    title: "竞技厅",
+    showUser: true,
+  });
+
+  // Hall board links — append after shell chip/auth without extending FGBShell API
+  var topNav = document.querySelector("#fgb-topbar .fgb-nav");
+  if (topNav) {
+    [
+      { href: "/daily/leaderboard", label: "专注力挑战榜" },
+      { href: "/yuwen-daily/leaderboard", label: "语文挑战榜" },
+      { href: "/leaderboard", label: "排行榜" },
+    ].forEach(function (item) {
+      var a = document.createElement("a");
+      a.className = "fgb-nav-link";
+      a.href = FGB.url(item.href);
+      a.textContent = item.label;
+      topNav.appendChild(a);
+    });
+  }
 
   function esc(s) {
     return String(s || "").replace(/[&<>"']/g, function (c) {
@@ -107,17 +109,6 @@
     if (!(games || []).length) {
       list.innerHTML = "<p class=\"fgb-lead\">暂无可用游戏</p>";
     }
-  }
-
-  function showLoggedIn(username) {
-    userName.textContent = username;
-    userChip.hidden = false;
-    authLinks.hidden = true;
-  }
-
-  function showLoggedOut() {
-    userChip.hidden = true;
-    authLinks.hidden = false;
   }
 
   function maybeOfferClaim(me) {
@@ -192,19 +183,8 @@
     return FGB.loadLobbySummary().then(renderSummary);
   }
 
-  document.getElementById("logout-btn").addEventListener("click", function (e) {
-    e.preventDefault();
-    FGB.logout().then(function () {
-      showLoggedOut();
-      refreshSummary();
-    }).catch(function () {
-      showLoggedOut();
-    });
-  });
-
   FGB.authMe().then(function (me) {
     if (me && me.loggedIn) {
-      showLoggedIn(me.username || "—");
       return FGB.ensureTerminalFromUser(me.username).then(function () {
         return FGB.authMe().then(function (me2) {
           maybeOfferClaim(me2 || me);
@@ -213,9 +193,8 @@
         maybeOfferClaim(me);
       });
     }
-    showLoggedOut();
   }).catch(function () {
-    showLoggedOut();
+    /* guest: hall stays public */
   }).then(refreshSummary);
 
   fetch(FGB.url("/api/v1/games")).then(function (r) { return r.ok ? r.json() : null; }).then(function (data) {

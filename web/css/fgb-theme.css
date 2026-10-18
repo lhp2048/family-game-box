@@ -1,4 +1,4 @@
-/* family_game_box — shared lobby theme (light competitive hall) */
+/* family_game_box — shared lobby theme (dark competitive hall) */
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap");
 
 :root {
@@ -382,6 +382,29 @@ a:hover { color: #6fe0ab; }
   color: var(--ink);
 }
 
+/* Shared auth / shell form fields (login, register, play-gate) */
+.fgb-field {
+  margin-bottom: 0.75rem;
+}
+.fgb-field > label {
+  display: block;
+  margin-bottom: 0.35rem;
+}
+.fgb-form-actions {
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-top: 0.85rem;
+  align-items: center;
+}
+.fgb-muted-link {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+.fgb-muted-link a {
+  color: var(--accent);
+}
+
 .fgb-my-best {
   margin: 0 0 0.85rem;
   padding: 0.85rem 1rem;
@@ -760,3 +783,96 @@ body.fgb-daily-playing .fgb-frame iframe {
   font-size: 0.92rem;
 }
 .fgb-podium-list li:last-child { border-bottom: 0; }
+
+
+/* —— Overlays: toast + confirm (moved from fgb-ui.js inject; dark-hall tokens) —— */
+.fgb-confirm-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(4, 10, 8, 0.72);
+  backdrop-filter: blur(4px);
+}
+.fgb-confirm-mask.hidden { display: none !important; }
+
+.fgb-confirm-box {
+  width: min(360px, 100%);
+  background: var(--panel-solid);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.2rem 1.1rem;
+  color: var(--ink);
+}
+.fgb-confirm-box p {
+  margin: 0 0 1.1rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+.fgb-confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+}
+.fgb-confirm-actions button {
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.fgb-confirm-cancel {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+}
+.fgb-confirm-cancel:hover {
+  border-color: rgba(62, 207, 142, 0.35);
+  color: var(--ink);
+}
+.fgb-confirm-ok {
+  border: 0;
+  color: #062016;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+}
+.fgb-confirm-ok:hover { filter: brightness(1.06); }
+
+.fgb-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%) translateY(8px);
+  z-index: 1100;
+  max-width: min(420px, 90vw);
+  padding: 0.7rem 1.1rem;
+  border-radius: 12px;
+  background: rgba(18, 32, 28, 0.96);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  font-size: 0.95rem;
+  line-height: 1.4;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.22s ease;
+}
+.fgb-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+.fgb-toast.err {
+  background: rgba(224, 112, 96, 0.95);
+  border-color: rgba(224, 112, 96, 0.55);
+  color: #1a1208;
+}
+.fgb-toast.ok {
+  background: rgba(26, 159, 104, 0.95);
+  border-color: rgba(62, 207, 142, 0.45);
+  color: #062016;
+}

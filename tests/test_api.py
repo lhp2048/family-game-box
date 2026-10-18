@@ -94,8 +94,11 @@ def test_lobby_html():
     text = r.text
     assert 'id="game-list"' in text
     assert "/api/v1/games" in text
-    assert 'href="/game-box/leaderboard"' in text
+    # Free-train board link lives in shell top-nav JS (FGB.url), not a static href
+    assert 'href: "/leaderboard"' in text or 'href="/game-box/leaderboard"' in text
     assert "fgb-client.js" in text
+    assert "fgb-shell.js" in text
+    assert "FGBShell.mountTopbar" in text
     assert "每日专注力挑战" in text
     assert "每日语文挑战" in text
     assert 'href="/game-box/yuwen-daily"' in text

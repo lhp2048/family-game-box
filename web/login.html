@@ -5,106 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>登录 · 家庭游戏盒</title>
 <link rel="stylesheet" href="/css/fgb-theme.css">
-<style>
-.actions-row { display: flex; gap: 0.65rem; flex-wrap: wrap; margin-top: 0.85rem; align-items: center; }
-.form-field { margin-bottom: 0.75rem; }
-.form-field label { display: block; margin-bottom: 0.35rem; }
-.muted-link { color: var(--muted); font-size: 0.9rem; }
-.muted-link a { color: var(--accent); }
-</style>
 </head>
 <body>
 <main class="fgb-shell">
-  <header class="fgb-topbar">
-    <div>
-      <a class="fgb-brand" href="/">家庭<em>游戏盒</em></a>
-      <span class="fgb-page-kicker">登录</span>
-    </div>
-    <div class="fgb-nav">
-      <a class="fgb-nav-link" href="/">回大厅</a>
-      <a class="fgb-nav-link" href="/register" id="link-register">注册</a>
-    </div>
-  </header>
+  <header id="fgb-topbar"></header>
 
   <section class="fgb-panel fgb-panel-pad" style="max-width:420px;margin:0 auto">
     <h1 class="fgb-page-title" style="font-size:1.85rem">登录账号</h1>
     <p class="fgb-lead">登录后可跨设备继续玩，并保存个人成绩。</p>
     <div class="fgb-err" id="err"></div>
     <form id="login-form">
-      <div class="form-field">
+      <div class="fgb-field">
         <label class="fgb-page-kicker" for="username">用户名</label>
         <input class="fgb-input" type="text" id="username" name="username" autocomplete="username" required maxlength="16">
       </div>
-      <div class="form-field">
+      <div class="fgb-field">
         <label class="fgb-page-kicker" for="password">个人口令</label>
         <input class="fgb-input" type="password" id="password" name="password" autocomplete="current-password" required maxlength="128">
       </div>
-      <div class="actions-row">
+      <div class="fgb-form-actions">
         <button type="submit" class="fgb-btn">登录</button>
-        <span class="muted-link">没有账号？<a href="/register" id="link-register-2">去注册</a></span>
+        <span class="fgb-muted-link">没有账号？<a href="/register" id="link-register-2">去注册</a></span>
       </div>
     </form>
   </section>
 </main>
 <script src="/js/fgb-client.js"></script>
+<script src="/js/fgb-ui.js"></script>
+<script src="/js/fgb-shell.js"></script>
 <script>
 (function () {
-  var params = new URLSearchParams(window.location.search);
-  var rawNext = params.get("next") || "/";
-  function decodeNext(raw) {
-    var prev = raw;
-    for (var n = 0; n < 5; n++) {
-      var nxt;
-      try { nxt = decodeURIComponent(prev); }
-      catch (e) { return ""; }
-      if (nxt === prev) return nxt;
-      prev = nxt;
-    }
-    return prev;
-  }
-  function posixNormpath(path) {
-    if (!path) return ".";
-    var initial = 0;
-    if (path.charAt(0) === "/") {
-      initial = 1;
-      if (path.indexOf("//") === 0 && path.indexOf("///") !== 0) initial = 2;
-    }
-    var comps = path.split("/");
-    var out = [];
-    for (var i = 0; i < comps.length; i++) {
-      var comp = comps[i];
-      if (comp === "" || comp === ".") continue;
-      if (comp !== ".." || (initial === 0 && !out.length) || (out.length && out[out.length - 1] === "..")) {
-        out.push(comp);
-      } else if (out.length) {
-        out.pop();
-      }
-    }
-    var joined = out.join("/");
-    if (initial) joined = new Array(initial + 1).join("/") + joined;
-    return joined || ".";
-  }
-  function safeNext(raw) {
-    if (!raw) return "/";
-    var decoded = decodeNext(raw);
-    if (!decoded) return "/";
-    if (decoded.indexOf("\\") !== -1) return "/";
-    for (var i = 0; i < decoded.length; i++) {
-      var code = decoded.charCodeAt(i);
-      if (code < 32 || code === 127) return "/";
-    }
-    if (!decoded.startsWith("/") || decoded.startsWith("//")) return "/";
-    var q = decoded.indexOf("?");
-    var pathOnly = q === -1 ? decoded : decoded.slice(0, q);
-    var query = q === -1 ? "" : decoded.slice(q);
-    var normalized = posixNormpath(pathOnly);
-    if (!normalized.startsWith("/") || normalized.startsWith("//")) return "/";
-    if (pathOnly === "/login" || pathOnly === "/register") return "/";
-    return pathOnly + query;
-  }
-  var next = safeNext(rawNext);
+  var next = FGBShell.safeNext("/");
   var regQs = next && next !== "/" ? ("?next=" + encodeURIComponent(next)) : "";
-  document.getElementById("link-register").href = FGB.url("/register" + regQs);
+
+  FGBShell.mountTopbar(document.getElementById("fgb-topbar"), {
+    title: "登录",
+    showBack: true,
+    backHref: "/",
+    showUser: false,
+  });
+  var nav = document.querySelector("#fgb-topbar .fgb-nav");
+  if (nav) {
+    var regLink = document.createElement("a");
+    regLink.className = "fgb-nav-link";
+    regLink.id = "link-register";
+    regLink.href = FGB.url("/register" + regQs);
+    regLink.textContent = "注册";
+    nav.appendChild(regLink);
+  }
   document.getElementById("link-register-2").href = FGB.url("/register" + regQs);
 
   var form = document.getElementById("login-form");

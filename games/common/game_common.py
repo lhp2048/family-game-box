@@ -4,6 +4,9 @@
 
 from __future__ import annotations
 
+import html as html_lib
+import json
+import re
 import time
 from pathlib import Path
 
@@ -18,6 +21,91 @@ def lobby_back_link(extra_style: str = "") -> str:
 
 def inject_lobby_link(body_html: str) -> str:
     return body_html.replace("{lobby_back_link()}", lobby_back_link())
+
+
+# ---------------------------------------------------------------------------
+# Game chrome DOM contract (P2 / Task 7+)
+# ---------------------------------------------------------------------------
+# Shared mount points emitted by build_page / inject_standalone_overlays:
+#   body[data-game-skin="{slug}"]   — per-game skin hook (e.g. "schulte")
+#   #fgb-topbar                     — FGBShell.mountTopbar root
+#   #fgb-result.fgb-result          — shared result overlay (hidden by default)
+#     #fgb-result-title             — heading
+#     #fgb-result-sub               — subtitle / summary line
+#     #fgb-result-stats             — stats container (game fills HTML)
+#     #fgb-result-retry             — button「再来一局」
+#     #fgb-result-hall              — link「回大厅」→ /
+#     #fgb-result-board             — link「排行榜」→ /leaderboard
+# Existing per-game #view-result sections remain; games may adopt #fgb-result
+# later without changing score-submit logic.
+# Script order: fgb-daily → fgb-client → fgb-ui → fgb-shell
+# ---------------------------------------------------------------------------
+
+TOPBAR_MOUNT_HTML = '<header id="fgb-topbar"></header>'
+
+RESULT_OVERLAY_HTML = """
+<div id="fgb-result" class="fgb-result hidden" role="dialog" aria-modal="true" aria-labelledby="fgb-result-title">
+  <div class="fgb-result-box">
+    <h2 id="fgb-result-title" class="fgb-result-title">本局结束</h2>
+    <p id="fgb-result-sub" class="fgb-result-sub"></p>
+    <div id="fgb-result-stats" class="fgb-result-stats"></div>
+    <div class="fgb-result-actions">
+      <button type="button" class="fgb-btn" id="fgb-result-retry">再来一局</button>
+      <a class="fgb-btn-ghost" id="fgb-result-hall" href="/">回大厅</a>
+      <a class="fgb-btn-ghost" id="fgb-result-board" href="/leaderboard">排行榜</a>
+    </div>
+  </div>
+</div>
+"""
+
+
+def game_chrome_boot_js(game_title: str = "") -> str:
+    """Mount shared topbar when not in daily iframe mode."""
+    title_js = json.dumps(game_title or "", ensure_ascii=False)
+    return (
+        "(function () {\n"
+        '  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) return;\n'
+        '  var el = document.getElementById("fgb-topbar");\n'
+        "  if (!el || !window.FGBShell || !FGBShell.mountTopbar) return;\n"
+        "  FGBShell.mountTopbar(el, {\n"
+        "    title: %s,\n"
+        "    showBack: true,\n"
+        '    backHref: "/",\n'
+        "    showUser: true\n"
+        "  });\n"
+        "})();\n" % title_js
+    )
+
+
+def _apply_game_skin(html: str, game_skin: str) -> str:
+    """Set data-game-skin on <body> (insert or replace attribute)."""
+    if not game_skin:
+        return html
+    safe = html_lib.escape(game_skin, quote=True)
+
+    def repl(m: re.Match) -> str:
+        attrs = m.group(1) or ""
+        if "data-game-skin=" in attrs:
+            attrs2 = re.sub(
+                r"""data-game-skin=(["'])[^"']*\1""",
+                'data-game-skin="%s"' % safe,
+                attrs,
+            )
+            return "<body%s>" % attrs2
+        return '<body data-game-skin="%s"%s>' % (safe, attrs)
+
+    new_html, n = re.subn(r"<body(\s[^>]*)?>", repl, html, count=1, flags=re.IGNORECASE)
+    return new_html if n else html
+
+
+def _ensure_topbar_mount(html: str) -> str:
+    if 'id="fgb-topbar"' in html:
+        return html
+    m = re.search(r"<body(\s[^>]*)?>", html, flags=re.IGNORECASE)
+    if not m:
+        return TOPBAR_MOUNT_HTML + "\n" + html
+    insert_at = m.end()
+    return html[:insert_at] + "\n" + TOPBAR_MOUNT_HTML + html[insert_at:]
 
 
 STANDARD_TIERS = (
@@ -569,6 +657,8 @@ html.fgb-daily-mode .wrap {
   box-sizing: border-box;
 }
 html.fgb-daily-mode #view-play > .topbar { display: none !important; }
+html.fgb-daily-mode #fgb-topbar,
+html.fgb-daily-mode #fgb-result { display: none !important; }
 html.fgb-daily-mode #view-play > .hint { margin: 0 0 0.3rem; min-height: 1.05em; font-size: 0.88rem; }
 html.fgb-daily-mode #view-play .tip { display: none !important; }
 html.fgb-daily-mode .clover {
@@ -652,8 +742,14 @@ DAILY_BOOT_JS = r"""
 THEME_LINK = '<link rel="stylesheet" href="/css/fgb-theme.css">'
 
 
-def inject_standalone_overlays(html: str, *, include_fgb_client: bool = True) -> str:
-    """为独立 HTML 页注入统一确认框与完成庆祝组件。"""
+def inject_standalone_overlays(
+    html: str,
+    *,
+    include_fgb_client: bool = True,
+    game_skin: str = "",
+    game_title: str = "",
+) -> str:
+    """为独立 HTML 页注入统一确认框、完成庆祝与共享游戏 chrome。"""
     if 'href="/css/fgb-theme.css"' not in html:
         if "</title>" in html:
             html = html.replace("</title>", "</title>\n" + THEME_LINK, 1)
@@ -675,6 +771,9 @@ def inject_standalone_overlays(html: str, *, include_fgb_client: bool = True) ->
         if style_end >= 0:
             html = html[:style_end] + OVERLAY_CSS + "\n" + html[style_end:]
 
+    html = _apply_game_skin(html, game_skin)
+    html = _ensure_topbar_mount(html)
+
     scripts_block = ""
     if include_fgb_client:
         if "/js/fgb-daily.js" not in html:
@@ -683,10 +782,20 @@ def inject_standalone_overlays(html: str, *, include_fgb_client: bool = True) ->
             scripts_block += '<script src="/js/fgb-client.js"></script>\n'
         if "/js/fgb-ui.js" not in html:
             scripts_block += '<script src="/js/fgb-ui.js"></script>\n'
+        if "/js/fgb-shell.js" not in html:
+            # Prefer client → ui → shell adjacency when ui is already in the page.
+            ui_tag = '<script src="/js/fgb-ui.js"></script>'
+            shell_tag = '<script src="/js/fgb-shell.js"></script>'
+            if ui_tag in html:
+                html = html.replace(ui_tag, ui_tag + "\n" + shell_tag, 1)
+            else:
+                scripts_block += shell_tag + "\n"
 
-    # Confirm DOM + client scripts + overlay JS must live at end of <body>
+    # Confirm DOM + result overlay + client scripts + overlay JS at end of <body>
     # so bindConfirmUI can find #confirm-mask / buttons.
     tail = ""
+    if 'id="fgb-result"' not in html:
+        tail += RESULT_OVERLAY_HTML + "\n"
     if 'id="confirm-mask"' not in html:
         tail += CONFIRM_HTML + "\n"
     tail += scripts_block
@@ -696,6 +805,12 @@ def inject_standalone_overlays(html: str, *, include_fgb_client: bool = True) ->
         "/js/fgb-daily.js" in html or "/js/fgb-daily.js" in scripts_block
     ):
         tail += "<script>\n/* fgb-daily-boot */\n" + DAILY_BOOT_JS + "\n</script>\n"
+    if "/* fgb-game-chrome-boot */" not in html:
+        tail += (
+            "<script>\n/* fgb-game-chrome-boot */\n"
+            + game_chrome_boot_js(game_title)
+            + "</script>\n"
+        )
     if tail:
         if "</body>" in html:
             html = html.replace("</body>", tail + "</body>", 1)
@@ -705,8 +820,21 @@ def inject_standalone_overlays(html: str, *, include_fgb_client: bool = True) ->
     return html
 
 
-def build_page(title: str, extra_css: str, body_html: str, script: str, wide: bool = False) -> str:
+def build_page(
+    title: str,
+    extra_css: str,
+    body_html: str,
+    script: str,
+    wide: bool = False,
+    *,
+    game_skin: str = "",
+    game_title: str | None = None,
+) -> str:
     wrap_cls = "wrap wide" if wide else "wrap"
+    skin_attr = (
+        ' data-game-skin="%s"' % html_lib.escape(game_skin, quote=True) if game_skin else ""
+    )
+    chrome_title = title if game_title is None else game_title
     parts = [
         "<!DOCTYPE html>",
         '<html lang="zh-CN">',
@@ -722,18 +850,23 @@ def build_page(title: str, extra_css: str, body_html: str, script: str, wide: bo
         extra_css,
         "</style>",
         "</head>",
-        "<body>",
+        "<body%s>" % skin_attr,
+        TOPBAR_MOUNT_HTML,
         '<div class="' + wrap_cls + '">',
         body_html,
         "</div>",
+        RESULT_OVERLAY_HTML,
         CONFIRM_HTML,
         '<script src="/js/fgb-daily.js"></script>',
         '<script src="/js/fgb-client.js"></script>',
         '<script src="/js/fgb-ui.js"></script>',
+        '<script src="/js/fgb-shell.js"></script>',
         "<script>",
         "/* fgb-daily-boot */",
         COMMON_JS_UTILS,
         DAILY_BOOT_JS,
+        "/* fgb-game-chrome-boot */",
+        game_chrome_boot_js(chrome_title),
         script,
         "</script>",
         "</body>",

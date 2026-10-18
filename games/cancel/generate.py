@@ -505,7 +505,14 @@ SCRIPT_MID = r""";
 def build_html() -> str:
     hanzi_json = json.dumps(HANZI_POOL, ensure_ascii=False)
     script = SCRIPT_PREFIX + hanzi_json + SCRIPT_MID
-    return build_page("划销训练", EXTRA_CSS, inject_lobby_link(BODY), script, wide=True)
+    return build_page(
+        "划销训练",
+        EXTRA_CSS,
+        inject_lobby_link(BODY),
+        script,
+        wide=True,
+        game_skin="cancel",
+    )
 
 
 def main() -> None:

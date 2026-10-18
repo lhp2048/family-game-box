@@ -108,7 +108,7 @@
 
 - [ ] **Step 1: Replace** ad-hoc hall header with `FGBShell.mountTopbar`
 - [ ] **Step 2: Wire** claim prompt through `fgb-ui` confirm + theme
-- [ ] **Step 3: Smoke** login → hall shows username; logout; claim once path if data available
+- [x] **Step 3: Smoke** login → hall shows username; logout; claim once path if data available
 - [ ] **Step 4: Commit** `feat(ui): hall uses fgb-shell`
 
 ---
@@ -138,7 +138,7 @@
 - Create or update: `.superpowers/sdd/` note or checklist in plan progress only — optional `docs/` not required
 - Test: full manual + existing pytest suite green (no intentional API changes)
 
-- [ ] **Step 1: Run** `pytest -q` — must stay green
+- [x] **Step 1: Run** `pytest -q` — must stay green
 - [ ] **Step 2: Manual checklist**
   - [ ] Gate unlock → register → login → hall
   - [ ] Logout → other user login on same device
@@ -163,10 +163,10 @@
   - shared result overlay markup/classes
   - body/root `data-game-skin="schulte"` (or class) for per-game skin
 
-- [ ] **Step 1: Design** minimal DOM contract for result overlay (retry / hall / leaderboard links)
-- [ ] **Step 2: Implement** hooks in `game_common` without changing score submit logic
-- [ ] **Step 3: Regenerate** schulte; fix until play + submit still works
-- [ ] **Step 4: Commit** `feat(games): shared chrome hooks in game_common`
+- [x] **Step 1: Design** minimal DOM contract for result overlay (retry / hall / leaderboard links)
+- [x] **Step 2: Implement** hooks in `game_common` without changing score submit logic
+- [x] **Step 3: Regenerate** schulte; fix until play + submit still works
+- [x] **Step 4: Commit** `feat(games): shared chrome hooks in game_common`
 
 ---
 
@@ -177,11 +177,11 @@
 - Regenerate: schulte + chosen daily-embedded game page
 - Test: play through + score submit
 
-- [ ] **Step 1: Pick** second pilot (default: whatever daily embeds first — often schulte/stroop/etc.; document choice in commit)
-- [ ] **Step 2: Implement** schulte skin variables within token constraints
-- [ ] **Step 3: Implement** second pilot skin
-- [ ] **Step 4: Smoke** both end-to-end
-- [ ] **Step 5: Commit** `feat(games): pilot skins for schulte + <name>`
+- [x] **Step 1: Pick** second pilot (default: whatever daily embeds first — often schulte/stroop/etc.; document choice in commit)
+- [x] **Step 2: Implement** schulte skin variables within token constraints
+- [x] **Step 3: Implement** second pilot skin
+- [x] **Step 4: Smoke** both end-to-end
+- [x] **Step 5: Commit** `feat(games): pilot skins for schulte + <name>`
 
 ---
 
@@ -191,10 +191,10 @@
 - Regenerate: remaining `web/games/*` via build scripts
 - Test: smoke each game launch + one score path where applicable
 
-- [ ] **Step 1: List** remaining games from hall grid
-- [ ] **Step 2: Regenerate** all with shared chrome; add light per-game skin accents
-- [ ] **Step 3: Smoke** each opens and returns to hall
-- [ ] **Step 4: Commit** `feat(games): apply shared chrome to remaining free-train games`
+- [x] **Step 1: List** remaining games from hall grid
+- [x] **Step 2: Regenerate** all with shared chrome; add light per-game skin accents
+- [x] **Step 3: Smoke** each opens and returns to hall
+- [x] **Step 4: Commit** `feat(games): apply shared chrome to remaining free-train games`
 
 ---
 
@@ -204,10 +204,10 @@
 - Modify: `web/games/yuwen/*`, `web/games/24points/*` templates/sources
 - Test: yuwen daily + 24points play/library smoke
 
-- [ ] **Step 1: Port** yuwen play shell to shared chrome + skin
-- [ ] **Step 2: Port** 24points play + library chrome (library can be lighter)
+- [x] **Step 1: Port** yuwen play shell to shared chrome + skin
+- [x] **Step 2: Port** 24points play + library chrome (library can be lighter)
 - [ ] **Step 3: Smoke**
-- [ ] **Step 4: Commit** `feat(games): yuwen and 24points shared chrome`
+- [x] **Step 4: Commit** `feat(games): yuwen and 24points shared chrome`
 
 ---
 
@@ -218,10 +218,10 @@
 - Related prior art: `docs/superpowers/specs/2026-09-02-landscape-bottom-compress-design.md`
 - Test: tablet-width DevTools + real device if available
 
-- [ ] **Step 1: Audit** hit targets (<44px) on shell + result overlays
-- [ ] **Step 2: Align** landscape bottom compress with shared chrome
-- [ ] **Step 3: Smoke** portrait/landscape on hall + one game
-- [ ] **Step 4: Commit** `fix(ui): touch and landscape polish`
+- [x] **Step 1: Audit** hit targets (<44px) on shell + result overlays
+- [x] **Step 2: Align** landscape bottom compress with shared chrome
+- [x] **Step 3: Smoke** portrait/landscape on hall + one game
+- [x] **Step 4: Commit** `fix(ui): touch and landscape polish`
 
 ---
 
@@ -232,9 +232,9 @@
 - Test: pytest green; P1+P2 checklist in PR body
 
 - [ ] **Step 1: Run** `pytest -q`
-- [ ] **Step 2: Self-review** against spec §1–§4
-- [ ] **Step 3: Push** and open PR with phased notes (what shipped vs follow-ups)
-- [ ] **Step 4: Do not merge** until user asks to deploy
+- [x] **Step 2: Self-review** against spec §1–§4
+- [x] **Step 3: Push** and open PR with phased notes (what shipped vs follow-ups)
+- [x] **Step 4: Do not merge** until user asks to deploy
 
 ---
 

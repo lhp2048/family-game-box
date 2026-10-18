@@ -157,3 +157,13 @@
 
 .yuwen-picks { display: grid; gap: 0.5rem; margin-top: 0.8rem; }
 .yuwen-picks button { text-align: left; }
+
+
+/* Task 10: shared shell topbar; page title lives in FGBShell kicker */
+body[data-game-skin="yuwen"] > #fgb-topbar {
+  width: min(880px, calc(100% - 1.25rem));
+}
+body[data-game-skin="yuwen"] > #fgb-topbar + .fgb-shell.yuwen {
+  padding-top: 0.75rem;
+}
+.yuwen-lead { margin: 0 0 1.1rem; }

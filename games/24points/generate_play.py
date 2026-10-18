@@ -144,7 +144,12 @@ def assign_tiers(scored: List[Tuple[float, Dict]]) -> List[Dict]:
 
 
 def build_play_html() -> str:
-    return inject_standalone_overlays(_PLAY_HTML)
+    return inject_standalone_overlays(
+        _PLAY_HTML,
+        game_skin="24points",
+        game_title="24 点挑战",
+    )
+
 
 
 _PLAY_HTML = r'''<!DOCTYPE html>

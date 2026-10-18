@@ -451,7 +451,14 @@ SCRIPT_MID = r""";
 def build_html() -> str:
     chars_json = json.dumps(CHARS)
     script = SCRIPT_PREFIX + chars_json + SCRIPT_MID
-    return build_page("找不同", EXTRA_CSS, inject_lobby_link(BODY), script, wide=True)
+    return build_page(
+        "找不同",
+        EXTRA_CSS,
+        inject_lobby_link(BODY),
+        script,
+        wide=True,
+        game_skin="spot-diff",
+    )
 
 
 def main() -> None:

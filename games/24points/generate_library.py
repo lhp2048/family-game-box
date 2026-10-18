@@ -16,6 +16,7 @@ _GAMES = Path(__file__).resolve().parents[1]
 if str(_GAMES) not in sys.path:
     sys.path.insert(0, str(_GAMES))
 
+from common.game_common import inject_standalone_overlays
 from common.paths import points_page_paths, repo_root
 
 HEADER_RE = re.compile(
@@ -292,8 +293,6 @@ footer {
   <div class="wrap">
     <h1 class="brand">24<em>点</em></h1>
     <p class="lede">整数四则运算解法库。范围 """ + _esc(rng) + """；仅整除合法。输入 4 个数查询，或浏览全部有解组合。</p>
-    <p style="margin:0 0 1.2rem"><a href="/" style="color:var(--accent);font-weight:600;text-decoration:none">← 返回大厅</a></p>
-
     <div class="stats">
       <div class="stat"><b id="stat-solvable">""" + _esc(solvable) + """</b><span>有解组合</span></div>
       <div class="stat"><b id="stat-exprs">""" + _esc(expr_count) + """</b><span>解法条数</span></div>
@@ -483,7 +482,11 @@ def main() -> None:
     t0 = time.perf_counter()
     stats = parse_summary(summary_path)
     groups = parse_solutions(solutions_path)
-    html = build_html(stats, groups)
+    html = inject_standalone_overlays(
+        build_html(stats, groups),
+        game_skin="24points-library",
+        game_title="24 点解法库",
+    )
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(html, encoding="utf-8")

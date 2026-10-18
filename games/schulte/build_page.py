@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""生成带统一庆祝/确认 UI 的舒尔特页面。"""
+"""生成带统一庆祝/确认 UI 与共享 chrome 的舒尔特页面。"""
 
 from __future__ import annotations
 
@@ -18,7 +18,11 @@ WEB = Path(__file__).resolve().parents[2] / "web" / "games" / "schulte" / "index
 
 
 def main() -> None:
-    html = inject_standalone_overlays(SRC.read_text(encoding="utf-8"))
+    html = inject_standalone_overlays(
+        SRC.read_text(encoding="utf-8"),
+        game_skin="schulte",
+        game_title="舒尔特挑战",
+    )
     WEB.parent.mkdir(parents=True, exist_ok=True)
     WEB.write_text(html, encoding="utf-8")
     print("Wrote %s" % WEB)

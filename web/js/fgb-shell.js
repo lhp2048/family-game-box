@@ -2,7 +2,7 @@
  * fgb-shell.js — shared top bar, session chip, and safeNext helpers
  *
  * Include on shell pages (Tasks 3–5+): play-gate, login, register, hall (index),
- * daily / yuwen-daily, leaderboards. Game chrome (P2) may reuse mountTopbar later.
+ * daily / yuwen-daily, leaderboards. Game pages (P2) reuse mountTopbar via #fgb-topbar.
  *
  * Script order (after theme CSS):
  *   fgb-client.js → fgb-ui.js → fgb-shell.js

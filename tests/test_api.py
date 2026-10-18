@@ -86,6 +86,18 @@ def test_schulte_page():
     assert '__FGB_BASE__="/game-box"' in text
     assert 'href="/game-box/"' in text or 'href="/game-box"' in text
     assert 'src="/game-box/js/fgb-client.js"' in text
+    # Task 7 shared game chrome hooks
+    assert 'data-game-skin="schulte"' in text
+    assert 'id="fgb-topbar"' in text
+    assert 'id="fgb-result"' in text
+    assert 'id="fgb-result-retry"' in text
+    assert 'id="fgb-result-hall"' in text
+    assert 'id="fgb-result-board"' in text
+    assert "fgb-shell.js" in text
+    assert "FGBShell.mountTopbar" in text
+    # Existing in-page result + score submit path unchanged
+    assert 'id="view-result"' in text
+    assert "fgbSubmitScore" in text
 
 
 def test_lobby_html():
@@ -148,6 +160,57 @@ def test_attention_game_page():
     text = r.text
     assert "Stroop" in text
     assert "/game-box" in text
+    # Task 8 pilot skin + shared chrome
+    assert 'data-game-skin="stroop"' in text
+    assert 'id="fgb-topbar"' in text
+    assert "fgb-shell.js" in text
+    assert "FGBShell.mountTopbar" in text
+    assert "fgbSubmitScore" in text or "submitScore" in text or "view-result" in text
+
+
+
+def test_remaining_free_train_chrome():
+    """Task 9: cancel/simon/spot-diff/maze/sudoku share chrome + skin hooks."""
+    root = Path(__file__).resolve().parents[1]
+    expected = {
+        "cancel": "cancel",
+        "simon": "simon",
+        "spot-diff": "spot-diff",
+        "maze": "maze",
+        "sudoku": "sudoku",
+    }
+    for slug, skin in expected.items():
+        html = (root / "web" / "games" / slug / "index.html").read_text(encoding="utf-8")
+        assert 'data-game-skin="%s"' % skin in html, slug
+        assert 'id="fgb-topbar"' in html, slug
+        assert 'id="fgb-result"' in html, slug
+        assert "fgb-shell.js" in html, slug
+        assert "FGBShell.mountTopbar" in html, slug
+        assert "← 返回大厅" in html or "回大厅" in html, slug
+    theme = (root / "web" / "css" / "fgb-theme.css").read_text(encoding="utf-8")
+    for skin in expected.values():
+        assert 'data-game-skin="%s"' % skin in theme, skin
+
+
+
+def test_yuwen_and_24points_chrome():
+    """Task 10: yuwen play + 24points play/library shared chrome hooks."""
+    root = Path(__file__).resolve().parents[1]
+    cases = [
+        ("web/games/yuwen/index.html", "yuwen"),
+        ("web/games/24points/play.html", "24points"),
+        ("web/games/24points/library.html", "24points-library"),
+    ]
+    for rel, skin in cases:
+        html = (root / rel).read_text(encoding="utf-8")
+        assert 'data-game-skin="%s"' % skin in html, rel
+        assert 'id="fgb-topbar"' in html, rel
+        assert "fgb-shell.js" in html, rel
+        assert "FGBShell.mountTopbar" in html, rel
+        assert 'id="fgb-result"' in html, rel
+    theme = (root / "web/css/fgb-theme.css").read_text(encoding="utf-8")
+    for skin in ("yuwen", "24points", "24points-library"):
+        assert 'data-game-skin="%s"' % skin in theme, skin
 
 
 def test_24points_play_and_bank():

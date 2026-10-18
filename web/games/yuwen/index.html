@@ -7,16 +7,10 @@
 <link rel="stylesheet" href="/css/fgb-theme.css">
 <link rel="stylesheet" href="play.css">
 </head>
-<body>
+<body data-game-skin="yuwen">
+<header id="fgb-topbar"></header>
 <main class="fgb-shell yuwen">
-  <header class="yuwen-top">
-    <a class="fgb-nav-link" href="/">← 返回大厅</a>
-    <a class="fgb-nav-link" href="/yuwen-daily">每日语文挑战</a>
-    <div>
-      <h1>语文大擂台</h1>
-      <p class="yuwen-lead">一关一类。答错一题，用时加 5 秒。最好成绩记入排行。</p>
-    </div>
-  </header>
+  <p class="yuwen-lead">一关一类。答错一题，用时加 5 秒。最好成绩记入排行。</p>
 
   <section id="nick-bar" class="yuwen-nick" hidden>
     <p>设置昵称后，成绩才会出现在排行榜。</p>
@@ -32,8 +26,43 @@
   <section id="view-play" hidden></section>
   <section id="view-result" hidden></section>
 </main>
+
+<div id="fgb-result" class="fgb-result hidden" role="dialog" aria-modal="true" aria-labelledby="fgb-result-title">
+  <div class="fgb-result-box">
+    <h2 id="fgb-result-title" class="fgb-result-title">本局结束</h2>
+    <p id="fgb-result-sub" class="fgb-result-sub"></p>
+    <div id="fgb-result-stats" class="fgb-result-stats"></div>
+    <div class="fgb-result-actions">
+      <button type="button" class="fgb-btn" id="fgb-result-retry">再来一局</button>
+      <a class="fgb-btn-ghost" id="fgb-result-hall" href="/">回大厅</a>
+      <a class="fgb-btn-ghost" id="fgb-result-board" href="/yuwen-daily/leaderboard">排行榜</a>
+    </div>
+  </div>
+</div>
+
 <script src="/js/fgb-client.js"></script>
 <script src="/js/fgb-ui.js"></script>
+<script src="/js/fgb-shell.js"></script>
+<script>
+(function () {
+  var el = document.getElementById("fgb-topbar");
+  if (!el || !window.FGBShell || !FGBShell.mountTopbar) return;
+  FGBShell.mountTopbar(el, {
+    title: "语文大擂台",
+    showBack: true,
+    backHref: "/",
+    showUser: true
+  });
+  var nav = el.querySelector(".fgb-nav");
+  if (nav && window.FGB) {
+    var a = document.createElement("a");
+    a.className = "fgb-nav-link";
+    a.href = FGB.url("/yuwen-daily");
+    a.textContent = "每日语文挑战";
+    nav.appendChild(a);
+  }
+})();
+</script>
 <script src="play.js"></script>
 </body>
 </html>

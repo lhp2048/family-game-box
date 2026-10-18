@@ -128,6 +128,7 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
         <button type="button" class="active" data-tab="games">游戏包</button>
         <button type="button" data-tab="daily">专注力挑战</button>
         <button type="button" data-tab="diff">难度参数</button>
+        <button type="button" data-tab="gate">家庭口令</button>
       </div>
       <button type="button" class="ghost" id="btn-logout">登出</button>
     </div>
@@ -192,6 +193,18 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
           <button type="button" id="btn-save-diff">保存本游戏</button>
           <button type="button" class="ghost" id="btn-reset-diff">恢复本游戏默认</button>
         </div>
+      </div>
+    </div>
+
+    <div id="tab-gate" class="hidden">
+      <div class="card">
+        <h2>家庭口令</h2>
+        <p class="meta">打开后，进入游戏和每日挑战需要口令。大厅和排行榜仍可查看。管理员密码不能用来玩游戏。</p>
+        <div class="err" id="gate-err"></div>
+        <label><input id="gate-enabled" type="checkbox"> 开启家庭口令</label>
+        <label for="gate-pass">设置或更换口令</label>
+        <input id="gate-pass" type="password" autocomplete="new-password">
+        <button type="button" id="btn-save-gate">保存</button>
       </div>
     </div>
   </div>
@@ -332,11 +345,19 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
     document.getElementById("tab-games").classList.toggle("hidden", name !== "games");
     document.getElementById("tab-daily").classList.toggle("hidden", name !== "daily");
     document.getElementById("tab-diff").classList.toggle("hidden", name !== "diff");
+    document.getElementById("tab-gate").classList.toggle("hidden", name !== "gate");
     Array.prototype.forEach.call(document.querySelectorAll("#main-tabs button"), function (btn) {
       btn.classList.toggle("active", btn.getAttribute("data-tab") === name);
     });
     if (name === "diff") loadDifficultyPanel();
     if (name === "games") loadGamesPanel();
+    if (name === "gate") loadPlayGate();
+  }
+
+  function loadPlayGate() {
+    api("/api/v1/admin/status", { headers: { "X-Admin-Token": token() } }).then(function (st) {
+      document.getElementById("gate-enabled").checked = !!st.playGateEnabled;
+    });
   }
 
   function schemaFor(gid) {
@@ -682,6 +703,20 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
   Array.prototype.forEach.call(document.querySelectorAll("#main-tabs button"), function (btn) {
     btn.addEventListener("click", function () {
       switchTab(btn.getAttribute("data-tab"));
+    });
+  });
+
+  document.getElementById("btn-save-gate").addEventListener("click", function () {
+    var err = document.getElementById("gate-err");
+    err.textContent = "";
+    var body = { enabled: document.getElementById("gate-enabled").checked };
+    var pass = document.getElementById("gate-pass").value;
+    if (pass) body.passphrase = pass;
+    api("/api/v1/admin/play-gate", { method: "PUT", admin: true, body: body }).then(function () {
+      document.getElementById("gate-pass").value = "";
+      err.textContent = "已保存";
+    }).catch(function (ex) {
+      err.textContent = ex.message || "保存失败";
     });
   });
 

@@ -76,3 +76,9 @@ def test_leaderboard_and_pages():
     assert "管理" in admin
     assert "挑战模板" in admin
     assert "重新生成今日专注力挑战" in admin
+
+
+def test_admin_page_has_play_gate():
+    admin = client.get(url("/admin")).text
+    assert "家庭口令" in admin
+    assert "开启家庭口令" in admin

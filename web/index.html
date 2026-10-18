@@ -205,10 +205,15 @@
   FGB.authMe().then(function (me) {
     if (me && me.loggedIn) {
       showLoggedIn(me.username || "—");
-      maybeOfferClaim(me);
-    } else {
-      showLoggedOut();
+      return FGB.ensureTerminalFromUser(me.username).then(function () {
+        return FGB.authMe().then(function (me2) {
+          maybeOfferClaim(me2 || me);
+        });
+      }).catch(function () {
+        maybeOfferClaim(me);
+      });
     }
+    showLoggedOut();
   }).catch(function () {
     showLoggedOut();
   }).then(refreshSummary);

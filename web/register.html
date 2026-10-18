@@ -102,11 +102,13 @@
       if (code < 32 || code === 127) return "/";
     }
     if (!decoded.startsWith("/") || decoded.startsWith("//")) return "/";
-    var normalized = posixNormpath(decoded);
+    var q = decoded.indexOf("?");
+    var pathOnly = q === -1 ? decoded : decoded.slice(0, q);
+    var query = q === -1 ? "" : decoded.slice(q);
+    var normalized = posixNormpath(pathOnly);
     if (!normalized.startsWith("/") || normalized.startsWith("//")) return "/";
-    if (normalized === "/login" || normalized.indexOf("/login?") === 0) return "/";
-    if (normalized === "/register" || normalized.indexOf("/register?") === 0) return "/";
-    return decoded;
+    if (pathOnly === "/login" || pathOnly === "/register") return "/";
+    return pathOnly + query;
   }
   var next = safeNext(rawNext);
   var loginQs = next && next !== "/" ? ("?next=" + encodeURIComponent(next)) : "";

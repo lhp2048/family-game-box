@@ -323,3 +323,43 @@ def test_login_behind_play_gate_redirects(tmp_path, monkeypatch):
     assert "/play-gate" in loc
     assert "next=" in loc
     assert "login" in loc
+
+
+def test_bootstrap_terminal_from_username_after_auth():
+    """Client contract: after auth, register browser terminal with username if missing."""
+    import uuid
+
+    client.cookies.clear()
+    tid = str(uuid.uuid4())
+    headers = {"X-Terminal-Id": tid}
+    before = client.get(url("/api/v1/terminals/me"), headers=headers)
+    assert before.status_code == 200
+    assert before.json().get("registered") is False
+
+    reg = client.post(
+        url("/api/v1/auth/register"),
+        json={"username": "bootuser1", "password": "pass1234"},
+    )
+    assert reg.status_code == 200
+    username = reg.json()["username"]
+
+    boot = client.post(
+        url("/api/v1/terminals/register"),
+        json={"terminalId": tid, "nickname": username},
+    )
+    assert boot.status_code == 200
+    assert boot.json()["registered"] is True
+    assert boot.json()["nickname"] == username
+
+    score = client.post(
+        url("/api/v1/scores"),
+        json={
+            "gameId": "stroop",
+            "mode": "challenge",
+            "tier": "normal",
+            "metrics": {"correct": 1, "total": 1, "timeMs": 1000},
+        },
+        headers=headers,
+    )
+    assert score.status_code == 200
+    assert score.json()["entry"]["nickname"] == username

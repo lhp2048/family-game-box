@@ -107,13 +107,33 @@
     });
   }
 
+  /** If terminal missing, register it under the logged-in username (score/daily need a terminal). */
+  function ensureTerminalFromUser(username) {
+    var name = (username || "").trim();
+    if (!name) return Promise.resolve(null);
+    return me().then(function (data) {
+      if (data && data.registered) {
+        if (data.nickname) localStorage.setItem(STORAGE_NICK, data.nickname);
+        return data;
+      }
+      return registerTerminal(name);
+    }).catch(function () {
+      return registerTerminal(name);
+    });
+  }
+
   function ensureRegistered() {
     return me().then(function (data) {
       if (data && data.registered) {
         if (data.nickname) localStorage.setItem(STORAGE_NICK, data.nickname);
         return data;
       }
-      return null;
+      return authMe().then(function (auth) {
+        if (auth && auth.loggedIn && auth.username) {
+          return registerTerminal(auth.username);
+        }
+        return null;
+      }).catch(function () { return null; });
     });
   }
 
@@ -126,6 +146,9 @@
       method: "POST",
       body: { username: username, password: password },
       skipAuthRedirect: true,
+    }).then(function (data) {
+      var name = (data && data.username) || username;
+      return ensureTerminalFromUser(name).then(function () { return data; });
     });
   }
 
@@ -137,6 +160,9 @@
       method: "POST",
       body: body,
       skipAuthRedirect: true,
+    }).then(function (data) {
+      var name = (data && data.username) || username;
+      return ensureTerminalFromUser(name).then(function () { return data; });
     });
   }
 
@@ -218,6 +244,7 @@
     register: register,
     registerTerminal: registerTerminal,
     ensureRegistered: ensureRegistered,
+    ensureTerminalFromUser: ensureTerminalFromUser,
     authMe: authMe,
     login: login,
     logout: logout,

@@ -18,4 +18,5 @@ web/games/**/*
 games/**/build/
 
 .superpowers/
+.worktrees/
 

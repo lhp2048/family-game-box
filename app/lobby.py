@@ -58,6 +58,27 @@ def _runs_for_terminal(
     return out
 
 
+def _runs_for_user(
+    day: str,
+    user_id: str,
+    combo_id: Optional[str] = None,
+) -> List[Dict[str, Any]]:
+    out: List[Dict[str, Any]] = []
+    want = str(combo_id or "")
+    uid = str(user_id or "")
+    for run in (_load_runs().get("runs") or {}).values():
+        if not isinstance(run, dict):
+            continue
+        if run.get("date") != day:
+            continue
+        if str(run.get("userId") or "") != uid:
+            continue
+        if want and str(run.get("comboId") or "") != want:
+            continue
+        out.append(run)
+    return out
+
+
 def _sort_key_run(run: Dict[str, Any]):
     status = run.get("status")
     finished = 0 if status == "finished" else 1
@@ -100,6 +121,28 @@ def _gap_label(
     return None, "—"
 
 
+def _nickname_for_me(
+    terminal_id: Optional[str],
+    user_id: Optional[str],
+    runs: List[Dict[str, Any]],
+) -> Optional[str]:
+    if user_id:
+        from app.users import get_user
+
+        user = get_user(user_id)
+        if user and user.get("username"):
+            return str(user["username"])
+        for run in runs:
+            name = str(run.get("username") or run.get("nickname") or "").strip()
+            if name:
+                return name
+        return None
+    if not terminal_id:
+        return None
+    term = get_terminal(terminal_id)
+    return (term or {}).get("nickname") or None
+
+
 def _build_me(
     terminal_id: Optional[str],
     day: str,
@@ -107,6 +150,7 @@ def _build_me(
     items: List[Dict[str, Any]],
     podium: List[Dict[str, Any]],
     combo_id: Optional[str] = None,
+    user_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     empty = {
         "nickname": None,
@@ -117,11 +161,15 @@ def _build_me(
         "gapToFirstMs": None,
         "gapLabel": "—",
     }
-    if not terminal_id:
+    if not user_id and not terminal_id:
         return empty
-    term = get_terminal(terminal_id)
-    nickname = (term or {}).get("nickname") or None
-    runs = _runs_for_terminal(day, terminal_id, combo_id=combo_id)
+
+    if user_id:
+        runs = _runs_for_user(day, user_id, combo_id=combo_id)
+    else:
+        runs = _runs_for_terminal(day, terminal_id or "", combo_id=combo_id)
+
+    nickname = _nickname_for_me(terminal_id, user_id, runs)
     running = next((r for r in runs if r.get("status") == "running"), None)
     best = _best_ended_run(runs)
 
@@ -167,14 +215,14 @@ def _build_me(
 
 
 def _build_daily(
-    terminal_id: Optional[str],
+    has_identity: bool,
     day: str,
     stage_count: int,
     me: Dict[str, Any],
 ) -> Dict[str, Any]:
     status = me.get("dailyStatus")
     done = int(me.get("stagesDone") or 0)
-    if not terminal_id or status in (None, "absent"):
+    if not has_identity or status in (None, "absent"):
         return {
             "stageCount": stage_count,
             "myProgressLabel": "未开始",
@@ -200,7 +248,10 @@ def _build_daily(
     }
 
 
-def get_lobby_summary(terminal_id: Optional[str] = None) -> Dict[str, Any]:
+def get_lobby_summary(
+    terminal_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+) -> Dict[str, Any]:
     combo = ensure_today()
     day = combo["date"]
     combo_id = str(combo.get("comboId") or "")
@@ -219,10 +270,17 @@ def get_lobby_summary(terminal_id: Optional[str] = None) -> Dict[str, Any]:
                 "display": _fmt_daily_display(it),
             }
         )
-    me = _build_me(terminal_id, day, stage_count, items, podium, combo_id=combo_id)
-    daily = _build_daily(terminal_id, day, stage_count, me)
-    recent = scores.latest_for_terminal(terminal_id) if terminal_id else None
-    yuwen = yuwen_daily.lobby_slice(terminal_id)
+    uid = (user_id or "").strip() or None
+    tid = (terminal_id or "").strip() or None
+    me = _build_me(tid, day, stage_count, items, podium, combo_id=combo_id, user_id=uid)
+    daily = _build_daily(bool(uid or tid), day, stage_count, me)
+    if uid:
+        recent = scores.latest_for_user(uid)
+    elif tid:
+        recent = scores.latest_for_terminal(tid)
+    else:
+        recent = None
+    yuwen = yuwen_daily.lobby_slice(tid, user_id=uid)
     return {
         "date": day,
         "me": me,

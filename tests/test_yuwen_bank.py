@@ -9,7 +9,7 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-from helpers import url
+from helpers import login_as, url
 from app.main import app
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -58,16 +58,20 @@ def test_hot_mark_highlights_annotated_character():
     assert "<em class=\"yuwen-mark\">逮</em>" in by_id[853]["options"]["A"]
 
 
-def test_yuwen_page_and_score():
-    page = client.get(url("/games/yuwen/"))
+def test_yuwen_page_and_score(tmp_path, monkeypatch):
+    monkeypatch.setattr("app.storage.DATA_DIR", tmp_path)
+    monkeypatch.delenv("TURSO_DATABASE_URL", raising=False)
+    local = TestClient(app)
+    login_as(local, "yuwen_bank")
+    page = local.get(url("/games/yuwen/"))
     assert page.status_code == 200
     assert "语文大擂台" in page.text
     assert "← 返回大厅" in page.text
-    bank = client.get(url("/games/yuwen/questions.json"))
+    bank = local.get(url("/games/yuwen/questions.json"))
     assert bank.status_code == 200
     assert bank.json()["questions"][0]["id"] == 1
 
-    catalog = client.get(url("/api/v1/games")).json()["games"]
+    catalog = local.get(url("/api/v1/games")).json()["games"]
     game = next(g for g in catalog if g["id"] == "yuwen")
     saved = json.loads(JSON_PATH.read_text(encoding="utf-8"))
     assert game["tiers"] == [s["id"] for s in saved["stages"]]
@@ -75,12 +79,12 @@ def test_yuwen_page_and_score():
 
     terminal = str(uuid.uuid4())
     headers = {"X-Terminal-Id": terminal}
-    reg = client.post(
+    reg = local.post(
         url("/api/v1/terminals/register"),
         json={"terminalId": terminal, "nickname": "语文选手"},
     )
     assert reg.status_code == 200
-    submitted = client.post(
+    submitted = local.post(
         url("/api/v1/scores"),
         headers=headers,
         json={
@@ -94,12 +98,17 @@ def test_yuwen_page_and_score():
     )
     assert submitted.status_code == 200
     assert submitted.json()["entry"]["tierLabel"] == "字音"
-    board = client.get(url("/api/v1/leaderboard"), params={
+    uid = submitted.json()["entry"]["userId"]
+    board = local.get(url("/api/v1/leaderboard"), params={
         "gameId": "yuwen",
         "mode": "challenge",
         "tier": "zuyin",
     })
     assert board.status_code == 200
     assert board.json()["tierLabel"] == "字音"
-    mine = [item for item in board.json()["items"] if item.get("terminalId") == terminal]
+    mine = [
+        item
+        for item in board.json()["items"]
+        if item.get("userId") == uid or item.get("terminalId") == terminal
+    ]
     assert mine and "8/10" in mine[0]["display"]

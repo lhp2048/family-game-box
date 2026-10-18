@@ -423,7 +423,7 @@
       nickErr.textContent = "先写一个昵称";
       return;
     }
-    FGB.register(name).then(function () {
+    FGB.registerTerminal(name).then(function () {
       nickBar.hidden = true;
       return loadBests();
     }).then(renderMap).catch(function (err) {

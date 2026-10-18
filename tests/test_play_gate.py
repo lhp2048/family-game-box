@@ -48,7 +48,7 @@ import uuid
 
 from fastapi.testclient import TestClient
 
-from helpers import url
+from helpers import login_as, url
 from app.main import app
 
 client = TestClient(app)
@@ -70,6 +70,7 @@ def _play_on():
 
 def test_gate_off_allows_score():
     client.post(url("/api/v1/terminals/register"), json={"terminalId": TERMINAL, "nickname": "小明"})
+    login_as(client, "gate_off_player")
     response = client.post(
         url("/api/v1/scores"),
         json={"gameId": "stroop", "mode": "challenge", "tier": "normal", "metrics": {"correct": 1, "total": 1, "timeMs": 1000}},
@@ -117,6 +118,7 @@ def test_gate_on_blocks_score_and_today_until_unlock():
     assert bad.json()["detail"] == "口令不对"
     ok = client.post(url("/api/v1/play-gate/unlock"), json={"passphrase": "family"})
     assert ok.status_code == 200
+    login_as(client, "gate_on_player", passphrase="family")
     unlocked = client.post(
         url("/api/v1/scores"),
         json={"gameId": "stroop", "mode": "challenge", "tier": "normal", "metrics": {"correct": 1, "total": 1, "timeMs": 1000}},

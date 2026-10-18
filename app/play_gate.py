@@ -26,10 +26,11 @@ def safe_next(raw: str) -> str:
         return fallback
     if not decoded.startswith("/") or decoded.startswith("//"):
         return fallback
-    normalized = posixpath.normpath(decoded)
+    path_only, sep, query = decoded.partition("?")
+    normalized = posixpath.normpath(path_only)
     if normalized.startswith("//") or not normalized.startswith("/"):
         return fallback
-    return decoded
+    return path_only + (sep + query if sep else "")
 
 
 def _relative(path: str) -> str:
@@ -43,6 +44,8 @@ def needs_play(method: str, path: str) -> bool:
     rel = _relative(path)
     if rel.startswith("/yuwen-daily/leaderboard") or rel.startswith("/daily/leaderboard"):
         return False
+    if rel in ("/login", "/register") or rel.startswith("/login/") or rel.startswith("/register/"):
+        return True
     if rel == "/daily" or rel.startswith("/daily/"):
         return True
     if rel == "/yuwen-daily" or rel.startswith("/yuwen-daily/"):
@@ -81,3 +84,31 @@ def allowed(method: str, path: str, cookie: str | None, admin_token: str | None)
 
 def gate_location(path: str) -> str:
     return with_root("/play-gate") + "?next=" + quote(safe_next(path), safe="/")
+
+
+def needs_user(method: str, path: str) -> bool:
+    """Play/score paths need a user session; login/register only need play-gate."""
+    rel = _relative(path)
+    if rel in ("/login", "/register") or rel.startswith("/login/") or rel.startswith("/register/"):
+        return False
+    return needs_play(method, path)
+
+
+def user_allowed(
+    method: str, path: str, user_cookie: str | None, admin_token: str | None
+) -> bool:
+    if not needs_user(method, path):
+        return True
+    if admin_token:
+        try:
+            require_admin(admin_token)
+            return True
+        except PermissionError:
+            pass
+    from app.users import user_cookie_ok
+
+    return user_cookie_ok(user_cookie)
+
+
+def login_location(path: str) -> str:
+    return with_root("/login") + "?next=" + quote(safe_next(path), safe="/")

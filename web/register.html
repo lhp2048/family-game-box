@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>注册 · 家庭游戏盒</title>
+<link rel="stylesheet" href="/css/fgb-theme.css">
+<style>
+.actions-row { display: flex; gap: 0.65rem; flex-wrap: wrap; margin-top: 0.85rem; align-items: center; }
+.form-field { margin-bottom: 0.75rem; }
+.form-field label { display: block; margin-bottom: 0.35rem; }
+.muted-link { color: var(--muted); font-size: 0.9rem; }
+.muted-link a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main class="fgb-shell">
+  <header class="fgb-topbar">
+    <div>
+      <a class="fgb-brand" href="/">家庭<em>游戏盒</em></a>
+      <span class="fgb-page-kicker">注册</span>
+    </div>
+    <div class="fgb-nav">
+      <a class="fgb-nav-link" href="/">回大厅</a>
+      <a class="fgb-nav-link" href="/login" id="link-login">登录</a>
+    </div>
+  </header>
+
+  <section class="fgb-panel fgb-panel-pad" style="max-width:420px;margin:0 auto">
+    <h1 class="fgb-page-title" style="font-size:1.85rem">注册账号</h1>
+    <p class="fgb-lead">用用户名和个人口令注册。家庭口令用于确认你是家里的人。</p>
+    <div class="fgb-err" id="err"></div>
+    <form id="register-form">
+      <div class="form-field">
+        <label class="fgb-page-kicker" for="username">用户名</label>
+        <input class="fgb-input" type="text" id="username" name="username" autocomplete="username" required maxlength="16" placeholder="1–16 个字符">
+      </div>
+      <div class="form-field">
+        <label class="fgb-page-kicker" for="password">个人口令</label>
+        <input class="fgb-input" type="password" id="password" name="password" autocomplete="new-password" required maxlength="128" placeholder="至少 6 个字符">
+      </div>
+      <div class="form-field">
+        <label class="fgb-page-kicker" for="password2">确认口令</label>
+        <input class="fgb-input" type="password" id="password2" name="password2" autocomplete="new-password" required maxlength="128">
+      </div>
+      <div class="form-field">
+        <label class="fgb-page-kicker" for="passphrase">家庭口令</label>
+        <input class="fgb-input" type="password" id="passphrase" name="passphrase" autocomplete="off" maxlength="128" placeholder="家庭已开启口令时必填">
+      </div>
+      <div class="actions-row">
+        <button type="submit" class="fgb-btn">注册并登录</button>
+        <span class="muted-link">已有账号？<a href="/login" id="link-login-2">去登录</a></span>
+      </div>
+    </form>
+  </section>
+</main>
+<script src="/js/fgb-client.js"></script>
+<script>
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var rawNext = params.get("next") || "/";
+  function decodeNext(raw) {
+    var prev = raw;
+    for (var n = 0; n < 5; n++) {
+      var nxt;
+      try { nxt = decodeURIComponent(prev); }
+      catch (e) { return ""; }
+      if (nxt === prev) return nxt;
+      prev = nxt;
+    }
+    return prev;
+  }
+  function posixNormpath(path) {
+    if (!path) return ".";
+    var initial = 0;
+    if (path.charAt(0) === "/") {
+      initial = 1;
+      if (path.indexOf("//") === 0 && path.indexOf("///") !== 0) initial = 2;
+    }
+    var comps = path.split("/");
+    var out = [];
+    for (var i = 0; i < comps.length; i++) {
+      var comp = comps[i];
+      if (comp === "" || comp === ".") continue;
+      if (comp !== ".." || (initial === 0 && !out.length) || (out.length && out[out.length - 1] === "..")) {
+        out.push(comp);
+      } else if (out.length) {
+        out.pop();
+      }
+    }
+    var joined = out.join("/");
+    if (initial) joined = new Array(initial + 1).join("/") + joined;
+    return joined || ".";
+  }
+  function safeNext(raw) {
+    if (!raw) return "/";
+    var decoded = decodeNext(raw);
+    if (!decoded) return "/";
+    if (decoded.indexOf("\\") !== -1) return "/";
+    for (var i = 0; i < decoded.length; i++) {
+      var code = decoded.charCodeAt(i);
+      if (code < 32 || code === 127) return "/";
+    }
+    if (!decoded.startsWith("/") || decoded.startsWith("//")) return "/";
+    var q = decoded.indexOf("?");
+    var pathOnly = q === -1 ? decoded : decoded.slice(0, q);
+    var query = q === -1 ? "" : decoded.slice(q);
+    var normalized = posixNormpath(pathOnly);
+    if (!normalized.startsWith("/") || normalized.startsWith("//")) return "/";
+    if (pathOnly === "/login" || pathOnly === "/register") return "/";
+    return pathOnly + query;
+  }
+  var next = safeNext(rawNext);
+  var loginQs = next && next !== "/" ? ("?next=" + encodeURIComponent(next)) : "";
+  document.getElementById("link-login").href = FGB.url("/login" + loginQs);
+  document.getElementById("link-login-2").href = FGB.url("/login" + loginQs);
+
+  var form = document.getElementById("register-form");
+  var errEl = document.getElementById("err");
+  form.addEventListener("submit", function (ev) {
+    ev.preventDefault();
+    errEl.textContent = "";
+    var username = document.getElementById("username").value.trim();
+    var password = document.getElementById("password").value;
+    var password2 = document.getElementById("password2").value;
+    var passphrase = document.getElementById("passphrase").value;
+    if (!username || !password) return;
+    if (password !== password2) {
+      errEl.textContent = "两次口令不一致";
+      return;
+    }
+    FGB.register(username, password, passphrase).then(function () {
+      window.location.assign(FGB.url(next));
+    }).catch(function (err) {
+      errEl.textContent = (err && err.message) || "注册失败";
+    });
+  });
+})();
+</script>
+</body>
+</html>

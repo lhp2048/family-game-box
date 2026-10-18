@@ -117,6 +117,21 @@ class PlayGateBody(BaseModel):
     passphrase: Optional[str] = None
 
 
+class AuthRegisterBody(BaseModel):
+    username: str
+    password: str
+    passphrase: Optional[str] = None
+
+
+class AuthLoginBody(BaseModel):
+    username: str
+    password: str
+
+
+class AuthClaimTerminalBody(BaseModel):
+    terminalId: str
+
+
 def create_app() -> FastAPI:
     prefix = get_root_path()
     app = FastAPI(title="家庭游戏盒", version=_load_version())
@@ -128,18 +143,27 @@ def create_app() -> FastAPI:
 
     @app.middleware("http")
     async def play_gate_middleware(request: Request, call_next):
-        from app.play_gate import _relative, allowed, gate_location
+        from app.play_gate import _relative, allowed, gate_location, user_allowed, login_location
+        from app.users import USER_COOKIE
 
         cookie = request.cookies.get("fgb_play")
         admin_token = request.headers.get("x-admin-token")
         try:
-            if allowed(request.method, request.url.path, cookie, admin_token):
-                return await call_next(request)
+            redirect_target = request.url.path
+            if request.url.query:
+                redirect_target = redirect_target + "?" + request.url.query
+            if not allowed(request.method, request.url.path, cookie, admin_token):
+                if _relative(request.url.path).startswith("/api/"):
+                    return JSONResponse({"detail": "需要口令"}, status_code=401)
+                return RedirectResponse(gate_location(redirect_target), status_code=307)
+            user_cookie = request.cookies.get(USER_COOKIE)
+            if not user_allowed(request.method, request.url.path, user_cookie, admin_token):
+                if _relative(request.url.path).startswith("/api/"):
+                    return JSONResponse({"detail": "需要登录"}, status_code=401)
+                return RedirectResponse(login_location(redirect_target), status_code=307)
         except StorageError:
             return JSONResponse({"detail": "暂时存不上"}, status_code=503)
-        if _relative(request.url.path).startswith("/api/"):
-            return JSONResponse({"detail": "需要口令"}, status_code=401)
-        return RedirectResponse(gate_location(request.url.path), status_code=307)
+        return await call_next(request)
 
     if prefix:
         @app.get("/api/v1/health")
@@ -201,6 +225,18 @@ def _register_routes(api: APIRouter) -> None:
         if isinstance(exc, ValueError):
             return HTTPException(status_code=400, detail=str(exc))
         return HTTPException(status_code=500, detail="internal error")
+
+    def _current_user(request: Request) -> tuple:
+        from app import users as users_mod
+
+        uid = users_mod.user_id_from_cookie(request.cookies.get(users_mod.USER_COOKIE))
+        if not uid:
+            return "", ""
+        user = users_mod.get_user(uid)
+        if not user:
+            return "", ""
+        return str(user["userId"]), str(user["username"])
+
 
     @api.get("/api/v1/health")
     async def health():
@@ -318,9 +354,11 @@ def _register_routes(api: APIRouter) -> None:
     @api.post("/api/v1/scores")
     async def scores_submit(
         body: ScoreBody,
+        request: Request,
         x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
     ):
         tid = _require_terminal_id(x_terminal_id)
+        user_id, username = _current_user(request)
         try:
             return submit_score(
                 tid,
@@ -330,18 +368,22 @@ def _register_routes(api: APIRouter) -> None:
                 body.metrics,
                 display=body.display,
                 tier_label_override=body.tierLabel,
+                user_id=user_id,
+                username=username,
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @api.get("/api/v1/scores/me/bests")
     async def scores_my_bests(
+        request: Request,
         gameId: Optional[str] = None,
         x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
     ):
         tid = _require_terminal_id(x_terminal_id)
+        user_id, _username = _current_user(request)
         try:
-            return get_personal_bests(tid, game_id=gameId)
+            return get_personal_bests(tid, game_id=gameId, user_id=user_id)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -368,10 +410,14 @@ def _register_routes(api: APIRouter) -> None:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @api.post("/api/v1/daily/runs")
-    async def daily_runs_start(x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id")):
+    async def daily_runs_start(
+        request: Request,
+        x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
+    ):
         tid = _require_terminal_id(x_terminal_id)
+        user_id, username = _current_user(request)
         try:
-            return daily_runs_mod.start_run(tid)
+            return daily_runs_mod.start_run(tid, user_id=user_id, username=username)
         except (ValueError, PermissionError) as exc:
             raise _map_exc(exc) from exc
 
@@ -400,35 +446,56 @@ def _register_routes(api: APIRouter) -> None:
         )
 
     @api.get("/api/v1/yuwen-daily/today")
-    async def yuwen_daily_today(x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id")):
+    async def yuwen_daily_today(
+        request: Request,
+        x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
+    ):
         tid = (x_terminal_id or "").strip() or None
         if tid and not validate_terminal_id(tid):
             tid = None
-        return yuwen_daily_mod.today_payload(tid)
+        user_id, _username = _current_user(request)
+        return yuwen_daily_mod.today_payload(tid, user_id=user_id or None)
 
     @api.post("/api/v1/yuwen-daily/answer")
     async def yuwen_daily_answer(
         body: YuwenAnswerBody,
+        request: Request,
         x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
     ):
         tid = _require_terminal_id(x_terminal_id)
+        user_id, username = _current_user(request)
         try:
-            return yuwen_daily_mod.answer_question(tid, body.paperId, body.questionId, body.choice, body.timeMs)
+            return yuwen_daily_mod.answer_question(
+                tid,
+                body.paperId,
+                body.questionId,
+                body.choice,
+                body.timeMs,
+                user_id=user_id,
+                username=username,
+            )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @api.post("/api/v1/yuwen-daily/finish")
     async def yuwen_daily_finish(
         body: YuwenFinishBody,
+        request: Request,
         x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
     ):
         tid = _require_terminal_id(x_terminal_id)
+        user_id, username = _current_user(request)
         try:
-            run = yuwen_daily_mod.finish_run(tid, body.paperId, body.timeMs)
+            run = yuwen_daily_mod.finish_run(
+                tid, body.paperId, body.timeMs, user_id=user_id, username=username
+            )
             board = yuwen_daily_mod.leaderboard(date=run.get("date"))
             rank = 0
+            from app.scores import _board_identity_key
+
+            match_key = _board_identity_key(run)
             for item in board.get("items") or []:
-                if item.get("terminalId") == tid:
+                if match_key and _board_identity_key(item) == match_key:
                     rank = int(item.get("rank") or 0)
                     break
             return {"run": run, "rank": rank}
@@ -440,9 +507,13 @@ def _register_routes(api: APIRouter) -> None:
         return yuwen_daily_mod.leaderboard(date=date, limit=min(max(limit, 1), 100))
 
     @api.get("/api/v1/lobby/summary")
-    async def lobby_summary(x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id")):
+    async def lobby_summary(
+        request: Request,
+        x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
+    ):
         tid = (x_terminal_id or "").strip() or None
-        return lobby_mod.get_lobby_summary(tid)
+        user_id, _username = _current_user(request)
+        return lobby_mod.get_lobby_summary(tid, user_id=user_id or None)
 
     @api.get("/api/v1/admin/status")
     async def admin_status(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
@@ -466,6 +537,94 @@ def _register_routes(api: APIRouter) -> None:
     async def admin_logout(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
         daily_admin_mod.logout(x_admin_token or "")
         return {"ok": True}
+
+    def _set_user_cookie(response: Response, value: str, request: Request) -> None:
+        from app.users import USER_COOKIE, USER_TTL
+
+        response.set_cookie(
+            USER_COOKIE,
+            value,
+            max_age=USER_TTL,
+            httponly=True,
+            samesite="lax",
+            secure=request.url.scheme == "https",
+            path=get_root_path() or "/",
+        )
+
+    def _clear_user_cookie(response: Response) -> None:
+        from app.users import USER_COOKIE
+
+        response.delete_cookie(
+            USER_COOKIE,
+            path=get_root_path() or "/",
+            samesite="lax",
+        )
+
+    @api.post("/api/v1/auth/register")
+    async def auth_register(body: AuthRegisterBody, request: Request):
+        from app.daily_admin import issue_play_cookie, play_gate_snapshot
+        from app import users as users_mod
+
+        try:
+            if play_gate_snapshot().get("playGateEnabled"):
+                issue_play_cookie(body.passphrase or "")
+            me = users_mod.register_user(body.username, body.password)
+            cookie = users_mod.issue_user_cookie(me["userId"])
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        response = JSONResponse(me)
+        _set_user_cookie(response, cookie, request)
+        return response
+
+    @api.post("/api/v1/auth/login")
+    async def auth_login(body: AuthLoginBody, request: Request):
+        from app import users as users_mod
+
+        try:
+            me = users_mod.authenticate(body.username, body.password)
+            cookie = users_mod.issue_user_cookie(me["userId"])
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        response = JSONResponse(me)
+        _set_user_cookie(response, cookie, request)
+        return response
+
+    @api.post("/api/v1/auth/logout")
+    async def auth_logout():
+        response = JSONResponse({"ok": True})
+        _clear_user_cookie(response)
+        return response
+
+    @api.get("/api/v1/auth/me")
+    async def auth_me(request: Request):
+        from app import users as users_mod
+
+        tid = (request.headers.get("x-terminal-id") or "").strip()
+        claim = users_mod.claim_available(tid) if tid else False
+        uid = users_mod.user_id_from_cookie(request.cookies.get(users_mod.USER_COOKIE))
+        if not uid:
+            return {"loggedIn": False, "claimAvailable": False}
+        user = users_mod.get_user(uid)
+        if not user:
+            return {"loggedIn": False, "claimAvailable": False}
+        return {
+            "loggedIn": True,
+            "userId": user["userId"],
+            "username": user["username"],
+            "claimAvailable": claim,
+        }
+
+    @api.post("/api/v1/auth/claim-terminal")
+    async def auth_claim_terminal(body: AuthClaimTerminalBody, request: Request):
+        from app import users as users_mod
+
+        uid = users_mod.user_id_from_cookie(request.cookies.get(users_mod.USER_COOKIE))
+        if not uid:
+            raise HTTPException(status_code=401, detail="请先登录")
+        try:
+            return users_mod.claim_terminal(uid, body.terminalId)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @api.get("/api/v1/play-gate")
     async def play_gate_state(request: Request):
@@ -642,6 +801,20 @@ def _register_routes(api: APIRouter) -> None:
         if page.is_file():
             return FileResponse(page, media_type="text/html; charset=utf-8")
         raise HTTPException(status_code=404, detail="admin.html missing")
+
+    @api.get("/login")
+    async def login_page():
+        page = WEB_DIR / "login.html"
+        if page.is_file():
+            return FileResponse(page, media_type="text/html; charset=utf-8")
+        raise HTTPException(status_code=404, detail="login.html missing")
+
+    @api.get("/register")
+    async def register_page():
+        page = WEB_DIR / "register.html"
+        if page.is_file():
+            return FileResponse(page, media_type="text/html; charset=utf-8")
+        raise HTTPException(status_code=404, detail="register.html missing")
 
     @api.get("/play-gate")
     async def play_gate_page():

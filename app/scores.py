@@ -75,10 +75,30 @@ def _save_entries(entries: List[Dict[str, Any]]) -> None:
     save_json("scores.json", {"version": 1, "entries": entries})
 
 
-def _best_for_terminal(entries: List[Dict[str, Any]], terminal_id: str, game_id: str, mode: str, tier: str):
+def _board_identity_key(item: Dict[str, Any]) -> str:
+    """One personal-best slot per user when bound; else per terminal."""
+    uid = str(item.get("userId") or "").strip()
+    if uid:
+        return "user:%s" % uid
+    tid = str(item.get("terminalId") or "").strip()
+    return "terminal:%s" % tid if tid else ""
+
+
+def _best_for_terminal(
+    entries: List[Dict[str, Any]],
+    terminal_id: str,
+    game_id: str,
+    mode: str,
+    tier: str,
+    user_id: str = "",
+):
     best = None
+    uid = (user_id or "").strip()
     for item in entries:
-        if item.get("terminalId") != terminal_id:
+        if uid:
+            if str(item.get("userId") or "") != uid:
+                continue
+        elif item.get("terminalId") != terminal_id:
             continue
         if item.get("gameId") != game_id or item.get("mode") != mode or item.get("tier") != tier:
             continue
@@ -103,6 +123,8 @@ def submit_score(
     metrics: Dict[str, Any],
     display: str = "",
     tier_label_override: str = "",
+    user_id: str = "",
+    username: str = "",
 ) -> Dict[str, Any]:
     if not validate_terminal_id(terminal_id):
         raise ValueError("invalid terminal id")
@@ -125,14 +147,15 @@ def submit_score(
     shown = (display or "").strip() or format_display(game_id, mode, metrics)
     now = _now()
     entries = _load_entries()
-    previous = _best_for_terminal(entries, terminal_id, game_id, mode, tier)
+    previous = _best_for_terminal(entries, terminal_id, game_id, mode, tier, user_id=user_id)
     fresh = {"metrics": metrics, "score": score}
     is_personal_best = previous is None or _entry_beats(game_id, fresh, previous)
 
+    display_name = (username or "").strip() if user_id else terminal.get("nickname", "")
     entry = {
         "id": str(uuid.uuid4()),
         "terminalId": terminal_id,
-        "nickname": terminal.get("nickname", ""),
+        "nickname": display_name,
         "gameId": game_id,
         "mode": mode,
         "tier": tier,
@@ -143,10 +166,13 @@ def submit_score(
         "playedAt": now,
         "isPersonalBest": is_personal_best,
     }
+    if user_id:
+        entry["userId"] = user_id
+        entry["username"] = (username or "").strip() or display_name
     entries.append(entry)
     _save_entries(entries)
 
-    rank = leaderboard_rank(entries, game_id, mode, tier, score, terminal_id)
+    rank = leaderboard_rank(entries, game_id, mode, tier, score, terminal_id, user_id=user_id)
     return {
         "ok": True,
         "isPersonalBest": is_personal_best,
@@ -163,10 +189,15 @@ def leaderboard_rank(
     tier: str,
     score: int,
     terminal_id: str,
+    user_id: str = "",
 ) -> int:
     board = leaderboard_entries(entries, game_id, mode, tier, limit=1000)
+    uid = (user_id or "").strip()
     for idx, item in enumerate(board, start=1):
-        if item.get("terminalId") != terminal_id:
+        if uid:
+            if str(item.get("userId") or "") != uid:
+                continue
+        elif item.get("terminalId") != terminal_id:
             continue
         if game_id == "yuwen" or int(item.get("score", 0)) == score:
             return idx
@@ -185,23 +216,34 @@ def leaderboard_entries(
         for e in entries
         if e.get("gameId") == game_id and e.get("mode") == mode and e.get("tier") == tier
     ]
-    best_by_terminal: Dict[str, Dict[str, Any]] = {}
+    best_by_identity: Dict[str, Dict[str, Any]] = {}
     for item in filtered:
-        tid = str(item.get("terminalId", ""))
-        if not tid:
+        key = _board_identity_key(item)
+        if not key:
             continue
-        prev = best_by_terminal.get(tid)
+        prev = best_by_identity.get(key)
         if prev is None or _entry_beats(game_id, item, prev):
-            best_by_terminal[tid] = item
+            best_by_identity[key] = item
     if game_id == "yuwen":
         board = sorted(
-            best_by_terminal.values(),
+            best_by_identity.values(),
             key=lambda e: accuracy_time_key(e.get("metrics") or {}),
             reverse=True,
         )
     else:
-        board = sorted(best_by_terminal.values(), key=lambda e: int(e.get("score", 0)), reverse=True)
+        board = sorted(best_by_identity.values(), key=lambda e: int(e.get("score", 0)), reverse=True)
     return board[:limit]
+
+
+
+def _board_nickname(item: Dict[str, Any], nicks: Dict[str, str]) -> str:
+    if item.get("userId"):
+        return str(item.get("username") or item.get("nickname") or "")
+    return resolve_nickname(
+        str(item.get("terminalId", "")),
+        fallback=str(item.get("nickname", "")),
+        lookup=nicks,
+    )
 
 
 def get_leaderboard(game_id: str, mode: str, tier: str, limit: int = 20) -> Dict[str, Any]:
@@ -223,12 +265,9 @@ def get_leaderboard(game_id: str, mode: str, tier: str, limit: int = 20) -> Dict
         "items": [
             {
                 "rank": idx,
-                "nickname": resolve_nickname(
-                    str(item.get("terminalId", "")),
-                    fallback=str(item.get("nickname", "")),
-                    lookup=nicks,
-                ),
+                "nickname": _board_nickname(item, nicks),
                 "terminalId": item.get("terminalId", ""),
+                "userId": item.get("userId") or "",
                 "display": format_display(game_id, mode, item.get("metrics") or {})
                 if game_id == "yuwen"
                 else item.get("display", ""),
@@ -240,13 +279,18 @@ def get_leaderboard(game_id: str, mode: str, tier: str, limit: int = 20) -> Dict
     }
 
 
-def get_personal_bests(terminal_id: str, game_id: Optional[str] = None) -> Dict[str, Any]:
+def get_personal_bests(
+    terminal_id: str,
+    game_id: Optional[str] = None,
+    user_id: str = "",
+) -> Dict[str, Any]:
     if not validate_terminal_id(terminal_id):
         raise ValueError("invalid terminal id")
     entries = _load_entries()
     bests: Dict[str, Any] = {}
     from app.game_registry import list_all_games
 
+    uid = (user_id or "").strip()
     game_tiers = []
     for g in list_all_games(include_disabled=True):
         if not g.get("rankable"):
@@ -261,7 +305,9 @@ def get_personal_bests(terminal_id: str, game_id: Optional[str] = None) -> Dict[
         for mode in ("casual", "challenge"):
             mode_best: Dict[str, Any] = {}
             for tier in tiers:
-                item = _best_for_terminal(entries, terminal_id, gid, mode, tier)
+                item = _best_for_terminal(
+                    entries, terminal_id, gid, mode, tier, user_id=uid
+                )
                 if item:
                     mode_best[tier] = {
                         "display": format_display(gid, mode, item.get("metrics") or {})
@@ -275,7 +321,10 @@ def get_personal_bests(terminal_id: str, game_id: Optional[str] = None) -> Dict[
                 game_best[mode] = mode_best
         if game_best:
             bests[gid] = game_best
-    return {"terminalId": terminal_id, "bests": bests}
+    out: Dict[str, Any] = {"terminalId": terminal_id, "bests": bests}
+    if uid:
+        out["userId"] = uid
+    return out
 
 
 def global_leaderboard_entries(
@@ -296,11 +345,7 @@ def get_global_leaderboard(limit: int = 50) -> Dict[str, Any]:
         "items": [
             {
                 "rank": idx,
-                "nickname": resolve_nickname(
-                    str(item.get("terminalId", "")),
-                    fallback=str(item.get("nickname", "")),
-                    lookup=nicks,
-                ),
+                "nickname": _board_nickname(item, nicks),
                 "terminalId": item.get("terminalId", ""),
                 "display": item.get("display", ""),
                 "playedAt": item.get("playedAt"),
@@ -319,11 +364,7 @@ def get_recent_leaderboard(limit: int = _RECENT_LIMIT) -> Dict[str, Any]:
         "items": [
             {
                 "rank": idx,
-                "nickname": resolve_nickname(
-                    str(item.get("terminalId", "")),
-                    fallback=str(item.get("nickname", "")),
-                    lookup=nicks,
-                ),
+                "nickname": _board_nickname(item, nicks),
                 "terminalId": item.get("terminalId", ""),
                 "gameId": item.get("gameId", ""),
                 "gameTitle": _game_title(item.get("gameId", "")),
@@ -347,6 +388,23 @@ def latest_for_terminal(terminal_id: str) -> Optional[Dict[str, Any]]:
             continue
         if best is None or str(item.get("playedAt") or "") > str(best.get("playedAt") or ""):
             best = item
+    return _recent_slice(best)
+
+
+def latest_for_user(user_id: str) -> Optional[Dict[str, Any]]:
+    uid = (user_id or "").strip()
+    if not uid:
+        return None
+    best = None
+    for item in _load_entries():
+        if str(item.get("userId") or "") != uid:
+            continue
+        if best is None or str(item.get("playedAt") or "") > str(best.get("playedAt") or ""):
+            best = item
+    return _recent_slice(best)
+
+
+def _recent_slice(best: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     if not best:
         return None
     return {
@@ -355,3 +413,25 @@ def latest_for_terminal(terminal_id: str) -> Optional[Dict[str, Any]]:
         "display": best.get("display", ""),
         "playedAt": best.get("playedAt"),
     }
+
+
+def reassign_terminal_to_user(terminal_id: str, user_id: str, username: str) -> int:
+    """Bind unbound historical score rows for ``terminal_id`` to ``user_id``; return count updated."""
+    tid = (terminal_id or "").strip()
+    if not tid or not user_id:
+        return 0
+    name = (username or "").strip()
+    entries = _load_entries()
+    count = 0
+    for item in entries:
+        if item.get("terminalId") != tid:
+            continue
+        if item.get("userId"):
+            continue
+        item["userId"] = user_id
+        item["username"] = name
+        item["nickname"] = name
+        count += 1
+    if count:
+        _save_entries(entries)
+    return count

@@ -75,11 +75,13 @@
 
   var PENALTY_MS = 5000;
 
-  function shownMs() {
-    return elapsed() + penaltyMs;
-  }
+  function elapsed() {
     var extra = tickStart ? performance.now() - tickStart : 0;
     return Math.round(acc + extra);
+  }
+
+  function shownMs() {
+    return elapsed() + penaltyMs;
   }
 
   function startClock() {
@@ -109,6 +111,8 @@
     });
     return wrong * PENALTY_MS;
   }
+
+  function answeredMap() {
     var map = {};
     ((paper.progress && paper.progress.answered) || []).forEach(function (item) {
       map[item.id] = item;

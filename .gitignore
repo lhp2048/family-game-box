@@ -12,11 +12,7 @@ build/
 data/
 games.zip
 output/
-web/games/**/*
-!web/games/**/
-!web/games/yuwen/**
 games/**/build/
 
 .superpowers/
 .worktrees/
-

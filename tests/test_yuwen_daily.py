@@ -212,3 +212,131 @@ def test_board_keeps_seven_days(monkeypatch, tmp_path):
     stored = yd._load()
     assert "old" not in stored["runs"]
     assert "edge" in stored["runs"]
+
+
+def test_same_device_two_users_runs_isolated(monkeypatch, tmp_path):
+    """Two accounts on one terminal keep separate yuwen runs; B cannot finish A's."""
+    monkeypatch.setattr("app.storage.DATA_DIR", tmp_path)
+    monkeypatch.setattr("app.yuwen_daily.local_today", lambda: "2026-10-18")
+    monkeypatch.setattr("app.daily_challenges.local_today", lambda: "2026-10-18")
+    tid = _tid()
+    register_terminal(tid, "shared-pad")
+    paper = yd.paper_for("2026-10-18")
+    qmap = yd._question_map()
+    first = paper["questions"][0]
+    alice, bob = "user-alice", "user-bob"
+
+    yd.answer_question(
+        tid, paper["paperId"], first["id"], "A", 1000, user_id=alice, username="alice"
+    )
+
+    # Bob must not resume Alice's progress UI
+    bob_today = yd.today_payload(tid, user_id=bob)
+    assert bob_today["progress"]["status"] == "absent"
+
+    alice_today = yd.today_payload(tid, user_id=alice)
+    assert alice_today["progress"]["status"] == "running"
+    assert len(alice_today["progress"]["answered"]) == 1
+    assert alice_today["progress"]["answered"][0]["choice"] == "A"
+
+    # Bob starts his own run with a different choice
+    yd.answer_question(
+        tid, paper["paperId"], first["id"], "B", 1000, user_id=bob, username="bob"
+    )
+    alice_today2 = yd.today_payload(tid, user_id=alice)
+    assert alice_today2["progress"]["answered"][0]["choice"] == "A"
+    bob_today2 = yd.today_payload(tid, user_id=bob)
+    assert bob_today2["progress"]["answered"][0]["choice"] == "B"
+
+    # Bob cannot finish Alice's (or his incomplete) run as a steal
+    try:
+        yd.finish_run(tid, paper["paperId"], 8000, user_id=bob, username="bob")
+        raise AssertionError("bob should not finish incomplete/foreign run")
+    except ValueError as exc:
+        assert "paper not finished" in str(exc) or "challenge not started" in str(exc)
+
+    # Complete Alice only; her finish must stay alice-bound
+    for q in paper["questions"][1:]:
+        yd.answer_question(
+            tid,
+            paper["paperId"],
+            q["id"],
+            qmap[q["id"]]["answer"],
+            5000,
+            user_id=alice,
+            username="alice",
+        )
+    alice_fin = yd.finish_run(
+        tid, paper["paperId"], 8000, user_id=alice, username="alice"
+    )
+    assert alice_fin["userId"] == alice
+
+    # Bob still cannot claim Alice's finished run via finish
+    try:
+        stolen = yd.finish_run(tid, paper["paperId"], 8000, user_id=bob, username="bob")
+        # If finish resolves Bob's incomplete run → paper not finished; never Alice
+        assert stolen.get("userId") != alice
+        raise AssertionError("expected ValueError for bob finish")
+    except ValueError:
+        pass
+
+    data = yd._load()
+    alice_runs = [r for r in data["runs"].values() if r.get("userId") == alice]
+    bob_runs = [r for r in data["runs"].values() if r.get("userId") == bob]
+    assert len(alice_runs) == 1 and alice_runs[0]["status"] == "finished"
+    assert len(bob_runs) == 1 and bob_runs[0]["status"] == "running"
+    assert alice_runs[0]["userId"] == alice
+
+
+def test_yuwen_board_one_row_per_user_across_terminals(monkeypatch, tmp_path):
+    monkeypatch.setattr("app.storage.DATA_DIR", tmp_path)
+    monkeypatch.setattr("app.yuwen_daily.local_today", lambda: "2026-10-18")
+    t1, t2, t3 = _tid(), _tid(), _tid()
+    register_terminal(t1, "a")
+    register_terminal(t2, "b")
+    register_terminal(t3, "c")
+    cara = "user-cara"
+    dana = "user-dana"
+
+    def finished(tid, uid, uname, correct, time_ms):
+        rid = str(uuid.uuid4())
+        return {
+            "runId": rid,
+            "paperId": "yuwen-2026-10-18",
+            "date": "2026-10-18",
+            "terminalId": tid,
+            "userId": uid,
+            "username": uname,
+            "nickname": uname,
+            "status": "finished",
+            "correct": correct,
+            "total": 10,
+            "timeMs": time_ms,
+            "display": "",
+        }
+
+    r1 = finished(t1, cara, "cara", 9, 5000)
+    r2 = finished(t2, cara, "cara", 10, 4000)  # better on second device
+    r3 = finished(t3, dana, "dana", 8, 3000)
+    # same terminal, second user
+    r4 = finished(t1, dana, "dana", 7, 2000)
+    yd._save(
+        {
+            "version": 1,
+            "runs": {r["runId"]: r for r in (r1, r2, r3, r4)},
+        }
+    )
+    items = yd.leaderboard("2026-10-18")["items"]
+    caras = [it for it in items if it.get("userId") == cara]
+    danas = [it for it in items if it.get("userId") == dana]
+    assert len(caras) == 1
+    assert caras[0]["correct"] == 10  # best across terminals
+    assert caras[0]["nickname"] == "cara"
+    assert len(danas) == 1
+    # both users appear even though dana also played on cara's first terminal
+    nicks = {it["nickname"] for it in items}
+    assert nicks == {"cara", "dana"}
+
+    # Lobby rank matches by user identity, not bare terminalId
+    slice_cara = yd.lobby_slice(t1, user_id=cara)
+    assert slice_cara["yuwenDaily"]["rank"] == caras[0]["rank"]

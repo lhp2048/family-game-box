@@ -376,12 +376,14 @@ def _register_routes(api: APIRouter) -> None:
 
     @api.get("/api/v1/scores/me/bests")
     async def scores_my_bests(
+        request: Request,
         gameId: Optional[str] = None,
         x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
     ):
         tid = _require_terminal_id(x_terminal_id)
+        user_id, _username = _current_user(request)
         try:
-            return get_personal_bests(tid, game_id=gameId)
+            return get_personal_bests(tid, game_id=gameId, user_id=user_id)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -444,11 +446,15 @@ def _register_routes(api: APIRouter) -> None:
         )
 
     @api.get("/api/v1/yuwen-daily/today")
-    async def yuwen_daily_today(x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id")):
+    async def yuwen_daily_today(
+        request: Request,
+        x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
+    ):
         tid = (x_terminal_id or "").strip() or None
         if tid and not validate_terminal_id(tid):
             tid = None
-        return yuwen_daily_mod.today_payload(tid)
+        user_id, _username = _current_user(request)
+        return yuwen_daily_mod.today_payload(tid, user_id=user_id or None)
 
     @api.post("/api/v1/yuwen-daily/answer")
     async def yuwen_daily_answer(
@@ -485,8 +491,11 @@ def _register_routes(api: APIRouter) -> None:
             )
             board = yuwen_daily_mod.leaderboard(date=run.get("date"))
             rank = 0
+            from app.scores import _board_identity_key
+
+            match_key = _board_identity_key(run)
             for item in board.get("items") or []:
-                if item.get("terminalId") == tid:
+                if match_key and _board_identity_key(item) == match_key:
                     rank = int(item.get("rank") or 0)
                     break
             return {"run": run, "rank": rank}

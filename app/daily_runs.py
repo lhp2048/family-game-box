@@ -15,6 +15,7 @@ from app.daily_challenges import (
     prune_dated_runs,
 )
 from app.storage import load_json, save_json
+from app.scores import _board_identity_key
 from app.terminals import get_terminal, nickname_lookup, resolve_nickname
 
 STORE = "daily_runs.json"
@@ -96,18 +97,27 @@ def _rank_key(run: Dict[str, Any]):
     return (finished, -int(run.get("stagesDone") or 0), int(run.get("totalTimeMs") or 0))
 
 
-def _prune_player_combo_runs(data: Dict[str, Any], terminal_id: str, combo_id: str) -> None:
-    """同一终端 + 同一挑战组合：只保留首次结束记录与最佳记录（可重合为一条）。"""
+def _prune_player_combo_runs(
+    data: Dict[str, Any],
+    terminal_id: str,
+    combo_id: str,
+    user_id: str = "",
+) -> None:
+    """同一玩家（绑定 userId，否则 terminal）+ 同一挑战组合：只保留首次与最佳。"""
+    uid = (user_id or "").strip()
+    identity = ("user:%s" % uid) if uid else ("terminal:%s" % (terminal_id or ""))
+    if not identity or identity.endswith(":"):
+        return
     runs = data.setdefault("runs", {})
     ended: List[Dict[str, Any]] = []
     for run in runs.values():
         if not isinstance(run, dict):
             continue
-        if run.get("terminalId") != terminal_id:
-            continue
         if str(run.get("comboId") or "") != str(combo_id or ""):
             continue
         if run.get("status") not in ("finished", "exited"):
+            continue
+        if _board_identity_key(run) != identity:
             continue
         ended.append(run)
     if len(ended) <= 1:
@@ -119,11 +129,11 @@ def _prune_player_combo_runs(data: Dict[str, Any], terminal_id: str, combo_id: s
     for rid, run in list(runs.items()):
         if not isinstance(run, dict):
             continue
-        if run.get("terminalId") != terminal_id:
-            continue
         if str(run.get("comboId") or "") != str(combo_id or ""):
             continue
         if run.get("status") not in ("finished", "exited"):
+            continue
+        if _board_identity_key(run) != identity:
             continue
         rid_s = str(rid)
         run_id = str(run.get("runId") or "")
@@ -185,7 +195,12 @@ def patch_run(terminal_id: str, run_id: str, body: Dict[str, Any]) -> Dict[str, 
         raise ValueError("invalid action")
     data["runs"][run_id] = run
     if run.get("status") in ("finished", "exited"):
-        _prune_player_combo_runs(data, terminal_id, str(run.get("comboId") or ""))
+        _prune_player_combo_runs(
+            data,
+            terminal_id,
+            str(run.get("comboId") or ""),
+            user_id=str(run.get("userId") or ""),
+        )
     _save(data)
     # 可能被 prune 掉的是「当前以外」的旧 run；当前这条一定保留
     return data["runs"].get(run_id) or run
@@ -275,15 +290,17 @@ def leaderboard(
     if not selected and combos:
         selected = str(combos[0].get("comboId") or "")
 
-    # 只排所选挑战；按 terminalId 分组标首次/最佳
+    # 只排所选挑战；按 userId（绑定）或 terminalId 分组标首次/最佳
     groups: Dict[str, List[Dict[str, Any]]] = {}
     if selected:
         for run in day_runs:
             cid = str(run.get("comboId") or "")
             if cid != selected:
                 continue
-            tid = str(run.get("terminalId") or "")
-            groups.setdefault(tid, []).append(run)
+            key = _board_identity_key(run)
+            if not key:
+                continue
+            groups.setdefault(key, []).append(run)
 
     nicks = nickname_lookup()
     items: List[Dict[str, Any]] = []
@@ -313,6 +330,7 @@ def leaderboard(
                         )
                     ),
                     "terminalId": tid,
+                    "userId": str(run.get("userId") or ""),
                     "status": run.get("status"),
                     "stagesDone": int(run.get("stagesDone") or 0),
                     "totalTimeMs": int(run.get("totalTimeMs") or 0),

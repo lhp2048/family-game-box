@@ -17,6 +17,7 @@ from app.daily_challenges import (
 )
 from app.score_rules import accuracy_time_key, format_display
 from app.storage import load_json, save_json
+from app.scores import _board_identity_key
 from app.terminals import get_terminal, nickname_lookup, resolve_nickname
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -140,10 +141,13 @@ def _runs(data: Dict[str, Any]) -> List[Dict[str, Any]]:
 
 
 def _run_for(data: Dict[str, Any], terminal_id: str, paper_id: str) -> Optional[Dict[str, Any]]:
+    """Latest unbound run for terminal+paper (ignores user-bound runs)."""
     found = [
         r
         for r in _runs(data)
-        if r.get("terminalId") == terminal_id and r.get("paperId") == paper_id
+        if r.get("terminalId") == terminal_id
+        and r.get("paperId") == paper_id
+        and not str(r.get("userId") or "").strip()
     ]
     if not found:
         return None
@@ -152,7 +156,9 @@ def _run_for(data: Dict[str, Any], terminal_id: str, paper_id: str) -> Optional[
 
 
 def _run_for_user(data: Dict[str, Any], user_id: str, paper_id: str) -> Optional[Dict[str, Any]]:
-    uid = str(user_id or "")
+    uid = str(user_id or "").strip()
+    if not uid:
+        return None
     found = [
         r
         for r in _runs(data)
@@ -162,6 +168,28 @@ def _run_for_user(data: Dict[str, Any], user_id: str, paper_id: str) -> Optional
         return None
     found.sort(key=lambda r: str(r.get("startedAt") or ""))
     return found[-1]
+
+
+def _resolve_run(
+    data: Dict[str, Any],
+    terminal_id: str,
+    paper_id: str,
+    user_id: str = "",
+) -> Optional[Dict[str, Any]]:
+    uid = (user_id or "").strip()
+    if uid:
+        return _run_for_user(data, uid, paper_id)
+    return _run_for(data, terminal_id, paper_id)
+
+
+def _assert_run_owner(run: Dict[str, Any], user_id: str = "") -> None:
+    """Refuse when an existing run belongs to a different logged-in user."""
+    existing = str(run.get("userId") or "").strip()
+    uid = (user_id or "").strip()
+    if existing and uid and existing != uid:
+        raise ValueError("not your challenge")
+    if existing and not uid:
+        raise ValueError("not your challenge")
 
 
 def _elapsed_cap(run: Dict[str, Any]) -> int:
@@ -222,17 +250,27 @@ def _progress(run: Optional[Dict[str, Any]], paper: Dict[str, Any]) -> Dict[str,
     }
 
 
-def today_payload(terminal_id: Optional[str] = None) -> Dict[str, Any]:
+def today_payload(
+    terminal_id: Optional[str] = None,
+    user_id: Optional[str] = None,
+) -> Dict[str, Any]:
     day = local_today()
     paper = paper_for(day)
+    uid = (user_id or "").strip() or None
+    tid = (terminal_id or "").strip() or None
     run = None
-    if terminal_id:
-        run = _run_for(_load(), terminal_id, paper["paperId"])
+    if uid or tid:
+        run = _resolve_run(_load(), tid or "", paper["paperId"], user_id=uid or "")
     progress = _progress(run, paper)
-    if progress["status"] == "finished" and terminal_id:
+    if progress["status"] == "finished" and (uid or tid):
         board = leaderboard(date=day, limit=100)
+        my_key = _board_identity_key(
+            {"userId": uid or "", "terminalId": tid or ""}
+        ) if (uid or tid) else ""
+        if not my_key and run:
+            my_key = _board_identity_key(run)
         for item in board.get("items") or []:
-            if item.get("terminalId") == terminal_id:
+            if my_key and _board_identity_key(item) == my_key:
                 progress["rank"] = item.get("rank")
                 break
     return {
@@ -251,10 +289,16 @@ def _ensure_run(
     user_id: str = "",
     username: str = "",
 ) -> Dict[str, Any]:
-    run = _run_for(data, terminal_id, paper["paperId"])
+    uid = (user_id or "").strip()
+    run = _resolve_run(data, terminal_id, paper["paperId"], user_id=uid)
     if run:
-        if user_id and not run.get("userId"):
-            run["userId"] = user_id
+        _assert_run_owner(run, uid)
+        # Keep the active device on the run when the same user continues elsewhere.
+        if uid and run.get("terminalId") != terminal_id:
+            run["terminalId"] = terminal_id
+            data["runs"][run["runId"]] = run
+        if uid and not run.get("userId"):
+            run["userId"] = uid
             run["username"] = (username or "").strip()
             if run["username"]:
                 run["nickname"] = run["username"]
@@ -263,7 +307,7 @@ def _ensure_run(
     term = get_terminal(terminal_id)
     if not term:
         raise ValueError("terminal not registered")
-    display_name = (username or "").strip() if user_id else (term.get("nickname") or "")
+    display_name = (username or "").strip() if uid else (term.get("nickname") or "")
     run = {
         "runId": str(uuid.uuid4()),
         "paperId": paper["paperId"],
@@ -279,8 +323,8 @@ def _ensure_run(
         "timeMs": 0,
         "display": "",
     }
-    if user_id:
-        run["userId"] = user_id
+    if uid:
+        run["userId"] = uid
         run["username"] = (username or "").strip() or display_name
     data["runs"][run["runId"]] = run
     return run
@@ -313,6 +357,7 @@ def answer_question(
 
     data = _load()
     run = _ensure_run(data, terminal_id, paper, user_id=user_id, username=username)
+    _assert_run_owner(run, user_id)
     key = str(int(question_id))
     stored = (run.get("answers") or {}).get(key)
     if not isinstance(stored, dict):
@@ -346,9 +391,11 @@ def finish_run(
     if paper_id != paper["paperId"]:
         raise ValueError("paper is not today's")
     data = _load()
-    run = _run_for(data, terminal_id, paper_id)
+    uid = (user_id or "").strip()
+    run = _resolve_run(data, terminal_id, paper_id, user_id=uid)
     if not run:
         raise ValueError("challenge not started")
+    _assert_run_owner(run, uid)
     if run.get("status") == "finished":
         return run
     answers = run.get("answers") or {}
@@ -372,8 +419,10 @@ def finish_run(
     run["display"] = _display(correct, run["total"], used)
     run["status"] = "finished"
     run["endedAt"] = _now()
-    if user_id:
-        run["userId"] = user_id
+    if uid:
+        # Never overwrite a non-empty userId (prevents steal-on-finish).
+        if not str(run.get("userId") or "").strip():
+            run["userId"] = uid
         uname = (username or "").strip() or str(run.get("username") or "")
         if uname:
             run["username"] = uname
@@ -382,6 +431,8 @@ def finish_run(
             run["nickname"] = term.get("nickname") or run.get("nickname") or ""
     else:
         run["nickname"] = term.get("nickname") or run.get("nickname") or ""
+    if uid and run.get("terminalId") != terminal_id:
+        run["terminalId"] = terminal_id
     data["runs"][run["runId"]] = run
     _save(data)
     return run
@@ -399,12 +450,12 @@ def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
     for run in _runs(_load()):
         if run.get("date") != day or run.get("status") != "finished":
             continue
-        tid = str(run.get("terminalId") or "")
-        if not tid:
+        key = _board_identity_key(run)
+        if not key:
             continue
-        prev = best.get(tid)
+        prev = best.get(key)
         if prev is None or _better(run, prev):
-            best[tid] = run
+            best[key] = run
     ordered = sorted(best.values(), key=_run_key, reverse=True)
     nicks = nickname_lookup()
     items = []
@@ -414,6 +465,7 @@ def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
             {
                 "rank": idx,
                 "terminalId": tid,
+                "userId": str(run.get("userId") or ""),
                 "nickname": (
                     str(run.get("username") or run.get("nickname") or "")
                     if run.get("userId")
@@ -453,9 +505,9 @@ def lobby_slice(terminal_id: Optional[str], user_id: Optional[str] = None) -> Di
             run = _run_for(data, tid, paper["paperId"])
         progress = _progress(run, paper)
         if progress["status"] == "finished" and run:
-            match_tid = str(run.get("terminalId") or "")
+            match_key = _board_identity_key(run)
             for it in items:
-                if match_tid and it.get("terminalId") == match_tid:
+                if match_key and _board_identity_key(it) == match_key:
                     rank = it.get("rank")
                     break
     status = progress["status"]

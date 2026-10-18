@@ -220,3 +220,77 @@ def test_leaderboard_keeps_seven_days(monkeypatch):
     stored = dr._load()
     assert "old" not in stored["runs"]
     assert "edge" in stored["runs"]
+
+
+def _finish_all_as(tid, user_id="", username="", total_base_ms=1000):
+    run = dr.start_run(tid, user_id=user_id, username=username)
+    n = len(run["stages"])
+    for i in range(n):
+        st = run["stages"][i]
+        action = "finish" if i == n - 1 else "stage_done"
+        dr.patch_run(
+            tid,
+            run["runId"],
+            {
+                "action": action,
+                "stageIndex": i,
+                "timeMs": 800,
+                "totalTimeMs": (i + 1) * total_base_ms,
+                "stage": {
+                    "gameId": st["gameId"],
+                    "tier": st["tier"],
+                    "timeMs": 800,
+                    "completed": True,
+                },
+            },
+        )
+    return run["runId"]
+
+
+def test_prune_keeps_three_users_on_one_terminal():
+    """Finished runs for three accounts on one device must not prune each other."""
+    tid = _tid()
+    register_terminal(tid, "shared")
+    dc.ensure_today()
+    id1 = _finish_all_as(tid, user_id="u1", username="p1", total_base_ms=3000)
+    id2 = _finish_all_as(tid, user_id="u2", username="p2", total_base_ms=2000)
+    id3 = _finish_all_as(tid, user_id="u3", username="p3", total_base_ms=1000)
+
+    data = dr._load()
+    finished = [
+        r
+        for r in data["runs"].values()
+        if r.get("terminalId") == tid and r.get("status") == "finished"
+    ]
+    assert len(finished) == 3
+    ids = {r["runId"] for r in finished}
+    assert ids == {id1, id2, id3}
+    assert {r.get("userId") for r in finished} == {"u1", "u2", "u3"}
+
+
+def test_daily_board_one_row_per_user_across_terminals():
+    tid_a, tid_b = _tid(), _tid()
+    register_terminal(tid_a, "pad-a")
+    register_terminal(tid_b, "pad-b")
+    dc.ensure_today()
+    # same user on two terminals
+    _finish_all_as(tid_a, user_id="cara", username="cara", total_base_ms=3000)
+    _finish_all_as(tid_b, user_id="cara", username="cara", total_base_ms=1000)
+    # second user on first terminal
+    _finish_all_as(tid_a, user_id="dana", username="dana", total_base_ms=2000)
+
+    board = dr.leaderboard()
+    caras = [it for it in board["items"] if it.get("userId") == "cara"]
+    danas = [it for it in board["items"] if it.get("userId") == "dana"]
+    # first+best for one user may be 1 or 2 rows (same run = first+best)
+    assert len(caras) >= 1
+    assert len({it.get("userId") for it in caras}) == 1
+    # Across two terminals, cara collapses to one identity group (not duplicate podium people)
+    cara_kinds = {it["recordKind"] for it in caras}
+    assert cara_kinds <= {"first", "best", "first+best"}
+    assert len(danas) >= 1
+    nicks = {it["nickname"] for it in board["items"]}
+    assert "cara" in nicks and "dana" in nicks
+    # Not two separate terminal-only cara rows with no user collapse:
+    # identity grouping means cara's runs share one group (at most first+best = 2 items)
+    assert len(caras) <= 2

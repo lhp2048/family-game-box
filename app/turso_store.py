@@ -75,7 +75,10 @@ class TursoStore:
             raise StorageError("暂时存不上") from exc
         if response.status_code != 200:
             raise StorageError("暂时存不上")
-        parsed = response.json()
+        try:
+            parsed = response.json()
+        except (json.JSONDecodeError, ValueError) as exc:
+            raise StorageError("暂时存不上") from exc
         results = parsed.get("results") or []
         if not results or results[0].get("type") != "ok":
             raise StorageError("暂时存不上")

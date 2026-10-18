@@ -21,13 +21,22 @@ def _on_vercel() -> bool:
     return bool(os.environ.get("VERCEL", "").strip())
 
 
+_cached_turso_store = None
+_cached_turso_key: tuple[str, str] | None = None
+
+
 def _turso_store():
     from app.turso_store import TursoStore
 
-    return TursoStore(
-        os.environ.get("TURSO_DATABASE_URL", "").strip(),
-        os.environ.get("TURSO_AUTH_TOKEN", "").strip(),
-    )
+    global _cached_turso_store, _cached_turso_key
+    url = os.environ.get("TURSO_DATABASE_URL", "").strip()
+    token = os.environ.get("TURSO_AUTH_TOKEN", "").strip()
+    key = (url, token)
+    if _cached_turso_store is not None and _cached_turso_key == key:
+        return _cached_turso_store
+    _cached_turso_store = TursoStore(url, token)
+    _cached_turso_key = key
+    return _cached_turso_store
 
 
 def health() -> Dict[str, Any]:

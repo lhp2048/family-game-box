@@ -49,6 +49,30 @@ def test_mock_turso_roundtrip(monkeypatch):
     client.close()
 
 
+def test_turso_non_json_response_raises(monkeypatch):
+    def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, text="not json")
+
+    store = TursoStore("https://box.turso.io", "token", client=httpx.Client(transport=httpx.MockTransport(handler)))
+    monkeypatch.setenv("TURSO_DATABASE_URL", "https://box.turso.io")
+    monkeypatch.setenv("TURSO_AUTH_TOKEN", "token")
+    monkeypatch.setattr("app.storage._turso_store", lambda: store)
+    with pytest.raises(StorageError, match="暂时存不上"):
+        load_json("scores.json", {"version": 1})
+
+
+def test_turso_store_reused_for_same_env(monkeypatch):
+    import app.storage as storage_module
+
+    storage_module._cached_turso_store = None
+    storage_module._cached_turso_key = None
+    monkeypatch.setenv("TURSO_DATABASE_URL", "libsql://cache-test.turso.io")
+    monkeypatch.setenv("TURSO_AUTH_TOKEN", "cache-token")
+    first = storage_module._turso_store()
+    second = storage_module._turso_store()
+    assert first is second
+
+
 def test_turso_http_error_raises(monkeypatch):
     def handler(_request: httpx.Request) -> httpx.Response:
         return httpx.Response(500, text="down")

@@ -103,6 +103,8 @@ def submit_score(
     metrics: Dict[str, Any],
     display: str = "",
     tier_label_override: str = "",
+    user_id: str = "",
+    username: str = "",
 ) -> Dict[str, Any]:
     if not validate_terminal_id(terminal_id):
         raise ValueError("invalid terminal id")
@@ -129,10 +131,11 @@ def submit_score(
     fresh = {"metrics": metrics, "score": score}
     is_personal_best = previous is None or _entry_beats(game_id, fresh, previous)
 
+    display_name = (username or "").strip() if user_id else terminal.get("nickname", "")
     entry = {
         "id": str(uuid.uuid4()),
         "terminalId": terminal_id,
-        "nickname": terminal.get("nickname", ""),
+        "nickname": display_name,
         "gameId": game_id,
         "mode": mode,
         "tier": tier,
@@ -143,6 +146,9 @@ def submit_score(
         "playedAt": now,
         "isPersonalBest": is_personal_best,
     }
+    if user_id:
+        entry["userId"] = user_id
+        entry["username"] = (username or "").strip() or display_name
     entries.append(entry)
     _save_entries(entries)
 
@@ -204,6 +210,17 @@ def leaderboard_entries(
     return board[:limit]
 
 
+
+def _board_nickname(item: Dict[str, Any], nicks: Dict[str, str]) -> str:
+    if item.get("userId"):
+        return str(item.get("username") or item.get("nickname") or "")
+    return resolve_nickname(
+        str(item.get("terminalId", "")),
+        fallback=str(item.get("nickname", "")),
+        lookup=nicks,
+    )
+
+
 def get_leaderboard(game_id: str, mode: str, tier: str, limit: int = 20) -> Dict[str, Any]:
     if not _is_known_game(game_id) and game_id not in GAME_TIERS:
         raise ValueError("unsupported game")
@@ -223,11 +240,7 @@ def get_leaderboard(game_id: str, mode: str, tier: str, limit: int = 20) -> Dict
         "items": [
             {
                 "rank": idx,
-                "nickname": resolve_nickname(
-                    str(item.get("terminalId", "")),
-                    fallback=str(item.get("nickname", "")),
-                    lookup=nicks,
-                ),
+                "nickname": _board_nickname(item, nicks),
                 "terminalId": item.get("terminalId", ""),
                 "display": format_display(game_id, mode, item.get("metrics") or {})
                 if game_id == "yuwen"
@@ -296,11 +309,7 @@ def get_global_leaderboard(limit: int = 50) -> Dict[str, Any]:
         "items": [
             {
                 "rank": idx,
-                "nickname": resolve_nickname(
-                    str(item.get("terminalId", "")),
-                    fallback=str(item.get("nickname", "")),
-                    lookup=nicks,
-                ),
+                "nickname": _board_nickname(item, nicks),
                 "terminalId": item.get("terminalId", ""),
                 "display": item.get("display", ""),
                 "playedAt": item.get("playedAt"),
@@ -319,11 +328,7 @@ def get_recent_leaderboard(limit: int = _RECENT_LIMIT) -> Dict[str, Any]:
         "items": [
             {
                 "rank": idx,
-                "nickname": resolve_nickname(
-                    str(item.get("terminalId", "")),
-                    fallback=str(item.get("nickname", "")),
-                    lookup=nicks,
-                ),
+                "nickname": _board_nickname(item, nicks),
                 "terminalId": item.get("terminalId", ""),
                 "gameId": item.get("gameId", ""),
                 "gameTitle": _game_title(item.get("gameId", "")),

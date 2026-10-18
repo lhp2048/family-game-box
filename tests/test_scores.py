@@ -28,9 +28,11 @@ def test_register_and_me():
 
 
 def test_submit_score_and_leaderboard():
+    tid = str(uuid.uuid4())
+    headers = {"X-Terminal-Id": tid}
     client.post(
         url("/api/v1/terminals/register"),
-        json={"terminalId": TERMINAL, "nickname": "测试玩家"},
+        json={"terminalId": tid, "nickname": "测试玩家"},
     )
     login_as(client, "score_player")
     payload = {
@@ -39,11 +41,13 @@ def test_submit_score_and_leaderboard():
         "tier": "normal",
         "metrics": {"correct": 28, "total": 30, "timeMs": 58000, "maxStreak": 8},
     }
-    r = client.post(url("/api/v1/scores"), json=payload, headers=_headers())
+    r = client.post(url("/api/v1/scores"), json=payload, headers=headers)
     assert r.status_code == 200
     body = r.json()
     assert body["ok"] is True
     assert body["isPersonalBest"] is True
+    assert body["entry"]["userId"]
+    assert body["entry"]["nickname"] == "score_player"
 
     board = client.get(
         url("/api/v1/leaderboard"),
@@ -51,10 +55,10 @@ def test_submit_score_and_leaderboard():
     )
     assert board.status_code == 200
     items = board.json()["items"]
-    assert len(items) >= 1
-    assert items[0]["nickname"] == "测试玩家"
+    mine = [it for it in items if it.get("terminalId") == tid]
+    assert mine and mine[0]["nickname"] == "score_player"
 
-    bests = client.get(url("/api/v1/scores/me/bests"), headers=_headers())
+    bests = client.get(url("/api/v1/scores/me/bests"), headers=headers)
     assert bests.status_code == 200
     assert "stroop" in bests.json()["bests"]
 
@@ -71,9 +75,11 @@ def test_rank_meta():
 
 
 def test_global_leaderboard():
+    tid = str(uuid.uuid4())
+    headers = {"X-Terminal-Id": tid}
     client.post(
         url("/api/v1/terminals/register"),
-        json={"terminalId": TERMINAL, "nickname": "测试玩家"},
+        json={"terminalId": tid, "nickname": "测试玩家"},
     )
     login_as(client, "score_player")
     client.post(
@@ -84,22 +90,25 @@ def test_global_leaderboard():
             "tier": "normal",
             "metrics": {"correct": 10, "total": 10, "timeMs": 30000},
         },
-        headers=_headers(),
+        headers=headers,
     )
     r = client.get(url("/api/v1/leaderboard/global"), params={"limit": 10})
     assert r.status_code == 200
     items = r.json()["items"]
     assert len(items) >= 1
-    assert items[0]["nickname"] == "测试玩家"
-    assert "display" in items[0]
-    assert "playedAt" in items[0]
-    assert "gameId" not in items[0]
+    mine = [it for it in items if it.get("terminalId") == tid]
+    assert mine and mine[0]["nickname"] == "score_player"
+    assert "display" in mine[0]
+    assert "playedAt" in mine[0]
+    assert "gameId" not in mine[0]
 
 
 def test_recent_leaderboard():
+    tid = str(uuid.uuid4())
+    headers = {"X-Terminal-Id": tid}
     client.post(
         url("/api/v1/terminals/register"),
-        json={"terminalId": TERMINAL, "nickname": "测试玩家"},
+        json={"terminalId": tid, "nickname": "测试玩家"},
     )
     login_as(client, "score_player")
     client.post(
@@ -110,7 +119,7 @@ def test_recent_leaderboard():
             "tier": "normal",
             "metrics": {"correct": 12, "total": 12, "timeMs": 28000},
         },
-        headers=_headers(),
+        headers=headers,
     )
     r = client.get(url("/api/v1/leaderboard/recent"), params={"limit": 20})
     assert r.status_code == 200
@@ -118,8 +127,8 @@ def test_recent_leaderboard():
     assert data["kind"] == "recent"
     items = data["items"]
     assert len(items) >= 1
-    first = items[0]
-    assert first["nickname"] == "测试玩家"
+    first = next(it for it in items if it.get("terminalId") == tid)
+    assert first["nickname"] == "score_player"
     assert first["gameId"] == "stroop"
     assert first["gameTitle"] == "Stroop 色字"
     assert first["modeLabel"] == "挑战"
@@ -180,3 +189,20 @@ def test_yuwen_board_accuracy_then_time(tmp_path, monkeypatch):
         faster, "yuwen", "challenge", "zuyin", {"correct": 9, "total": 10, "timeMs": 90000}
     )
     assert improved["isPersonalBest"] is True
+
+
+def test_score_stores_user_id():
+    client.cookies.clear()
+    # brief: register as cara (login_as falls back if username already exists in shared store)
+    login_as(client, "cara")
+    tid = "22222222-2222-4222-8222-222222222222"
+    client.post(url("/api/v1/terminals/register"), json={"terminalId": tid, "nickname": "cara"})
+    r = client.post(
+        url("/api/v1/scores"),
+        json={"gameId": "stroop", "mode": "challenge", "tier": "normal",
+              "metrics": {"correct": 1, "total": 1, "timeMs": 900}},
+        headers={"X-Terminal-Id": tid},
+    )
+    assert r.status_code == 200
+    assert r.json()["entry"]["userId"]
+    assert r.json()["entry"]["nickname"] == "cara"  # or username field per chosen schema

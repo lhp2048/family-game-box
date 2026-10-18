@@ -219,6 +219,18 @@ def _register_routes(api: APIRouter) -> None:
             return HTTPException(status_code=400, detail=str(exc))
         return HTTPException(status_code=500, detail="internal error")
 
+    def _current_user(request: Request) -> tuple:
+        from app import users as users_mod
+
+        uid = users_mod.user_id_from_cookie(request.cookies.get(users_mod.USER_COOKIE))
+        if not uid:
+            return "", ""
+        user = users_mod.get_user(uid)
+        if not user:
+            return "", ""
+        return str(user["userId"]), str(user["username"])
+
+
     @api.get("/api/v1/health")
     async def health():
         return _health_payload()
@@ -335,9 +347,11 @@ def _register_routes(api: APIRouter) -> None:
     @api.post("/api/v1/scores")
     async def scores_submit(
         body: ScoreBody,
+        request: Request,
         x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
     ):
         tid = _require_terminal_id(x_terminal_id)
+        user_id, username = _current_user(request)
         try:
             return submit_score(
                 tid,
@@ -347,6 +361,8 @@ def _register_routes(api: APIRouter) -> None:
                 body.metrics,
                 display=body.display,
                 tier_label_override=body.tierLabel,
+                user_id=user_id,
+                username=username,
             )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -385,10 +401,14 @@ def _register_routes(api: APIRouter) -> None:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @api.post("/api/v1/daily/runs")
-    async def daily_runs_start(x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id")):
+    async def daily_runs_start(
+        request: Request,
+        x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
+    ):
         tid = _require_terminal_id(x_terminal_id)
+        user_id, username = _current_user(request)
         try:
-            return daily_runs_mod.start_run(tid)
+            return daily_runs_mod.start_run(tid, user_id=user_id, username=username)
         except (ValueError, PermissionError) as exc:
             raise _map_exc(exc) from exc
 
@@ -426,22 +446,36 @@ def _register_routes(api: APIRouter) -> None:
     @api.post("/api/v1/yuwen-daily/answer")
     async def yuwen_daily_answer(
         body: YuwenAnswerBody,
+        request: Request,
         x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
     ):
         tid = _require_terminal_id(x_terminal_id)
+        user_id, username = _current_user(request)
         try:
-            return yuwen_daily_mod.answer_question(tid, body.paperId, body.questionId, body.choice, body.timeMs)
+            return yuwen_daily_mod.answer_question(
+                tid,
+                body.paperId,
+                body.questionId,
+                body.choice,
+                body.timeMs,
+                user_id=user_id,
+                username=username,
+            )
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @api.post("/api/v1/yuwen-daily/finish")
     async def yuwen_daily_finish(
         body: YuwenFinishBody,
+        request: Request,
         x_terminal_id: Optional[str] = Header(default=None, alias="X-Terminal-Id"),
     ):
         tid = _require_terminal_id(x_terminal_id)
+        user_id, username = _current_user(request)
         try:
-            run = yuwen_daily_mod.finish_run(tid, body.paperId, body.timeMs)
+            run = yuwen_daily_mod.finish_run(
+                tid, body.paperId, body.timeMs, user_id=user_id, username=username
+            )
             board = yuwen_daily_mod.leaderboard(date=run.get("date"))
             rank = 0
             for item in board.get("items") or []:

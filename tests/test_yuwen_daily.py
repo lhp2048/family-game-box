@@ -87,7 +87,7 @@ def test_grade_lock_and_leaderboard(monkeypatch, tmp_path):
     board = client.get(url("/api/v1/yuwen-daily/leaderboard"))
     assert board.status_code == 200
     assert board.json()["title"] == "语文挑战榜"
-    assert board.json()["items"][0]["nickname"] == "小卷"
+    assert board.json()["items"][0]["nickname"] == "yuwen_grade"
 
     page = client.get(url("/yuwen-daily"))
     assert page.status_code == 200

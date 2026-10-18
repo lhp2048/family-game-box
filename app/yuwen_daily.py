@@ -231,19 +231,32 @@ def today_payload(terminal_id: Optional[str] = None) -> Dict[str, Any]:
     }
 
 
-def _ensure_run(data: Dict[str, Any], terminal_id: str, paper: Dict[str, Any]) -> Dict[str, Any]:
+def _ensure_run(
+    data: Dict[str, Any],
+    terminal_id: str,
+    paper: Dict[str, Any],
+    user_id: str = "",
+    username: str = "",
+) -> Dict[str, Any]:
     run = _run_for(data, terminal_id, paper["paperId"])
     if run:
+        if user_id and not run.get("userId"):
+            run["userId"] = user_id
+            run["username"] = (username or "").strip()
+            if run["username"]:
+                run["nickname"] = run["username"]
+            data["runs"][run["runId"]] = run
         return run
     term = get_terminal(terminal_id)
     if not term:
         raise ValueError("terminal not registered")
+    display_name = (username or "").strip() if user_id else (term.get("nickname") or "")
     run = {
         "runId": str(uuid.uuid4()),
         "paperId": paper["paperId"],
         "date": paper["date"],
         "terminalId": terminal_id,
-        "nickname": term.get("nickname") or "",
+        "nickname": display_name,
         "status": "running",
         "startedAt": _now(),
         "endedAt": "",
@@ -253,11 +266,22 @@ def _ensure_run(data: Dict[str, Any], terminal_id: str, paper: Dict[str, Any]) -
         "timeMs": 0,
         "display": "",
     }
+    if user_id:
+        run["userId"] = user_id
+        run["username"] = (username or "").strip() or display_name
     data["runs"][run["runId"]] = run
     return run
 
 
-def answer_question(terminal_id: str, paper_id: str, question_id: int, choice: str, time_ms: int) -> Dict[str, Any]:
+def answer_question(
+    terminal_id: str,
+    paper_id: str,
+    question_id: int,
+    choice: str,
+    time_ms: int,
+    user_id: str = "",
+    username: str = "",
+) -> Dict[str, Any]:
     term = get_terminal(terminal_id)
     if not term:
         raise ValueError("terminal not registered")
@@ -275,7 +299,7 @@ def answer_question(terminal_id: str, paper_id: str, question_id: int, choice: s
         raise ValueError("invalid choice")
 
     data = _load()
-    run = _ensure_run(data, terminal_id, paper)
+    run = _ensure_run(data, terminal_id, paper, user_id=user_id, username=username)
     key = str(int(question_id))
     stored = (run.get("answers") or {}).get(key)
     if not isinstance(stored, dict):
@@ -294,7 +318,13 @@ def answer_question(terminal_id: str, paper_id: str, question_id: int, choice: s
     return revealed
 
 
-def finish_run(terminal_id: str, paper_id: str, time_ms: int) -> Dict[str, Any]:
+def finish_run(
+    terminal_id: str,
+    paper_id: str,
+    time_ms: int,
+    user_id: str = "",
+    username: str = "",
+) -> Dict[str, Any]:
     term = get_terminal(terminal_id)
     if not term:
         raise ValueError("terminal not registered")
@@ -329,7 +359,16 @@ def finish_run(terminal_id: str, paper_id: str, time_ms: int) -> Dict[str, Any]:
     run["display"] = _display(correct, run["total"], used)
     run["status"] = "finished"
     run["endedAt"] = _now()
-    run["nickname"] = term.get("nickname") or run.get("nickname") or ""
+    if user_id:
+        run["userId"] = user_id
+        uname = (username or "").strip() or str(run.get("username") or "")
+        if uname:
+            run["username"] = uname
+            run["nickname"] = uname
+        else:
+            run["nickname"] = term.get("nickname") or run.get("nickname") or ""
+    else:
+        run["nickname"] = term.get("nickname") or run.get("nickname") or ""
     data["runs"][run["runId"]] = run
     _save(data)
     return run
@@ -362,7 +401,11 @@ def leaderboard(date: Optional[str] = None, limit: int = 50) -> Dict[str, Any]:
             {
                 "rank": idx,
                 "terminalId": tid,
-                "nickname": resolve_nickname(tid, fallback=str(run.get("nickname") or ""), lookup=nicks),
+                "nickname": (
+                    str(run.get("username") or run.get("nickname") or "")
+                    if run.get("userId")
+                    else resolve_nickname(tid, fallback=str(run.get("nickname") or ""), lookup=nicks)
+                ),
                 "display": _display(
                     int(run.get("correct") or 0),
                     int(run.get("total") or 0),

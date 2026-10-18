@@ -85,3 +85,15 @@ def test_admin_page_has_play_gate():
     admin = client.get(url("/admin")).text
     assert "家庭口令" in admin
     assert "开启家庭口令" in admin
+
+
+def test_daily_run_stores_user_id():
+    client.cookies.clear()
+    login_as(client, "daily_uid")
+    tid = _tid()
+    client.post(url("/api/v1/terminals/register"), json={"terminalId": tid, "nickname": "终端名"})
+    r = client.post(url("/api/v1/daily/runs"), headers=_headers(tid))
+    assert r.status_code == 200
+    body = r.json()
+    assert body.get("userId")
+    assert body["nickname"] == "daily_uid"

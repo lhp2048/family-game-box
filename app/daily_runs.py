@@ -46,18 +46,19 @@ def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def start_run(terminal_id: str) -> Dict[str, Any]:
+def start_run(terminal_id: str, user_id: str = "", username: str = "") -> Dict[str, Any]:
     term = get_terminal(terminal_id)
     if not term:
         raise ValueError("terminal not registered")
     combo = ensure_today()
     run_id = str(uuid.uuid4())
+    display_name = (username or "").strip() if user_id else (term.get("nickname") or "")
     run = {
         "runId": run_id,
         "comboId": combo["comboId"],
         "date": combo["date"],
         "terminalId": terminal_id,
-        "nickname": term.get("nickname") or "",
+        "nickname": display_name,
         "status": "running",
         "startedAt": _now(),
         "endedAt": "",
@@ -66,6 +67,9 @@ def start_run(terminal_id: str) -> Dict[str, Any]:
         "stageResults": [],
         "stages": combo["stages"],
     }
+    if user_id:
+        run["userId"] = user_id
+        run["username"] = (username or "").strip() or display_name
     data = _load()
     data.setdefault("runs", {})[run_id] = run
     _save(data)
@@ -299,10 +303,14 @@ def leaderboard(
                     "comboNo": _combo_no(cid),
                     "isCurrentCombo": bool(cid and cid == current_combo),
                     "recordKind": kind,
-                    "nickname": resolve_nickname(
-                        tid,
-                        fallback=str(run.get("nickname") or ""),
-                        lookup=nicks,
+                    "nickname": (
+                        str(run.get("username") or run.get("nickname") or "")
+                        if run.get("userId")
+                        else resolve_nickname(
+                            tid,
+                            fallback=str(run.get("nickname") or ""),
+                            lookup=nicks,
+                        )
                     ),
                     "terminalId": tid,
                     "status": run.get("status"),

@@ -160,6 +160,12 @@ def test_attention_game_page():
     text = r.text
     assert "Stroop" in text
     assert "/game-box" in text
+    # Task 8 pilot skin + shared chrome
+    assert 'data-game-skin="stroop"' in text
+    assert 'id="fgb-topbar"' in text
+    assert "fgb-shell.js" in text
+    assert "FGBShell.mountTopbar" in text
+    assert "fgbSubmitScore" in text or "submitScore" in text or "view-result" in text
 
 
 def test_24points_play_and_bank():

@@ -177,11 +177,11 @@
 - Regenerate: schulte + chosen daily-embedded game page
 - Test: play through + score submit
 
-- [ ] **Step 1: Pick** second pilot (default: whatever daily embeds first — often schulte/stroop/etc.; document choice in commit)
-- [ ] **Step 2: Implement** schulte skin variables within token constraints
-- [ ] **Step 3: Implement** second pilot skin
-- [ ] **Step 4: Smoke** both end-to-end
-- [ ] **Step 5: Commit** `feat(games): pilot skins for schulte + <name>`
+- [x] **Step 1: Pick** second pilot (default: whatever daily embeds first — often schulte/stroop/etc.; document choice in commit)
+- [x] **Step 2: Implement** schulte skin variables within token constraints
+- [x] **Step 3: Implement** second pilot skin
+- [x] **Step 4: Smoke** both end-to-end
+- [x] **Step 5: Commit** `feat(games): pilot skins for schulte + <name>`
 
 ---
 

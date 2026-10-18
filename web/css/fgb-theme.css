@@ -966,3 +966,71 @@ body[data-game-skin] > #fgb-topbar + .wrap {
   padding: 0.8rem 1rem;
   font-size: 0.95rem;
 }
+
+/* —— Pilot skins (Task 8): palette / accents only; shared chrome unchanged —— */
+/* Second pilot = stroop (default daily order: 24points → schulte → stroop; 24points deferred to Task 10) */
+
+body[data-game-skin="schulte"] {
+  --accent: #45d498;
+  --accent-deep: #159a64;
+  --skin-glow: rgba(69, 212, 152, 0.22);
+  --skin-board-line: rgba(69, 212, 152, 0.3);
+  --gold: #e0b34a;
+  background:
+    radial-gradient(900px 480px at 12% -8%, rgba(69, 212, 152, 0.22), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(224, 179, 74, 0.09), transparent 50%),
+    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
+}
+body[data-game-skin="schulte"] .target-banner {
+  background: rgba(69, 212, 152, 0.12);
+  border: 1px solid var(--skin-board-line);
+  border-radius: 12px;
+  padding: 0.55rem 0.75rem;
+}
+body[data-game-skin="schulte"] .target-banner em {
+  color: var(--gold);
+}
+body[data-game-skin="schulte"] .board {
+  border-radius: 14px;
+  padding: 0.35rem;
+  background: rgba(18, 32, 28, 0.55);
+  box-shadow:
+    inset 0 0 0 1px var(--skin-board-line),
+    0 14px 36px rgba(0, 0, 0, 0.28);
+}
+body[data-game-skin="schulte"] .cell {
+  border-color: rgba(69, 212, 152, 0.2);
+}
+body[data-game-skin="schulte"] .cell.ok {
+  background: rgba(69, 212, 152, 0.28);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+body[data-game-skin="schulte"] .cell.hint {
+  box-shadow: inset 0 0 0 2px var(--gold);
+}
+
+body[data-game-skin="stroop"] {
+  --accent: #6b9bff;
+  --accent-deep: #3d6ad6;
+  --skin-glow: rgba(107, 155, 255, 0.2);
+  --warn: #f0a35a;
+  background:
+    radial-gradient(900px 480px at 18% -8%, rgba(107, 155, 255, 0.2), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(240, 163, 90, 0.09), transparent 50%),
+    linear-gradient(165deg, #0a1018 0%, #0c1219 45%, #10161e 100%);
+}
+body[data-game-skin="stroop"] .task-bar {
+  background: rgba(107, 155, 255, 0.14);
+  color: var(--accent);
+  border: 1px solid rgba(107, 155, 255, 0.3);
+}
+body[data-game-skin="stroop"] .stroop-word {
+  text-shadow: 0 0 28px var(--skin-glow);
+}
+body[data-game-skin="stroop"] .color-grid button {
+  border-color: rgba(107, 155, 255, 0.24);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+}
+body[data-game-skin="stroop"] .mode-btn:hover {
+  border-color: rgba(107, 155, 255, 0.45);
+}

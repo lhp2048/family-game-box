@@ -636,7 +636,13 @@ def sync_audio(web_index: Path) -> None:
 
 
 def build_html() -> str:
-    return build_page("Stroop 色字干扰", EXTRA_CSS, inject_lobby_link(BODY), SCRIPT)
+    return build_page(
+        "Stroop 色字干扰",
+        EXTRA_CSS,
+        inject_lobby_link(BODY),
+        SCRIPT,
+        game_skin="stroop",
+    )
 
 
 def main() -> None:

@@ -73,3 +73,10 @@ def test_storage_error_returns_503(monkeypatch):
     response = client.get(url("/api/v1/admin/status"))
     assert response.status_code == 503
     assert response.json()["detail"] == "暂时存不上"
+
+
+def test_vercel_entry_exports_app():
+    import index
+    from app.main import app
+
+    assert index.app is app

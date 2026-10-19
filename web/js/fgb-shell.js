@@ -171,6 +171,52 @@
     if (authLinks) authLinks.hidden = false;
   }
 
+
+  function wireRename(nav) {
+    var btn = nav.querySelector("[data-fgb-rename]");
+    if (!btn || btn.getAttribute("data-fgb-rename-wired") === "1") return;
+    btn.setAttribute("data-fgb-rename-wired", "1");
+    btn.addEventListener("click", function (e) {
+      e.preventDefault();
+      var nameEl = nav.querySelector("[data-fgb-user-name]");
+      var current = nameEl ? String(nameEl.textContent || "").trim() : "";
+      if (current === "—") current = "";
+      var openPrompt = function () {
+        if (!global.FGBUI || typeof FGBUI.askPrompt !== "function") {
+          if (global.FGBUI && FGBUI.toast) FGBUI.toast("无法打开改名对话框", "err");
+          return;
+        }
+        FGBUI.askPrompt("输入新用户名（1–16 个字符）", current, function (value) {
+          var next = String(value || "").trim();
+          if (!next) {
+            if (FGBUI.toast) FGBUI.toast("请输入新用户名", "err");
+            return;
+          }
+          if (!global.FGB || typeof FGB.rename !== "function") {
+            if (FGBUI.toast) FGBUI.toast("改名功能不可用", "err");
+            return;
+          }
+          FGB.rename(next)
+            .then(function (data) {
+              var name = (data && data.username) || next;
+              showUserLoggedIn(nav, name);
+              if (FGBUI.toast) FGBUI.toast("已改名为「" + name + "」", "ok");
+            })
+            .catch(function (err) {
+              if (FGBUI.toast) {
+                FGBUI.toast((err && err.message) || "改名失败", "err");
+              }
+            });
+        });
+      };
+      if (global.FGBUI && typeof FGBUI.askConfirm === "function") {
+        FGBUI.askConfirm("要修改登录用户名吗？改名后需用新名字登录。", openPrompt);
+      } else {
+        openPrompt();
+      }
+    });
+  }
+
   function wireLogout(nav) {
     var btn = nav.querySelector("[data-fgb-logout]");
     if (!btn) return;
@@ -189,6 +235,7 @@
 
   function fillUserChip(nav) {
     wireLogout(nav);
+    wireRename(nav);
     if (!global.FGB || typeof FGB.authMe !== "function") {
       showUserLoggedOut(nav);
       return;
@@ -254,7 +301,8 @@
       navParts.push(
         '<div class="fgb-chip" data-fgb-user-chip hidden>你好，' +
           '<strong data-fgb-user-name>—</strong> ' +
-          '<a href="#" data-fgb-logout style="margin-left:6px;color:var(--muted);font-size:.85rem">退出</a>' +
+          '<a href="#" data-fgb-rename style="margin-left:6px;color:var(--muted);font-size:.85rem">改名</a> ' +
+          '<a href="#" data-fgb-logout style="margin-left:2px;color:var(--muted);font-size:.85rem">退出</a>' +
           "</div>"
       );
       navParts.push(

@@ -84,6 +84,77 @@
     }, 2200);
   }
 
+
+  var _promptCb = null;
+
+  function ensurePromptDom() {
+    if (!document.body) return;
+    if (document.getElementById("fgb-prompt-mask")) return;
+    var mask = document.createElement("div");
+    mask.id = "fgb-prompt-mask";
+    mask.className = "fgb-confirm-mask hidden";
+    mask.setAttribute("role", "dialog");
+    mask.setAttribute("aria-modal", "true");
+    mask.innerHTML =
+      '<div class="fgb-confirm-box">' +
+      '<p id="fgb-prompt-msg">请输入</p>' +
+      '<div class="fgb-field" style="margin:0 0 1rem">' +
+      '<input class="fgb-input" type="text" id="fgb-prompt-input" maxlength="16" autocomplete="username">' +
+      "</div>" +
+      '<div class="fgb-confirm-actions">' +
+      '<button type="button" class="fgb-confirm-cancel" id="fgb-prompt-cancel">取消</button>' +
+      '<button type="button" class="fgb-confirm-ok" id="fgb-prompt-ok">确定</button>' +
+      "</div></div>";
+    document.body.appendChild(mask);
+    function finish(ok) {
+      var input = document.getElementById("fgb-prompt-input");
+      var value = input ? String(input.value || "") : "";
+      mask.classList.add("hidden");
+      var cb = _promptCb;
+      _promptCb = null;
+      if (!cb) return;
+      if (ok && cb.yes) cb.yes(value);
+      if (!ok && cb.no) cb.no();
+    }
+    document.getElementById("fgb-prompt-ok").addEventListener("click", function () {
+      finish(true);
+    });
+    document.getElementById("fgb-prompt-cancel").addEventListener("click", function () {
+      finish(false);
+    });
+    mask.addEventListener("click", function (e) {
+      if (e.target === mask) finish(false);
+    });
+    document.getElementById("fgb-prompt-input").addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        finish(true);
+      }
+    });
+  }
+
+  function askPrompt(message, defaultValue, onYes, onNo) {
+    if (!document.body) {
+      setTimeout(function () { askPrompt(message, defaultValue, onYes, onNo); }, 0);
+      return;
+    }
+    ensureDom();
+    ensurePromptDom();
+    var mask = document.getElementById("fgb-prompt-mask");
+    var msg = document.getElementById("fgb-prompt-msg");
+    var input = document.getElementById("fgb-prompt-input");
+    msg.textContent = message || "请输入";
+    input.value = defaultValue != null ? String(defaultValue) : "";
+    _promptCb = { yes: onYes, no: onNo };
+    mask.classList.remove("hidden");
+    setTimeout(function () {
+      try {
+        input.focus();
+        input.select();
+      } catch (e) { /* ignore */ }
+    }, 0);
+  }
+
   /** 拦截浏览器原生阻塞弹窗，统一改走页面内 UI */
   function patchNativeDialogs() {
     if (_patched) return;
@@ -116,6 +187,7 @@
 
   global.FGBUI = {
     askConfirm: askConfirm,
+    askPrompt: askPrompt,
     toast: toast,
     patchNativeDialogs: patchNativeDialogs,
   };

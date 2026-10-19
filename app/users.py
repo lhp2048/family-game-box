@@ -241,6 +241,44 @@ def claim_terminal(user_id: str, terminal_id: str) -> dict:
     }
 
 
+
+def rename_user(user_id: str, new_username: str) -> dict:
+    """Change a user's display/login name; old name no longer authenticates.
+
+    Updates ``users`` item + ``usernameIndex`` (drop old key, add new) and
+    denormalized username/nickname on scores / daily / yuwen rows for this userId.
+    """
+    uid = (user_id or "").strip()
+    if not uid:
+        raise ValueError("用户不存在")
+    name = normalize_username(new_username)
+    data = _load()
+    users_map = data.get("users") or {}
+    item = users_map.get(uid)
+    if not isinstance(item, dict):
+        raise ValueError("用户不存在")
+    old_name = str(item.get("username") or "")
+    old_key = old_name.casefold()
+    new_key = name.casefold()
+    index = data.setdefault("usernameIndex", {})
+    holder = index.get(new_key)
+    if holder and holder != uid:
+        raise ValueError("用户名已占用")
+    item["username"] = name
+    users_map[uid] = item
+    data["users"] = users_map
+    if old_key and old_key != new_key and index.get(old_key) == uid:
+        del index[old_key]
+    index[new_key] = uid
+    _save(data)
+
+    from app import daily_runs, scores, yuwen_daily
+
+    scores.rename_username_for_user(uid, name)
+    daily_runs.rename_username_for_user(uid, name)
+    yuwen_daily.rename_username_for_user(uid, name)
+    return _public_user(item)
+
 def list_users() -> list:
     """Return public fields for all registered users (never passwordHash/salt)."""
     data = _load()

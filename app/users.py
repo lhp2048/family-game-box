@@ -239,3 +239,36 @@ def claim_terminal(user_id: str, terminal_id: str) -> dict:
         "dailyUpdated": daily_n,
         "yuwenUpdated": yuwen_n,
     }
+
+
+def list_users() -> list:
+    """Return public fields for all registered users (never passwordHash/salt)."""
+    data = _load()
+    out: list = []
+    for item in (data.get("users") or {}).values():
+        if not isinstance(item, dict):
+            continue
+        pub = _public_user(item)
+        if item.get("lastSeenAt"):
+            pub["lastSeenAt"] = item["lastSeenAt"]
+        out.append(pub)
+    out.sort(key=lambda u: (u.get("createdAt") or "", u.get("username") or ""))
+    return out
+
+
+def admin_set_password(user_id: str, new_password: str) -> dict:
+    """Admin-only: set a new login password for ``user_id`` (reuses hash/normalize rules)."""
+    uid = (user_id or "").strip()
+    if not uid:
+        raise ValueError("用户不存在")
+    data = _load()
+    item = (data.get("users") or {}).get(uid)
+    if not isinstance(item, dict):
+        raise ValueError("用户不存在")
+    pw = _normalize_password(new_password)
+    salt = secrets.token_hex(16)
+    item["passwordSalt"] = salt
+    item["passwordHash"] = _hash(salt, pw)
+    data.setdefault("users", {})[uid] = item
+    _save(data)
+    return _public_user(item)

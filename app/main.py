@@ -668,6 +668,32 @@ def _register_routes(api: APIRouter) -> None:
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    @api.get("/api/v1/admin/users")
+    async def admin_users_list(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
+        from app import users as users_mod
+
+        try:
+            daily_admin_mod.require_admin(x_admin_token)
+            return {"users": users_mod.list_users()}
+        except PermissionError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    @api.post("/api/v1/admin/users/{user_id}/password")
+    async def admin_users_set_password(
+        user_id: str,
+        body: PasswordBody,
+        x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token"),
+    ):
+        from app import users as users_mod
+
+        try:
+            daily_admin_mod.require_admin(x_admin_token)
+            return users_mod.admin_set_password(user_id, body.password)
+        except PermissionError as exc:
+            raise HTTPException(status_code=401, detail=str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     @api.get("/api/v1/admin/daily/template")
     async def admin_template_get(x_admin_token: Optional[str] = Header(default=None, alias="X-Admin-Token")):
         try:

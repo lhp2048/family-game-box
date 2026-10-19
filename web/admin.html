@@ -89,6 +89,13 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
 }
 .diff-table input[type="checkbox"] { width: auto; margin: 0; }
 .cuts-row input { width: 72px; margin: 0 4px 0 0; display: inline-block; }
+.user-row {
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  padding: 10px 0; border-bottom: 1px solid var(--line);
+}
+.user-row:last-child { border-bottom: 0; }
+.user-row .info { flex: 1; min-width: 140px; }
+#users-reset-mask:not(.hidden) { display: flex !important; }
 </style>
 </head>
 <body>
@@ -103,7 +110,7 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
     </div>
   </header>
   <h1>管理</h1>
-  <p class="lead">游戏包、专注力挑战模板、难度参数。上传/启停无需重启。</p>
+  <p class="lead">游戏包、专注力挑战模板、难度参数、用户管理。上传/启停无需重启。</p>
 
   <div id="auth-card" class="card">
     <h2 id="auth-title">登录</h2>
@@ -129,6 +136,7 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
         <button type="button" data-tab="daily">专注力挑战</button>
         <button type="button" data-tab="diff">难度参数</button>
         <button type="button" data-tab="gate">家庭口令</button>
+        <button type="button" data-tab="users">用户</button>
       </div>
       <button type="button" class="ghost" id="btn-logout">登出</button>
     </div>
@@ -205,6 +213,34 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
         <label for="gate-pass">设置或更换口令</label>
         <input id="gate-pass" type="password" autocomplete="new-password">
         <button type="button" id="btn-save-gate" disabled>保存</button>
+      </div>
+    </div>
+
+    <div id="tab-users" class="hidden">
+      <div class="card">
+        <h2>已注册用户</h2>
+        <p class="meta">查看家庭成员账号，可重置登录口令（6–128 个字符）。</p>
+        <div class="err" id="users-err"></div>
+        <div class="row" style="margin-bottom:12px">
+          <button type="button" class="ghost" id="btn-refresh-users">刷新</button>
+        </div>
+        <div id="users-list" class="meta">加载中…</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="users-reset-mask" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:80;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box">
+    <div class="card" style="max-width:360px;width:100%;margin:0">
+      <h2>重置口令</h2>
+      <p class="meta" id="users-reset-label">为用户设置新口令</p>
+      <div class="err" id="users-reset-err"></div>
+      <label for="users-reset-pw">新口令</label>
+      <input id="users-reset-pw" type="password" autocomplete="new-password">
+      <label for="users-reset-pw2">再输入一次</label>
+      <input id="users-reset-pw2" type="password" autocomplete="new-password">
+      <div class="row" style="margin-top:8px">
+        <button type="button" class="ghost" id="btn-users-reset-cancel">取消</button>
+        <button type="button" id="btn-users-reset-ok">确认重置</button>
       </div>
     </div>
   </div>
@@ -350,12 +386,14 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
     document.getElementById("tab-daily").classList.toggle("hidden", name !== "daily");
     document.getElementById("tab-diff").classList.toggle("hidden", name !== "diff");
     document.getElementById("tab-gate").classList.toggle("hidden", name !== "gate");
+    document.getElementById("tab-users").classList.toggle("hidden", name !== "users");
     Array.prototype.forEach.call(document.querySelectorAll("#main-tabs button"), function (btn) {
       btn.classList.toggle("active", btn.getAttribute("data-tab") === name);
     });
     if (name === "diff") loadDifficultyPanel();
     if (name === "games") loadGamesPanel();
     if (name === "gate") loadPlayGate();
+    if (name === "users") loadUsersPanel();
   }
 
   function loadPlayGate() {
@@ -371,6 +409,85 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
     }).catch(function (ex) {
       err.textContent = (ex && ex.message) || "加载失败";
       saveBtn.disabled = true;
+    });
+  }
+
+  var _resetUserId = null;
+
+  function formatUserTime(iso) {
+    if (!iso) return "—";
+    try {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return iso;
+      return d.toLocaleString("zh-CN", { hour12: false });
+    } catch (e) {
+      return iso;
+    }
+  }
+
+  function closeResetDialog() {
+    _resetUserId = null;
+    document.getElementById("users-reset-mask").classList.add("hidden");
+    document.getElementById("users-reset-pw").value = "";
+    document.getElementById("users-reset-pw2").value = "";
+    document.getElementById("users-reset-err").textContent = "";
+  }
+
+  function openResetDialog(user) {
+    _resetUserId = user.userId;
+    document.getElementById("users-reset-label").textContent =
+      "为「" + (user.username || "") + "」设置新登录口令";
+    document.getElementById("users-reset-err").textContent = "";
+    document.getElementById("users-reset-pw").value = "";
+    document.getElementById("users-reset-pw2").value = "";
+    document.getElementById("users-reset-mask").classList.remove("hidden");
+    setTimeout(function () { document.getElementById("users-reset-pw").focus(); }, 0);
+  }
+
+  function loadUsersPanel() {
+    var err = document.getElementById("users-err");
+    var box = document.getElementById("users-list");
+    err.textContent = "";
+    box.textContent = "加载中…";
+    api("/api/v1/admin/users", { admin: true }).then(function (data) {
+      var list = (data && data.users) || [];
+      box.innerHTML = "";
+      if (!list.length) {
+        box.textContent = "暂无注册用户";
+        return;
+      }
+      list.forEach(function (u) {
+        var row = document.createElement("div");
+        row.className = "user-row";
+        var info = document.createElement("div");
+        info.className = "info";
+        var lines = [
+          "<strong>" + (u.username || "") + "</strong>",
+          "注册：" + formatUserTime(u.createdAt),
+        ];
+        if (u.lastSeenAt) lines.push("最近：" + formatUserTime(u.lastSeenAt));
+        if (u.userId) lines.push("<span class=\"meta\">id: " + u.userId + "</span>");
+        info.innerHTML = lines.join("<br>");
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "ghost";
+        btn.textContent = "重置口令";
+        btn.addEventListener("click", function () {
+          FGBUI.askConfirm("确定重置「" + (u.username || "") + "」的登录口令？", function () {
+            openResetDialog(u);
+          });
+        });
+        row.appendChild(info);
+        row.appendChild(btn);
+        box.appendChild(row);
+      });
+    }).catch(function (ex) {
+      box.textContent = "";
+      err.textContent = (ex && ex.message) || "加载失败";
+      if (isAdminSessionExpired(ex)) {
+        setToken("");
+        boot();
+      }
     });
   }
 
@@ -873,6 +990,39 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
       api("/api/v1/admin/daily/regenerate", { method: "POST", admin: true }).then(function () {
         loadPanel();
       }).catch(function (e) { err.textContent = e.message || "重生成失败"; });
+    });
+  });
+
+  document.getElementById("btn-refresh-users").addEventListener("click", function () {
+    loadUsersPanel();
+  });
+
+  document.getElementById("btn-users-reset-cancel").addEventListener("click", function () {
+    closeResetDialog();
+  });
+
+  document.getElementById("users-reset-mask").addEventListener("click", function (e) {
+    if (e.target === document.getElementById("users-reset-mask")) closeResetDialog();
+  });
+
+  document.getElementById("btn-users-reset-ok").addEventListener("click", function () {
+    var err = document.getElementById("users-reset-err");
+    err.textContent = "";
+    if (!_resetUserId) return;
+    var a = document.getElementById("users-reset-pw").value;
+    var b = document.getElementById("users-reset-pw2").value;
+    if (!a || a.length < 6) { err.textContent = "口令须为 6–128 个字符"; return; }
+    if (a !== b) { err.textContent = "两次口令不一致"; return; }
+    api("/api/v1/admin/users/" + encodeURIComponent(_resetUserId) + "/password", {
+      method: "POST",
+      admin: true,
+      body: { password: a },
+    }).then(function () {
+      closeResetDialog();
+      FGBUI.toast("口令已重置", "ok");
+      loadUsersPanel();
+    }).catch(function (ex) {
+      err.textContent = (ex && ex.message) || "重置失败";
     });
   });
 

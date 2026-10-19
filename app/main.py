@@ -132,6 +132,10 @@ class AuthClaimTerminalBody(BaseModel):
     terminalId: str
 
 
+class AuthRenameBody(BaseModel):
+    username: str
+
+
 def create_app() -> FastAPI:
     prefix = get_root_path()
     app = FastAPI(title="家庭游戏盒", version=_load_version())
@@ -623,6 +627,18 @@ def _register_routes(api: APIRouter) -> None:
             raise HTTPException(status_code=401, detail="请先登录")
         try:
             return users_mod.claim_terminal(uid, body.terminalId)
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @api.post("/api/v1/auth/rename")
+    async def auth_rename(body: AuthRenameBody, request: Request):
+        from app import users as users_mod
+
+        uid = users_mod.user_id_from_cookie(request.cookies.get(users_mod.USER_COOKIE))
+        if not uid:
+            raise HTTPException(status_code=401, detail="请先登录")
+        try:
+            return users_mod.rename_user(uid, body.username)
         except ValueError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 

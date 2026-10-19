@@ -173,6 +173,19 @@
     });
   }
 
+
+  function rename(username) {
+    return api("/api/v1/auth/rename", {
+      method: "POST",
+      body: { username: username },
+      skipAuthRedirect: true,
+    }).then(function (data) {
+      var name = (data && data.username) || username;
+      if (name) localStorage.setItem(STORAGE_NICK, name);
+      return data;
+    });
+  }
+
   function claimTerminal(terminalId) {
     return api("/api/v1/auth/claim-terminal", {
       method: "POST",
@@ -249,6 +262,7 @@
     login: login,
     logout: logout,
     claimTerminal: claimTerminal,
+    rename: rename,
     submitScore: submitScore,
     getBests: getBests,
     getLeaderboard: getLeaderboard,

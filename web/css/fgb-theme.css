@@ -1198,7 +1198,8 @@ body[data-game-skin="24points-library"] > #fgb-topbar {
   box-sizing: border-box;
 }
 
-.fgb-chip [data-fgb-logout] {
+.fgb-chip [data-fgb-logout],
+.fgb-chip [data-fgb-rename] {
   display: inline-flex;
   align-items: center;
   justify-content: center;

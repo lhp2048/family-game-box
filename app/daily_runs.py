@@ -376,3 +376,22 @@ def reassign_terminal_to_user(terminal_id: str, user_id: str, username: str) -> 
     if count:
         _save(data)
     return count
+
+def rename_username_for_user(user_id: str, new_username: str) -> int:
+    """Update denormalized username/nickname on all daily runs for ``user_id``."""
+    uid = (user_id or "").strip()
+    if not uid:
+        return 0
+    name = (new_username or "").strip()
+    data = _load()
+    count = 0
+    for run in (data.get("runs") or {}).values():
+        if not isinstance(run, dict) or run.get("userId") != uid:
+            continue
+        run["username"] = name
+        run["nickname"] = name
+        count += 1
+    if count:
+        _save(data)
+    return count
+

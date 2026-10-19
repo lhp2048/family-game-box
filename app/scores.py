@@ -435,3 +435,22 @@ def reassign_terminal_to_user(terminal_id: str, user_id: str, username: str) -> 
     if count:
         _save_entries(entries)
     return count
+
+def rename_username_for_user(user_id: str, new_username: str) -> int:
+    """Update denormalized username/nickname on all score rows for ``user_id``."""
+    uid = (user_id or "").strip()
+    if not uid:
+        return 0
+    name = (new_username or "").strip()
+    entries = _load_entries()
+    count = 0
+    for item in entries:
+        if item.get("userId") != uid:
+            continue
+        item["username"] = name
+        item["nickname"] = name
+        count += 1
+    if count:
+        _save_entries(entries)
+    return count
+

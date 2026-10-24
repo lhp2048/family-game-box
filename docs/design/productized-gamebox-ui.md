@@ -16,6 +16,10 @@ Turn the Family Game Box home from a generic “competitive hall” grid into a 
 - **Components**: `FGBShell.mountTopbar({ console: true })`, `web/js/fgb-home.js` for covers + arrow-key focus.
 - Other shell pages keep existing theme; no API changes.
 
+## Audio clips (Simon / Stroop)
+
+Short MP3 voice/SFX use shared `web/js/fgb-audio-clips.js`: fetch on page load, decode after first gesture via Web Audio API, play from `AudioBuffer` for instant start. Games enable it via `build_page(..., audio_clips=True)` in their generators.
+
 ## Follow-ups (out of scope for PR 1)
 
 - Apply console nav variant to daily / leaderboard pages.

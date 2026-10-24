@@ -169,6 +169,8 @@ def test_attention_game_page():
     assert 'id="fgb-topbar"' in text
     assert "fgb-shell.js" in text
     assert "FGBShell.mountTopbar" in text
+    assert "fgb-audio-clips.js" in text
+    assert "FgbAudioClips" in text
     assert "fgbSubmitScore" in text or "submitScore" in text or "view-result" in text
 
 
@@ -191,6 +193,9 @@ def test_remaining_free_train_chrome():
         assert "fgb-shell.js" in html, slug
         assert "FGBShell.mountTopbar" in html, slug
         assert "← 返回大厅" in html or "回大厅" in html, slug
+    simon_html = (root / "web" / "games" / "simon" / "index.html").read_text(encoding="utf-8")
+    assert "fgb-audio-clips.js" in simon_html
+    assert "FgbAudioClips" in simon_html
     theme = (root / "web" / "css" / "fgb-theme.css").read_text(encoding="utf-8")
     for skin in expected.values():
         assert 'data-game-skin="%s"' % skin in theme, skin

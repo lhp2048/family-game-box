@@ -283,11 +283,27 @@ SCRIPT = r"""
   var impulse = 0;
   var miss = 0;
   var rts = [];
-  var clipCache = {};
-  var activeAudio = null;
-  var audioUnlocked = false;
   var commandEl = document.getElementById("command");
   var ttsNoteEl = document.getElementById("tts-note");
+  var clipIds = [];
+  Object.keys(ACTIONS).forEach(function (act) {
+    ["", "say_"].forEach(function (prefix) {
+      clipIds.push(prefix + act);
+    });
+  });
+  var audioClips = FgbAudioClips({
+    resolveUrl: function (name) { return clipUrl(name); },
+    clipIds: clipIds,
+  });
+  audioClips.warmNetwork();
+  (function wireEarlyAudioUnlock() {
+    function onGesture() {
+      audioClips.unlock();
+    }
+    ["pointerdown", "keydown", "touchstart"].forEach(function (ev) {
+      document.addEventListener(ev, onGesture, { once: true, passive: true });
+    });
+  })();
 
   function clipName(trialObj) {
     if (!trialObj) return "";
@@ -320,24 +336,12 @@ SCRIPT = r"""
 
   function stopSpeak() {
     setSpeaking(false);
-    if (activeAudio) {
-      try { activeAudio.pause(); } catch (e) {}
-      activeAudio = null;
-    }
+    audioClips.stop();
   }
 
   /** 用户手势下解锁 WebView 音频（Android 内置浏览器常见限制） */
   function unlockAudio() {
-    if (audioUnlocked) return;
-    audioUnlocked = true;
-    try {
-      var silent = new Audio(
-        "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"
-      );
-      silent.volume = 0.01;
-      var p = silent.play();
-      if (p && p.then) p.catch(function () {});
-    } catch (e) {}
+    audioClips.unlock();
   }
 
   function playClip(name, onDone) {
@@ -345,42 +349,16 @@ SCRIPT = r"""
       if (onDone) onDone(false);
       return false;
     }
-    var audio = clipCache[name];
-    if (!audio) {
-      audio = new Audio(clipUrl(name));
-      audio.preload = "auto";
-      clipCache[name] = audio;
-    }
-    if (audio.__fgbBad) {
+    if (audioClips.isBad(name)) {
       if (onDone) onDone(false);
       return false;
     }
-    try {
-      audio.pause();
-      audio.currentTime = 0;
-    } catch (e) {}
-    activeAudio = audio;
-    var finished = false;
-    function done(ok) {
-      if (finished) return;
-      finished = true;
-      setSpeaking(false);
-      activeAudio = null;
-      if (!ok) audio.__fgbBad = true;
-      if (onDone) onDone(ok);
-    }
-    audio.onended = function () { done(true); };
-    audio.onerror = function () { done(false); };
     setSpeaking(true);
-    var playPromise = audio.play();
-    if (playPromise && playPromise.then) {
-      playPromise.then(function () {
-        setTtsNote("");
-      }).catch(function () {
-        done(false);
-      });
-    }
-    return true;
+    return audioClips.play(name, function (ok) {
+      setSpeaking(false);
+      if (ok) setTtsNote("");
+      if (onDone) onDone(ok);
+    });
   }
 
   /** 统一播预置 MP3；失败则露出文字（不再用 speechSynthesis） */
@@ -423,15 +401,9 @@ SCRIPT = r"""
   }
 
   function preloadClips() {
-    Object.keys(ACTIONS).forEach(function (act) {
-      ["", "say_"].forEach(function (prefix) {
-        var name = prefix + act;
-        if (clipCache[name]) return;
-        var a = new Audio(clipUrl(name));
-        a.preload = "auto";
-        a.addEventListener("error", function () { a.__fgbBad = true; });
-        clipCache[name] = a;
-      });
+    if (!audioClips.allReady()) setTtsNote("音效准备中…");
+    return audioClips.preloadAll().then(function () {
+      if (audioClips.allReady()) setTtsNote("");
     });
   }
 
@@ -576,15 +548,16 @@ SCRIPT = r"""
       reverse = false;
       useTts = true;
       unlockAudio();
-      preloadClips();
-      trialIndex = 0;
-      correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
-      document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
-      document.getElementById("btn-next").style.display = "";
-      setTtsNote("");
-      updateRuleBar();
       showView(views, "play");
-      nextTrial();
+      Promise.resolve(preloadClips()).then(function () {
+        trialIndex = 0;
+        correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
+        document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
+        document.getElementById("btn-next").style.display = "";
+        setTtsNote("");
+        updateRuleBar();
+        nextTrial();
+      });
     });
   }
 
@@ -596,15 +569,16 @@ SCRIPT = r"""
       // 与休闲一致：挑战固定 MP3，不再提供「关语音看字」
       useTts = true;
       unlockAudio();
-      preloadClips();
-      trialIndex = 0;
-      correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
-      document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
-      document.getElementById("btn-next").style.display = "none";
-      setTtsNote("");
-      updateRuleBar();
       showView(views, "play");
-      nextTrial();
+      Promise.resolve(preloadClips()).then(function () {
+        trialIndex = 0;
+        correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
+        document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
+        document.getElementById("btn-next").style.display = "none";
+        setTtsNote("");
+        updateRuleBar();
+        nextTrial();
+      });
     });
   }
 
@@ -713,6 +687,7 @@ def build_html() -> str:
         inject_lobby_link(BODY),
         SCRIPT,
         game_skin="simon",
+        audio_clips=True,
     )
 
 

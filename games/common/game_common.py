@@ -829,6 +829,7 @@ def build_page(
     *,
     game_skin: str = "",
     game_title: str | None = None,
+    audio_clips: bool = False,
 ) -> str:
     wrap_cls = "wrap wide" if wide else "wrap"
     skin_attr = (
@@ -861,6 +862,11 @@ def build_page(
         '<script src="/js/fgb-client.js"></script>',
         '<script src="/js/fgb-ui.js"></script>',
         '<script src="/js/fgb-shell.js"></script>',
+        *(
+            ['<script src="/js/fgb-audio-clips.js"></script>']
+            if audio_clips
+            else []
+        ),
         "<script>",
         "/* fgb-daily-boot */",
         COMMON_JS_UTILS,

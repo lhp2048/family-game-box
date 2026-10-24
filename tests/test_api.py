@@ -226,6 +226,9 @@ def test_24points_play_and_bank():
     login_as(client, "pts24_play")
     page = client.get(p("/games/24points/play.html"))
     assert page.status_code == 200
+    assert 'id="card-board"' in page.text
+    assert "num-card" in page.text
+    assert "onPlayKeydown" in page.text or "keydown" in page.text
     bank = client.get(p("/games/24points/bank.json"))
     assert bank.status_code == 200
     data = bank.json()

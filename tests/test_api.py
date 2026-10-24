@@ -119,6 +119,10 @@ def test_lobby_html():
     assert 'href="/game-box/admin"' in text
     assert 'href="/game-box/daily/leaderboard"' in text
     assert '__FGB_BASE__="/game-box"' in text
+    assert 'class="fgb-console"' in text or "fgb-console" in text
+    assert "fgb-home.js" in text
+    assert 'class="fgb-shelf-row"' in text
+    assert "FGBHome.renderGameShelf" in text
 
 
 def test_leaderboard_page():
@@ -165,6 +169,8 @@ def test_attention_game_page():
     assert 'id="fgb-topbar"' in text
     assert "fgb-shell.js" in text
     assert "FGBShell.mountTopbar" in text
+    assert "fgb-audio-clips.js" in text
+    assert "FgbAudioClips" in text
     assert "fgbSubmitScore" in text or "submitScore" in text or "view-result" in text
 
 
@@ -187,6 +193,9 @@ def test_remaining_free_train_chrome():
         assert "fgb-shell.js" in html, slug
         assert "FGBShell.mountTopbar" in html, slug
         assert "← 返回大厅" in html or "回大厅" in html, slug
+    simon_html = (root / "web" / "games" / "simon" / "index.html").read_text(encoding="utf-8")
+    assert "fgb-audio-clips.js" in simon_html
+    assert "FgbAudioClips" in simon_html
     theme = (root / "web" / "css" / "fgb-theme.css").read_text(encoding="utf-8")
     for skin in expected.values():
         assert 'data-game-skin="%s"' % skin in theme, skin
@@ -217,6 +226,9 @@ def test_24points_play_and_bank():
     login_as(client, "pts24_play")
     page = client.get(p("/games/24points/play.html"))
     assert page.status_code == 200
+    assert 'id="card-board"' in page.text
+    assert "num-card" in page.text
+    assert "onPlayKeydown" in page.text or "keydown" in page.text
     bank = client.get(p("/games/24points/bank.json"))
     assert bank.status_code == 200
     data = bank.json()

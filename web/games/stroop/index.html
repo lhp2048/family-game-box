@@ -638,6 +638,7 @@ h1 em { font-style: italic; color: var(--accent); }
 <script src="/js/fgb-client.js"></script>
 <script src="/js/fgb-ui.js"></script>
 <script src="/js/fgb-shell.js"></script>
+<script src="/js/fgb-audio-clips.js"></script>
 <script>
 /* fgb-daily-boot */
 
@@ -889,13 +890,24 @@ function celebrateThen(message, callback, delayMs) {
   var hintEl = document.getElementById("play-hint");
   var progressEl = document.getElementById("play-progress");
   var labelEl = document.getElementById("play-label");
-  var clipCache = {};
-  var activeAudio = null;
-  var audioUnlocked = false;
-
   function clipUrl(name) {
     return "audio/" + name + ".mp3";
   }
+
+  var audioClipIds = COLORS.map(function (c) { return c.id; });
+  var audioClips = FgbAudioClips({
+    resolveUrl: function (name) { return clipUrl(name); },
+    clipIds: audioClipIds,
+  });
+  audioClips.warmNetwork();
+  (function wireEarlyAudioUnlock() {
+    function onGesture() {
+      audioClips.unlock();
+    }
+    ["pointerdown", "keydown", "touchstart"].forEach(function (ev) {
+      document.addEventListener(ev, onGesture, { once: true, passive: true });
+    });
+  })();
 
   function setSpeaking(on) {
     if (wordEl) wordEl.classList.toggle("is-speaking", !!on);
@@ -903,67 +915,29 @@ function celebrateThen(message, callback, delayMs) {
 
   function stopSpeak() {
     setSpeaking(false);
-    if (activeAudio) {
-      try { activeAudio.pause(); } catch (e) {}
-      activeAudio = null;
-    }
+    audioClips.stop();
   }
 
   /** 用户手势下解锁 WebView 音频 */
   function unlockAudio() {
-    if (audioUnlocked) return;
-    audioUnlocked = true;
-    try {
-      var silent = new Audio(
-        "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"
-      );
-      silent.volume = 0.01;
-      var p = silent.play();
-      if (p && p.then) p.catch(function () {});
-    } catch (e) {}
+    audioClips.unlock();
   }
 
   function preloadClips() {
-    COLORS.forEach(function (c) {
-      if (clipCache[c.id]) return;
-      var a = new Audio(clipUrl(c.id));
-      a.preload = "auto";
-      a.addEventListener("error", function () { a.__fgbBad = true; });
-      clipCache[c.id] = a;
-    });
+    return audioClips.preloadAll();
   }
 
   /** 固定播报字义（红→红色）；不可关闭 */
   function speakWordLabel(wordId) {
     stopSpeak();
-    if (!wordId) return;
-    var audio = clipCache[wordId];
-    if (!audio) {
-      audio = new Audio(clipUrl(wordId));
-      audio.preload = "auto";
-      clipCache[wordId] = audio;
-    }
-    if (audio.__fgbBad) return;
-    try {
-      audio.pause();
-      audio.currentTime = 0;
-    } catch (e) {}
-    activeAudio = audio;
+    if (!wordId || audioClips.isBad(wordId)) return;
     setSpeaking(true);
-    audio.onended = function () { setSpeaking(false); activeAudio = null; };
-    audio.onerror = function () {
-      audio.__fgbBad = true;
+    audioClips.play(wordId, function (ok) {
       setSpeaking(false);
-      activeAudio = null;
-    };
-    var playPromise = audio.play();
-    if (playPromise && playPromise.then) {
-      playPromise.catch(function () {
-        audio.__fgbBad = true;
-        setSpeaking(false);
-        activeAudio = null;
-      });
-    }
+      if (!ok) {
+        /* 字已在屏幕上，静默失败即可 */
+      }
+    });
   }
   function avg(arr) {
     if (!arr.length) return null;
@@ -1121,13 +1095,14 @@ function celebrateThen(message, callback, delayMs) {
       mode = "casual";
       applyDiff();
       unlockAudio();
-      preloadClips();
       stopTimer();
       resetStats();
       updateChrome();
       document.getElementById("timer-text").textContent = "—";
       showView(views, "play");
-      showTrial();
+      Promise.resolve(preloadClips()).then(function () {
+        showTrial();
+      });
     });
   }
 
@@ -1136,7 +1111,6 @@ function celebrateThen(message, callback, delayMs) {
       mode = "challenge";
       applyDiff();
       unlockAudio();
-      preloadClips();
       resetStats();
       startedAt = Date.now();
       if (timeLimitMs > 0) {
@@ -1148,7 +1122,9 @@ function celebrateThen(message, callback, delayMs) {
       updateChrome();
       showView(views, "play");
       startTimer();
-      showTrial();
+      Promise.resolve(preloadClips()).then(function () {
+        showTrial();
+      });
     });
   }
 

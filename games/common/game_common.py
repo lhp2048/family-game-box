@@ -667,6 +667,17 @@ html.fgb-daily-mode .clover {
 }
 html.fgb-daily-mode .clover-wrap { margin: 0.1rem 0 0.3rem; }
 html.fgb-daily-mode .leaf { font-size: calc(var(--fgb-board) * 0.11) !important; }
+html.fgb-daily-mode .card-board-wrap {
+  max-width: var(--fgb-board) !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+html.fgb-daily-mode .num-card .val {
+  font-size: calc(var(--fgb-board) * 0.14) !important;
+}
+html.fgb-daily-mode .num-card .expr {
+  font-size: calc(var(--fgb-board) * 0.045) !important;
+}
 html.fgb-daily-mode .sudoku-wrap { width: min(100%, var(--fgb-board)) !important; }
 html.fgb-daily-mode .sudoku { max-height: var(--fgb-board) !important; }
 html.fgb-daily-mode .maze-wrap { max-height: var(--fgb-board) !important; }
@@ -829,6 +840,7 @@ def build_page(
     *,
     game_skin: str = "",
     game_title: str | None = None,
+    audio_clips: bool = False,
 ) -> str:
     wrap_cls = "wrap wide" if wide else "wrap"
     skin_attr = (
@@ -861,6 +873,11 @@ def build_page(
         '<script src="/js/fgb-client.js"></script>',
         '<script src="/js/fgb-ui.js"></script>',
         '<script src="/js/fgb-shell.js"></script>',
+        *(
+            ['<script src="/js/fgb-audio-clips.js"></script>']
+            if audio_clips
+            else []
+        ),
         "<script>",
         "/* fgb-daily-boot */",
         COMMON_JS_UTILS,

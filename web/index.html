@@ -2,112 +2,123 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#060a09">
 <title>家庭游戏盒</title>
 <link rel="stylesheet" href="/css/fgb-theme.css">
 </head>
-<body>
-<main class="fgb-shell">
-  <header id="fgb-topbar"></header>
+<body class="fgb-console">
+<div class="fgb-console-bezel" aria-hidden="true"></div>
+<main class="fgb-shell fgb-console-shell">
+  <header id="fgb-topbar" class="fgb-console-topbar"></header>
 
-  <section class="fgb-stat-strip" id="stat-strip" aria-label="我的战绩">
-    <div class="cell">
-      <div class="label">专注力名次</div>
-      <div class="value" id="stat-rank">—</div>
+  <section class="fgb-console-hero" aria-label="客厅游戏盒">
+    <div class="fgb-console-hero-copy">
+      <p class="fgb-console-eyebrow">客厅 · 家庭游戏盒</p>
+      <h1 class="fgb-console-title">一起开玩</h1>
+      <p class="fgb-console-tagline">每日挑战冲榜，自由训练练手 — 大屏也好点，孩子也好找。</p>
     </div>
-    <div class="cell">
-      <div class="label">语文名次</div>
-      <div class="value" id="stat-yuwen">—</div>
-    </div>
-    <div class="cell">
-      <div class="label">最近一局</div>
-      <div class="value" id="stat-recent">—</div>
+    <div class="fgb-console-status" aria-label="状态">
+      <span class="fgb-console-led" title="在线"></span>
+      <time class="fgb-console-clock" id="console-clock" aria-live="polite">--:--</time>
     </div>
   </section>
 
-  <section class="fgb-arena-split">
-    <a class="fgb-card fgb-card-daily" href="/daily" id="daily-card">
-      <div class="tag">今日对决</div>
-      <h2>每日专注力挑战</h2>
-      <p id="daily-progress">加载中…</p>
-      <span class="fgb-cta-daily" id="daily-cta">开始挑战</span>
-    </a>
-    <div class="fgb-panel fgb-panel-pad">
-      <h3 class="fgb-page-kicker" style="margin:0 0 .5rem">专注力挑战榜</h3>
-      <ol class="fgb-podium-list" id="podium-list"></ol>
-      <a class="fgb-nav-link" href="/daily/leaderboard">完整榜 →</a>
+  <section class="fgb-console-hud" id="stat-strip" aria-label="我的战绩">
+    <div class="fgb-hud-tile">
+      <span class="fgb-hud-label">专注力名次</span>
+      <span class="fgb-hud-value" id="stat-rank">—</span>
+    </div>
+    <div class="fgb-hud-tile">
+      <span class="fgb-hud-label">语文名次</span>
+      <span class="fgb-hud-value" id="stat-yuwen">—</span>
+    </div>
+    <div class="fgb-hud-tile">
+      <span class="fgb-hud-label">最近一局</span>
+      <span class="fgb-hud-value fgb-hud-value-sm" id="stat-recent">—</span>
     </div>
   </section>
 
-  <section class="fgb-arena-split">
-    <a class="fgb-card fgb-card-yuwen" href="/yuwen-daily" id="yuwen-daily-card">
-      <div class="tag">今日对决</div>
-      <h2>每日语文挑战</h2>
-      <p id="yuwen-progress">加载中…</p>
-      <span class="fgb-cta-daily" id="yuwen-cta">开始挑战</span>
-    </a>
-    <div class="fgb-panel fgb-panel-pad">
-      <h3 class="fgb-page-kicker" style="margin:0 0 .5rem">语文挑战榜</h3>
-      <ol class="fgb-podium-list" id="yuwen-podium"></ol>
-      <a class="fgb-nav-link" href="/yuwen-daily/leaderboard">完整榜 →</a>
+  <section class="fgb-console-spotlight" aria-label="今日挑战">
+    <header class="fgb-shelf-head">
+      <h2 class="fgb-shelf-title">今日挑战</h2>
+      <p class="fgb-shelf-sub">每天一局，全家一起冲榜</p>
+    </header>
+    <div class="fgb-spotlight-row">
+      <a class="fgb-spotlight fgb-spotlight-daily" href="/daily" id="daily-card">
+        <span class="fgb-spotlight-badge">专注力</span>
+        <h3>每日专注力挑战</h3>
+        <p id="daily-progress">加载中…</p>
+        <span class="fgb-spotlight-cta" id="daily-cta">开始挑战</span>
+      </a>
+      <aside class="fgb-spotlight-side fgb-panel fgb-panel-pad">
+        <h3 class="fgb-shelf-mini-title">专注力挑战榜</h3>
+        <ol class="fgb-podium-list" id="podium-list"></ol>
+        <a class="fgb-nav-link fgb-shelf-link" href="/daily/leaderboard">完整榜 →</a>
+      </aside>
+    </div>
+    <div class="fgb-spotlight-row">
+      <a class="fgb-spotlight fgb-spotlight-yuwen" href="/yuwen-daily" id="yuwen-daily-card">
+        <span class="fgb-spotlight-badge">语文</span>
+        <h3>每日语文挑战</h3>
+        <p id="yuwen-progress">加载中…</p>
+        <span class="fgb-spotlight-cta" id="yuwen-cta">开始挑战</span>
+      </a>
+      <aside class="fgb-spotlight-side fgb-panel fgb-panel-pad">
+        <h3 class="fgb-shelf-mini-title">语文挑战榜</h3>
+        <ol class="fgb-podium-list" id="yuwen-podium"></ol>
+        <a class="fgb-nav-link fgb-shelf-link" href="/yuwen-daily/leaderboard">完整榜 →</a>
+      </aside>
     </div>
   </section>
 
-  <h2 class="fgb-page-title" style="font-size:1.65rem;margin-bottom:.35rem">自由训练</h2>
-  <p class="fgb-lead" style="margin-bottom:.85rem">单机练习，冲击个人最佳。</p>
-  <div id="game-list" class="fgb-grid-train"></div>
+  <section class="fgb-console-shelf" aria-label="游戏库">
+    <header class="fgb-shelf-head">
+      <h2 class="fgb-shelf-title">游戏库</h2>
+      <p class="fgb-shelf-sub">左右方向键可切换焦点 · 点封面即开玩</p>
+    </header>
+    <div id="game-list" class="fgb-shelf-row" role="list"></div>
+  </section>
+
   <p class="fgb-footer-link"><a href="/admin">管理</a></p>
 </main>
 <script src="/js/fgb-client.js"></script>
 <script src="/js/fgb-ui.js"></script>
 <script src="/js/fgb-shell.js"></script>
+<script src="/js/fgb-home.js"></script>
 <script>
 (function () {
   var list = document.getElementById("game-list");
 
   FGBShell.mountTopbar(document.getElementById("fgb-topbar"), {
-    title: "竞技厅",
+    title: "主页",
     showUser: true,
+    console: true,
   });
 
-  // Hall board links — append after shell chip/auth without extending FGBShell API
+  if (window.FGBHome && FGBHome.mountClock) {
+    FGBHome.mountClock(document.getElementById("console-clock"));
+  }
+
   var topNav = document.querySelector("#fgb-topbar .fgb-nav");
   if (topNav) {
     [
-      { href: "/daily/leaderboard", label: "专注力挑战榜" },
-      { href: "/yuwen-daily/leaderboard", label: "语文挑战榜" },
+      { href: "/daily/leaderboard", label: "专注力榜" },
+      { href: "/yuwen-daily/leaderboard", label: "语文榜" },
       { href: "/leaderboard", label: "排行榜" },
     ].forEach(function (item) {
       var a = document.createElement("a");
-      a.className = "fgb-nav-link";
+      a.className = "fgb-nav-link fgb-nav-pill";
       a.href = FGB.url(item.href);
       a.textContent = item.label;
       topNav.appendChild(a);
     });
   }
 
-  function esc(s) {
-    return String(s || "").replace(/[&<>"']/g, function (c) {
-      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
-    });
-  }
-
   function renderGames(games) {
-    list.innerHTML = "";
-    (games || []).forEach(function (g) {
-      var a = document.createElement("a");
-      a.className = "fgb-train-card" + (g.extra && g.extra.kind === "reference" ? " is-ref" : "");
-      a.setAttribute("data-game-id", g.id);
-      var path = g.path || "";
-      a.href = FGB.url(path.charAt(0) === "/" ? path : "/" + path);
-      a.innerHTML =
-        "<strong>" + esc(g.title) + "</strong>" +
-        "<p class=\"meta\">" + esc(g.subtitle || (g.extra && g.extra.kind === "reference" ? "工具" : "训练")) + "</p>" +
-        "<span class=\"go\">" + (g.extra && g.extra.kind === "reference" ? "查阅" : "进入") + "</span>";
-      list.appendChild(a);
-    });
-    if (!(games || []).length) {
-      list.innerHTML = "<p class=\"fgb-lead\">暂无可用游戏</p>";
+    if (window.FGBHome && FGBHome.renderGameShelf) {
+      FGBHome.renderGameShelf(list, games);
+      return;
     }
   }
 
@@ -147,15 +158,15 @@
     if (!podium.length) {
       ol.innerHTML = "<li style=\"color:var(--muted)\">还没有成绩，去做每日专注力挑战吧</li>";
     } else {
-    podium.forEach(function (p) {
-      var li = document.createElement("li");
-      var medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
-      var titles = { 1: "冠军", 2: "亚军", 3: "季军" };
-      var medal = medals[p.rank] ? ('<span class="medal">' + medals[p.rank] + "</span>") : "";
-      var title = titles[p.rank] ? (titles[p.rank] + " · ") : (p.rank + ". ");
-      li.innerHTML = "<span>" + medal + title + (p.nickname || "—") + "</span><span>" + (p.display || "") + "</span>";
-      ol.appendChild(li);
-    });
+      podium.forEach(function (p) {
+        var li = document.createElement("li");
+        var medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
+        var titles = { 1: "冠军", 2: "亚军", 3: "季军" };
+        var medal = medals[p.rank] ? ('<span class="medal">' + medals[p.rank] + "</span>") : "";
+        var title = titles[p.rank] ? (titles[p.rank] + " · ") : (p.rank + ". ");
+        li.innerHTML = "<span>" + medal + title + (p.nickname || "—") + "</span><span>" + (p.display || "") + "</span>";
+        ol.appendChild(li);
+      });
     }
     var yol = document.getElementById("yuwen-podium");
     yol.innerHTML = "";

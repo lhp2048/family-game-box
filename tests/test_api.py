@@ -119,6 +119,10 @@ def test_lobby_html():
     assert 'href="/game-box/admin"' in text
     assert 'href="/game-box/daily/leaderboard"' in text
     assert '__FGB_BASE__="/game-box"' in text
+    assert 'class="fgb-console"' in text or "fgb-console" in text
+    assert "fgb-home.js" in text
+    assert 'class="fgb-shelf-row"' in text
+    assert "FGBHome.renderGameShelf" in text
 
 
 def test_leaderboard_page():

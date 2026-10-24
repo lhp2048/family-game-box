@@ -11,8 +11,8 @@
  * FGBUI is optional (not required for topbar / safeNext).
  *
  * Public API: window.FGBShell
- *   - mountTopbar(rootEl, options)
- *       options: { title?, showBack?, backHref?, showUser? }
+   *   - mountTopbar(rootEl, options)
+   *       options: { title?, showBack?, backHref?, showUser?, console? }
  *   - safeNext(defaultPath)  — open-redirect-safe ?next= (same-origin relative only)
  *   - requireUserOrRedirect() — authMe; if not logged in, redirect to /login?next=…
  */
@@ -265,6 +265,7 @@
     var showBack = !!opts.showBack;
     var backHref = opts.backHref != null && opts.backHref !== "" ? opts.backHref : "/";
     var showUser = !!opts.showUser;
+    var consoleShell = !!opts.console;
 
     if (
       rootEl.className.indexOf("fgb-topbar") === -1
@@ -273,15 +274,24 @@
         ? rootEl.className + " "
         : "") + "fgb-topbar";
     }
+    if (consoleShell && rootEl.className.indexOf("fgb-topbar-console") === -1) {
+      rootEl.className += " fgb-topbar-console";
+    }
 
     var backLabel =
       !opts.backHref || opts.backHref === "/" ? "回大厅" : "返回";
 
     var brandHtml =
-      '<div>' +
-      '<a class="fgb-brand" href="' +
+      '<div class="fgb-brand-block">' +
+      '<a class="fgb-brand' +
+      (consoleShell ? " fgb-brand-console" : "") +
+      '" href="' +
       fgbUrl("/") +
-      '">家庭<em>游戏盒</em></a>' +
+      '">' +
+      (consoleShell
+        ? '<span class="fgb-brand-mark" aria-hidden="true"></span><span class="fgb-brand-text">家庭<em>游戏盒</em></span>'
+        : "家庭<em>游戏盒</em>") +
+      "</a>" +
       (title
         ? '<span class="fgb-page-kicker">' + escapeHtml(title) + "</span>"
         : "") +

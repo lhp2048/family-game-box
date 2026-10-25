@@ -1,10 +1,10 @@
-# Audio attribution (CC BY 4.0)
+# Audio attribution
 
-English alphabet letter sounds (a–z) from:
+English alphabet letter sounds (a–z) derived from:
 
-- **tim.kahn** — Freesound pack [The Alphabet](https://freesound.org/people/tim.kahn/packs/4371/)
-- License: [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)
+- **ChotoTheBright** — [Alphabet-English.wav](https://freesound.org/people/ChotoTheBright/sounds/700028/) on Freesound (sound 700028)
+- License: [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain dedication)
 
-Suggested credit line in derivative works:
+Optional credit:
 
-> Alphabet letter sounds by tim.kahn (Freesound), licensed under CC BY 4.0.
+> Alphabet recording by ChotoTheBright (Freesound), CC0.

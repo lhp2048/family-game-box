@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Fetch female English letter-name clips (tim.kahn / Freesound pack 4371).
+"""Build female English letter-name clips for word-battle.
 
-Pack: https://freesound.org/people/tim.kahn/packs/4371/
-Sound IDs 67712–67737 → a.wav … z.wav (CC BY 4.0).
+Source: ChotoTheBright — Freesound sound 700028 (CC0), one continuous A–Z read,
+split on silence into 26 clips. Not tim.kahn / pack 4371.
 
-HQ previews are pulled from Freesound CDN (same recordings; no API key required).
-Optional: set FREESOUND_API_KEY to download original WAV via API v2 instead.
+https://freesound.org/people/ChotoTheBright/sounds/700028/
 
 Usage:
   python3 games/word_battle/fetch_audio.py
@@ -14,67 +13,95 @@ Usage:
 
 from __future__ import annotations
 
-import json
-import os
+import re
 import shutil
 import subprocess
 import sys
-import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 OUT = HERE / "audio"
+SRC = OUT / "_src"
 
-PACK_URL = "https://freesound.org/people/tim.kahn/packs/4371/"
-FIRST_SOUND_ID = 67712  # a.wav
-USER_AGENT = "family-game-box/1.0 (word-battle; CC-BY tim.kahn alphabet)"
+SOUND_ID = 700028
+PREVIEW_HQ = "https://cdn.freesound.org/previews/700/%d_13863797-hq.mp3" % SOUND_ID
+USER_AGENT = "family-game-box/1.0 (word-battle; CC0 ChotoTheBright alphabet)"
 
-# Trim trailing/leading silence; slightly louder for mobile speakers (still same tim.kahn takes)
-FFMPEG_AF = (
-    "silenceremove=stop_periods=-1:stop_duration=0.01:stop_threshold=-30dB:"
-    "start_periods=1:start_duration=0.01:start_threshold=-30dB,"
-    "volume=1.12"
-)
-MAX_LETTER_SEC = 0.75
+SILENCE_DETECT = "silencedetect=noise=-34dB:d=0.06"
+MERGE_GAP_SEC = 0.32
+MIN_SPEECH_SEC = 0.12
+# Segments are already tight; avoid silenceremove eating very short letters.
+CLIP_AF_TAIL = "volume=1.14,alimiter=limit=0.98"
+MAX_LETTER_SEC = 0.85
 
 
-def _open(url: str, timeout: int = 120) -> bytes:
+def _open(url: str, timeout: int = 180) -> bytes:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return resp.read()
 
 
-def preview_hq_url(sound_id: int) -> str:
-    folder = str(sound_id)[:2]
-    return "https://cdn.freesound.org/previews/%s/%d_7037-hq.mp3" % (folder, sound_id)
-
-
-def download_preview_mp3(sound_id: int, dest: Path) -> None:
+def download_alphabet_track(dest: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
-    raw = OUT / "_src" / ("%d.mp3" % sound_id)
-    raw.parent.mkdir(parents=True, exist_ok=True)
-    raw.write_bytes(_open(preview_hq_url(sound_id)))
-    process_mp3(raw, dest)
+    dest.write_bytes(_open(PREVIEW_HQ))
 
 
-def download_wav_api(sound_id: int, dest: Path, token: str) -> None:
-    meta_url = "https://freesound.org/apiv2/sounds/%d/?token=%s" % (sound_id, token)
-    meta = json.loads(_open(meta_url, timeout=60).decode("utf-8"))
-    dl = meta.get("download")
-    if not dl:
-        raise RuntimeError("no download url for sound %d" % sound_id)
-    sep = "&" if "?" in dl else "?"
-    wav = OUT / "_src" / ("%d.wav" % sound_id)
-    wav.write_bytes(_open("%s%stoken=%s" % (dl, sep, token)))
-    process_from_wav(wav, dest)
+def _silence_events(ffmpeg: str, src: Path) -> list[tuple[str, float]]:
+    out = subprocess.run(
+        [
+            ffmpeg,
+            "-hide_banner",
+            "-i",
+            str(src),
+            "-af",
+            SILENCE_DETECT,
+            "-f",
+            "null",
+            "-",
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stderr
+    events: list[tuple[str, float]] = []
+    for line in out.splitlines():
+        if "silence_start" in line:
+            events.append(("s", float(line.split("silence_start:")[1].split()[0])))
+        if "silence_end" in line:
+            events.append(("e", float(line.split("silence_end:")[1].split()[0])))
+    return events
 
 
-def _encode_mp3(src: Path, dest: Path) -> None:
-    ffmpeg = shutil.which("ffmpeg")
-    if not ffmpeg:
-        raise SystemExit("ffmpeg not found")
+def speech_segments(events: list[tuple[str, float]]) -> list[tuple[float, float]]:
+    speech: list[tuple[float, float]] = []
+    in_speech = False
+    start = 0.0
+    for kind, t in events:
+        if kind == "e":
+            start = t
+            in_speech = True
+        elif kind == "s" and in_speech:
+            speech.append((start, t))
+            in_speech = False
+    if not speech:
+        return []
+    merged = [speech[0]]
+    for seg in speech[1:]:
+        prev = merged[-1]
+        if seg[0] - prev[1] < MERGE_GAP_SEC:
+            merged[-1] = (prev[0], seg[1])
+        else:
+            merged.append(seg)
+    return [s for s in merged if s[1] - s[0] >= MIN_SPEECH_SEC]
+
+
+def extract_clip(ffmpeg: str, src: Path, start: float, end: float, dest: Path) -> None:
+    pad = 0.03
+    ss = max(0.0, start - pad)
+    dur = (end - start) + pad * 2
+    af = "atrim=start=%.4f:duration=%.4f,asetpts=PTS-STARTPTS,%s" % (ss, dur, CLIP_AF_TAIL)
     subprocess.run(
         [
             ffmpeg,
@@ -85,7 +112,7 @@ def _encode_mp3(src: Path, dest: Path) -> None:
             "-i",
             str(src),
             "-af",
-            FFMPEG_AF,
+            af,
             "-codec:a",
             "libmp3lame",
             "-ar",
@@ -100,22 +127,7 @@ def _encode_mp3(src: Path, dest: Path) -> None:
     )
 
 
-def process_from_wav(src: Path, dest: Path) -> None:
-    _encode_mp3(src, dest)
-
-
-def process_mp3(src: Path, dest: Path) -> None:
-    ffmpeg = shutil.which("ffmpeg")
-    if not ffmpeg:
-        shutil.copy2(src, dest)
-        return
-    _encode_mp3(src, dest)
-
-
-def clip_duration(path: Path) -> float:
-    ffprobe = shutil.which("ffprobe")
-    if not ffprobe:
-        return 0.0
+def clip_duration(ffprobe: str, path: Path) -> float:
     out = subprocess.check_output(
         [
             ffprobe,
@@ -134,32 +146,48 @@ def clip_duration(path: Path) -> float:
 
 
 def main() -> int:
-    token = os.environ.get("FREESOUND_API_KEY", "").strip()
+    ffmpeg = shutil.which("ffmpeg")
+    ffprobe = shutil.which("ffprobe")
+    if not ffmpeg or not ffprobe:
+        print("ffmpeg/ffprobe required", file=sys.stderr)
+        return 2
+
+    OUT.mkdir(parents=True, exist_ok=True)
+    track = SRC / "alphabet-hq.mp3"
+    print("Downloading %s" % PREVIEW_HQ)
+    try:
+        download_alphabet_track(track)
+    except (urllib.error.HTTPError, urllib.error.URLError, OSError) as exc:
+        print("ERROR: %s" % exc, file=sys.stderr)
+        return 2
+
+    events = _silence_events(ffmpeg, track)
+    segments = speech_segments(events)
     letters = "abcdefghijklmnopqrstuvwxyz"
+    if len(segments) != len(letters):
+        print(
+            "ERROR: expected %d speech segments, got %d (tune MERGE_GAP_SEC)"
+            % (len(letters), len(segments)),
+            file=sys.stderr,
+        )
+        return 2
+
     ok = 0
-    for i, letter in enumerate(letters):
-        sound_id = FIRST_SOUND_ID + i
+    for letter, (start, end) in zip(letters, segments):
         dest = OUT / (letter + ".mp3")
-        print("→ %s (Freesound %d)" % (dest.name, sound_id))
-        try:
-            if token:
-                download_wav_api(sound_id, dest, token)
-            else:
-                download_preview_mp3(sound_id, dest)
-        except (urllib.error.HTTPError, urllib.error.URLError, OSError) as exc:
-            print("  ERROR: %s" % exc, file=sys.stderr)
-            return 2
-        if dest.stat().st_size < 400:
-            print("  ERROR: %s too small" % dest, file=sys.stderr)
-            return 2
-        dur = clip_duration(dest)
+        print("→ %s (%.2f–%.2fs)" % (dest.name, start, end))
+        extract_clip(ffmpeg, track, start, end, dest)
+        dur = clip_duration(ffprobe, dest)
         print("  %.2fs" % dur)
+        if dest.stat().st_size < 400 or dur < 0.08:
+            print("  ERROR: %s too small (%.2fs)" % (dest.name, dur), file=sys.stderr)
+            return 2
         if dur > MAX_LETTER_SEC:
-            print("  WARN: %s longer than %.2fs" % (dest.name, MAX_LETTER_SEC), file=sys.stderr)
+            print("  WARN: longer than %.2fs" % MAX_LETTER_SEC, file=sys.stderr)
         ok += 1
-        time.sleep(0.35)
-    shutil.rmtree(OUT / "_src", ignore_errors=True)
-    print("Done: %d clips in %s" % (ok, OUT))
+
+    shutil.rmtree(SRC, ignore_errors=True)
+    print("Done: %d clips in %s (ChotoTheBright CC0)" % (ok, OUT))
     return 0
 
 

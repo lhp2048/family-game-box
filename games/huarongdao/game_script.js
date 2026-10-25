@@ -156,6 +156,10 @@
     });
   }
 
+  function pieceBySolverIndex(blockIdx) {
+    return pieces[blockIdx] || null;
+  }
+
   function macroCount(moves) {
     if (!moves || !moves.length) return 0;
     var macro = 0;
@@ -185,53 +189,6 @@
     el.style.top = rect.top + "%";
     el.style.width = rect.width + "%";
     el.style.height = rect.height + "%";
-  }
-
-  function normalizePieceLabels(src) {
-    var vLabels = ["张", "赵", "马", "黄"];
-    var v = 0;
-    var hBar = 0;
-    var sorted = src.slice().sort(function (a, b) {
-      if (a.r !== b.r) return a.r - b.r;
-      return a.c - b.c;
-    });
-    var horizOrder = {};
-    sorted.forEach(function (p) {
-      if (p.w === 2 && p.h === 1) horizOrder[p.id] = Object.keys(horizOrder).length;
-    });
-    return src.map(function (p) {
-      var next = {
-        id: p.id,
-        type: p.type,
-        label: p.label,
-        r: p.r,
-        c: p.c,
-        w: p.w,
-        h: p.h,
-      };
-      if (p.w === 2 && p.h === 2) {
-        next.type = "cao";
-        next.label = "曹";
-      } else if (p.w === 1 && p.h === 1) {
-        next.type = "s";
-        next.label = "兵";
-      } else if (p.w === 1 && p.h === 2) {
-        next.type = "v";
-        next.label = vLabels[v % vLabels.length];
-        v += 1;
-      } else if (p.w === 2 && p.h === 1) {
-        var ho = horizOrder[p.id];
-        if (ho === 0) {
-          next.type = "guan";
-          next.label = "关";
-        } else {
-          next.type = "h";
-          next.label = "横";
-          hBar += 1;
-        }
-      }
-      return next;
-    });
   }
 
   function renderBoard() {
@@ -329,7 +286,7 @@
     levelMeta = findLevel(id);
     if (!levelMeta) return;
     levelId = id;
-    pieces = normalizePieceLabels(clonePieces(levelMeta.pieces));
+    pieces = clonePieces(levelMeta.pieces);
     steps = 0;
     undoStack = [];
     selectedId = null;
@@ -382,9 +339,8 @@
       document.getElementById("hrg-hint").textContent = "暂无解法提示";
       return;
     }
-    var fwd = moves.slice().reverse();
-    var m = fwd[0];
-    var p = pieces[m.blockIdx];
+    var m = moves[0];
+    var p = pieceBySolverIndex(m.blockIdx);
     if (p) selectedId = p.id;
     var names = ["下", "右", "上", "左"];
     document.getElementById("hrg-hint").textContent =

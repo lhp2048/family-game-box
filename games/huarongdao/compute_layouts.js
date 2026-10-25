@@ -5,6 +5,12 @@
 const fs = require("fs");
 const path = require("path");
 const Klotski = require("./klotski-ref.js");
+const CLASSIC = require("./classic_catalog.js");
+const {
+  typeFromJeantimexBlocks,
+  piecesFromJeantimexBlocks,
+  validateJeantimexBlocks,
+} = require("./hrd_codec.js");
 
 const HRD = JSON.parse(
   fs.readFileSync(path.join(__dirname, "hrd-games.json"), "utf8")
@@ -22,48 +28,6 @@ function macroCount(moves) {
     last = m.blockIdx;
   }
   return macro;
-}
-
-const V_GENERAL_LABELS = ["张", "赵", "马", "黄"];
-
-function blocksToPieces(blocks) {
-  const pieces = [];
-  let v = 0;
-  let hBar = 0;
-  blocks.forEach((b, i) => {
-    const h = b.shape[0];
-    const w = b.shape[1];
-    const [r, c] = b.position;
-    let type = "s";
-    let label = "兵";
-    if (w === 2 && h === 2) {
-      type = "cao";
-      label = "曹";
-    } else if (w === 1 && h === 2) {
-      v += 1;
-      type = "v";
-      label = V_GENERAL_LABELS[(v - 1) % V_GENERAL_LABELS.length];
-    } else if (w === 2 && h === 1) {
-      hBar += 1;
-      if (hBar === 1) {
-        type = "guan";
-        label = "关";
-      } else {
-        type = "h";
-        label = "横";
-      }
-    }
-    pieces.push({
-      id: type === "cao" ? "cao" : type + i,
-      type,
-      label,
-      r,
-      c,
-      w,
-      h,
-    });
-  });
-  return pieces;
 }
 
 function cloneBlocks(blocks) {
@@ -89,192 +53,177 @@ function applyMove(blocks, move) {
   return next;
 }
 
-function replayStates(startBlocks, moves) {
-  const states = [cloneBlocks(startBlocks)];
-  let cur = cloneBlocks(startBlocks);
-  for (const m of moves) {
-    cur = applyMove(cur, m);
-    states.push(cloneBlocks(cur));
-  }
-  return states;
-}
-
-function suffixMacro(moves, fromIdx) {
-  return macroCount(moves.slice(fromIdx));
+function solveGame(blocks) {
+  const k = new Klotski();
+  return k.solve({ blocks: cloneBlocks(blocks) });
 }
 
 function findByName(name) {
-  return HRD.find((g) => g.name === name);
+  return HRD.filter((g) => g.name === name);
 }
 
-const CLASSIC_TARGETS = [
-  { id: "classic-01", name: "捷足先登", optimal: 32, candidates: ["捷足先登"] },
-  {
-    id: "classic-02",
-    name: "兵分三路",
-    optimal: 73,
-    candidates: ["并分三路", "兵分三路", "四路进兵"],
-  },
-  { id: "classic-03", name: "一路顺风", optimal: 39, candidates: ["一路顺风"] },
-  { id: "classic-04", name: "雨声淅沥", optimal: 47, candidates: ["雨声淅沥"] },
-  { id: "classic-05", name: "齐头并进", optimal: 60, candidates: ["齐头并进"] },
-  { id: "classic-06", name: "指挥若定", optimal: 70, candidates: ["指挥若定"] },
-  { id: "classic-07", name: "将拥曹营", optimal: 72, candidates: ["将拥曹营", "兵临曹营"] },
-  { id: "classic-08", name: "横刀立马", optimal: 81, candidates: ["横刀立马"] },
-  { id: "classic-09", name: "层层设防", optimal: 102, candidates: ["层层设防"] },
-  { id: "classic-10", name: "峰回路转", optimal: 138, candidates: ["峰回路转"] },
-];
+function pickJeantimex(entry) {
+  let candidates = [];
+  for (const name of entry.jeantimexNames) {
+    candidates = candidates.concat(findByName(name));
+  }
+  if (!candidates.length) return null;
 
-const CAMPAIGN_META = [
-  { id: "camp-01", name: "初出茅庐", optimal: 3 },
-  { id: "camp-02", name: "匹马单枪", optimal: 7 },
-  { id: "camp-03", name: "兵挡将阻", optimal: 12 },
-  { id: "camp-04", name: "众兵挡道", optimal: 18 },
-  { id: "camp-05", name: "左右为难", optimal: 25 },
-  { id: "camp-06", name: "齐头并进", optimal: 32 },
-  { id: "camp-07", name: "燕飞南北", optimal: 38 },
-  { id: "camp-08", name: "风烟四起", optimal: 44 },
-  { id: "camp-09", name: "鸟飞汉阳", optimal: 50 },
-  { id: "camp-10", name: "一路顺风", optimal: 56 },
-  { id: "camp-11", name: "雨声淅沥", optimal: 62 },
-  { id: "camp-12", name: "捷足先登", optimal: 68 },
-  { id: "camp-13", name: "束手无策", optimal: 72 },
-  { id: "camp-14", name: "将拥曹营", optimal: 75 },
-  { id: "camp-15", name: "层层设防", optimal: 77 },
-  { id: "camp-16", name: "指挥若定", optimal: 79 },
-  { id: "camp-17", name: "峰回路转", optimal: 80 },
-  { id: "camp-18", name: "横刀立马", optimal: 81 },
-];
-
-function solveGame(blocks) {
-  const k = new Klotski();
-  const moves = k.solve({ blocks: cloneBlocks(blocks) });
-  if (!moves) return null;
-  // klotski returns win → start; replay needs start → win
-  return moves.slice().reverse();
-}
-
-function pickClassic(entry) {
   let best = null;
-  for (const cand of entry.candidates) {
-    const g = findByName(cand);
-    if (!g) continue;
+  for (const g of candidates) {
+    validateJeantimexBlocks(g.blocks);
     const moves = solveGame(g.blocks);
     if (!moves) continue;
     const macro = macroCount(moves);
-    const diff = Math.abs(macro - entry.optimal);
-    const item = { g, moves, macro, diff, cand };
+    const type = typeFromJeantimexBlocks(g.blocks);
+    const diff =
+      entry.pickMacro != null
+        ? Math.abs(macro - entry.pickMacro)
+        : Math.abs(macro - entry.minMoves);
+    const item = { g, moves, macro, type, diff };
     if (!best || diff < best.diff) best = item;
   }
   return best;
 }
 
-function layoutFromBlocks(id, name, mode, optimal, blocks, verifiedMacro) {
+function layoutFromBlocks(id, name, mode, optimal, blocks, extra) {
+  validateJeantimexBlocks(blocks);
+  const type = typeFromJeantimexBlocks(blocks);
+  const pieces = piecesFromJeantimexBlocks(blocks);
+  if (pieces[0].type !== "cao") {
+    throw new Error(id + ": cao must be pieces[0] for solver");
+  }
   return {
     id,
     name,
     mode,
     optimal,
-    verifiedMacro,
-    pieces: blocksToPieces(blocks),
+    verifiedMacro: extra.verifiedMacro,
+    type,
+    pieces,
   };
 }
 
-function buildCampaignFromHengdao() {
-  const heng = findByName("横刀立马");
+const CAMPAIGN_EARLY = [
+  { id: "camp-01", name: "初出茅庐", target: 3 },
+  { id: "camp-02", name: "匹马单枪", target: 7 },
+  { id: "camp-03", name: "兵挡将阻", target: 12 },
+  { id: "camp-04", name: "众兵挡道", target: 18 },
+  { id: "camp-05", name: "左右为难", target: 25 },
+  { id: "camp-06", name: "齐头并进", target: 32 },
+  { id: "camp-07", name: "燕飞南北", target: 38 },
+  { id: "camp-08", name: "风烟四起", target: 44 },
+  { id: "camp-09", name: "鸟飞汉阳", target: 50 },
+  { id: "camp-10", name: "一路顺风", target: 56 },
+];
+
+const CAMPAIGN_LATE = [
+  { id: "camp-11", name: "雨声淅沥", jeantimexNames: ["雨声淅沥"] },
+  { id: "camp-12", name: "捷足先登", jeantimexNames: ["捷足先登"] },
+  { id: "camp-13", name: "双将挡路", jeantimexNames: ["双将挡路"] },
+  { id: "camp-14", name: "将拥曹营", jeantimexNames: ["将拥曹营"] },
+  { id: "camp-15", name: "层层设防", jeantimexNames: ["层层设防"], pickMacro: 102 },
+  { id: "camp-16", name: "指挥若定", jeantimexNames: ["指挥若定"] },
+  { id: "camp-17", name: "峰回路转", jeantimexNames: ["峰回路转"] },
+  { id: "camp-18", name: "横刀立马", jeantimexNames: ["横刀立马"] },
+];
+
+function buildCampaignEarly() {
+  const heng = findByName("横刀立马")[0];
   const moves = solveGame(heng.blocks);
-  if (!moves) throw new Error("cannot solve hengdao");
-  const states = replayStates(heng.blocks, moves);
-  const layouts = [];
-  for (let i = 0; i < 10; i++) {
-    const meta = CAMPAIGN_META[i];
+  if (!moves) throw new Error("cannot solve 横刀立马");
+  let cur = cloneBlocks(heng.blocks);
+  const states = [cloneBlocks(cur)];
+  for (const m of moves) {
+    cur = applyMove(cur, m);
+    states.push(cloneBlocks(cur));
+  }
+
+  return CAMPAIGN_EARLY.map((meta) => {
     let pickIdx = 0;
     let bestDiff = Infinity;
     for (let s = 0; s < states.length; s++) {
-      const rem = suffixMacro(moves, s);
-      const diff = Math.abs(rem - meta.optimal);
+      const rem = macroCount(moves.slice(s));
+      const diff = Math.abs(rem - meta.target);
       if (diff < bestDiff) {
         bestDiff = diff;
         pickIdx = s;
       }
     }
-    layouts.push(
-      layoutFromBlocks(
-        meta.id,
-        meta.name,
-        "campaign",
-        meta.optimal,
-        states[pickIdx],
-        suffixMacro(moves, pickIdx)
-      )
+    const verified = macroCount(moves.slice(pickIdx));
+    return layoutFromBlocks(
+      meta.id,
+      meta.name,
+      "campaign",
+      verified,
+      states[pickIdx],
+      { verifiedMacro: verified }
     );
-  }
-  return layouts;
+  });
 }
 
-function main() {
-  const classic = [];
+function buildCampaignLate() {
+  return CAMPAIGN_LATE.map((meta) => {
+    const pick = pickJeantimex(meta);
+    if (!pick) throw new Error("no board for " + meta.name);
+    return layoutFromBlocks(
+      meta.id,
+      meta.name,
+      "campaign",
+      pick.macro,
+      pick.g.blocks,
+      { verifiedMacro: pick.macro }
+    );
+  });
+}
+
+function buildClassic() {
+  const layouts = [];
   const notes = [];
-  for (const entry of CLASSIC_TARGETS) {
-    const pick = pickClassic(entry);
-    if (!pick) {
-      throw new Error("no layout for " + entry.name);
-    }
-    const useOptimal = pick.macro;
-    if (pick.macro !== entry.optimal) {
+  for (const entry of CLASSIC) {
+    const pick = pickJeantimex(entry);
+    if (!pick) throw new Error("no layout for " + entry.name);
+    if (pick.macro !== entry.minMoves) {
       notes.push(
         entry.name +
-          ": catalog " +
-          entry.optimal +
-          ", verified macro " +
+          ": expected " +
+          entry.minMoves +
+          ", got " +
           pick.macro +
-          " (" +
-          pick.cand +
-          ")"
+          " type " +
+          pick.type
       );
     }
-    classic.push(
+    if (entry.type && pick.type !== entry.type) {
+      throw new Error(
+        entry.name + " type mismatch " + pick.type + " != " + entry.type
+      );
+    }
+    layouts.push(
       layoutFromBlocks(
         entry.id,
         entry.name,
         "classic",
-        useOptimal,
+        pick.macro,
         pick.g.blocks,
-        pick.macro
+        { verifiedMacro: pick.macro }
       )
     );
   }
+  return { layouts, notes };
+}
 
-  const campaignEarly = buildCampaignFromHengdao();
-  const campaignLate = [];
-  for (let i = 10; i < CAMPAIGN_META.length; i++) {
-    const meta = CAMPAIGN_META[i];
-    const pick = pickClassic({
-      id: meta.id,
-      name: meta.name,
-      optimal: meta.optimal,
-      candidates: [meta.name, "横刀立马", "指挥若定", "将拥曹营"],
-    });
-    if (!pick) throw new Error("campaign late " + meta.name);
-    campaignLate.push(
-      layoutFromBlocks(
-        meta.id,
-        meta.name,
-        "campaign",
-        meta.optimal,
-        pick.g.blocks,
-        pick.macro
-      )
-    );
-  }
+function main() {
+  const campaign = [...buildCampaignEarly(), ...buildCampaignLate()];
+  const { layouts: classic, notes } = buildClassic();
 
   const out = {
-    version: 1,
+    version: 2,
     board: { rows: 5, cols: 4 },
     escape: { row: ESCAPE_ROW, col: ESCAPE_COL },
-    source: "jeantimex/klotski hrd-games.json (MIT)",
+    source: "jeantimex/klotski hrd-games.json (MIT) + klotski.online type codec",
     notes,
-    layouts: [...campaignEarly, ...campaignLate, ...classic],
+    layouts: [...campaign, ...classic],
   };
 
   const outPath = path.join(__dirname, "layouts.json");

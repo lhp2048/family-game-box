@@ -40,8 +40,8 @@ EXTRA_CSS = r"""
   padding: 1rem;
   margin: .5rem 0 1rem;
   border-radius: 16px;
-  background: rgba(255,255,255,.04);
-  border: 1px dashed var(--line);
+  background: linear-gradient(180deg, #fff 0%, #f8f0ff 100%);
+  border: 2px dashed var(--line);
   line-height: 1.35;
   transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
 }
@@ -73,7 +73,7 @@ EXTRA_CSS = r"""
   margin: 0 auto;
 }
 .action-grid button {
-  border: 1px solid var(--line);
+  border: 2px solid rgba(26, 43, 60, 0.1);
   border-radius: 22px;
   aspect-ratio: 1;
   width: var(--card);
@@ -82,7 +82,8 @@ EXTRA_CSS = r"""
   font: inherit;
   font-weight: 700;
   font-size: clamp(1.8rem, 6.2vw, 2.35rem);
-  background: rgba(255,255,255,.04);
+  background: linear-gradient(180deg, #fff 0%, #f5f0ff 100%);
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.08);
   color: var(--ink);
   cursor: pointer;
   display: flex;

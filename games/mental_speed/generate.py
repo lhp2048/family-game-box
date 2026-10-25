@@ -181,7 +181,7 @@ BODY = r"""
     <div class="ms-hero">
       <p class="ms-tag">客厅速算</p>
       <h1>心算<em>快答</em></h1>
-      <p class="sub">看算式、键入得数。连续 10 题，总用时越短越好；答错 +3 秒罚时，可重试本题。</p>
+      <p class="sub">看算式、键入得数。每题 3～4 步运算（4～5 个数），连续 10 题竞速；答错 +3 秒罚时，可重试本题。</p>
     </div>
     <div class="card mode-grid">
       <button type="button" class="mode-btn" id="btn-start-classic">
@@ -303,6 +303,45 @@ SCRIPT = r"""
     return v;
   }
 
+  /** 特殊大数乘：积可 >100；连乘中该步之后不能再接 × */
+  var MUL_WHITELIST = {
+    "4,25": true, "8,25": true,
+    "5,20": true, "2,50": true, "4,50": true, "5,25": true,
+  };
+
+  function mulPairKey(a, b) {
+    var x = a < b ? a : b;
+    var y = a < b ? b : a;
+    return x + "," + y;
+  }
+
+  function isMulWhitelisted(a, b) {
+    return !!MUL_WHITELIST[mulPairKey(a, b)];
+  }
+
+  /** 单次 × 与连乘中间/最终积：≤100，或白名单大数乘（且白名单后不可再连 ×） */
+  function passesMulRules(nums, ops) {
+    var v = nums[0];
+    for (var i = 0; i < ops.length; i++) {
+      var op = ops[i];
+      var b = nums[i + 1];
+      if (op !== "*") {
+        v = applyOp(v, b, op);
+        if (v === null) return false;
+        continue;
+      }
+      var prod = v * b;
+      if (prod > 100) {
+        if (!isMulWhitelisted(v, b)) return false;
+        if (i + 1 < ops.length && ops[i + 1] === "*") return false;
+        v = prod;
+        continue;
+      }
+      v = prod;
+    }
+    return true;
+  }
+
   function formatExpr(nums, ops) {
     var parts = [String(nums[0])];
     for (var i = 0; i < ops.length; i++) {
@@ -312,31 +351,36 @@ SCRIPT = r"""
     return parts.join(" ");
   }
 
-  function operandCountForQuestion(qIndex) {
-    if (qIndex < 2) return 2;
-    if (qIndex < 6) return 3;
-    return 4;
+  /** 每题 3～4 个运算符（4～5 个操作数） */
+  function operatorCountForQuestion() {
+    return Math.random() < 0.45 ? 4 : 3;
+  }
+
+  function maxOperandForQuestion(qIndex) {
+    return qIndex < 5 ? 9 : 12;
   }
 
   function generateQuestion(qIndex) {
-    var n = operandCountForQuestion(qIndex);
-    var needMulDiv = qIndex >= 2 && qIndex < 6;
-    for (var t = 0; t < 80; t++) {
+    var opCount = operatorCountForQuestion();
+    var n = opCount + 1;
+    var maxNum = maxOperandForQuestion(qIndex);
+    for (var t = 0; t < 160; t++) {
       var nums = [];
-      for (var i = 0; i < n; i++) nums.push(randInt(1, 12));
+      for (var i = 0; i < n; i++) nums.push(randInt(1, maxNum));
       var ops = [];
       var hasMulDiv = false;
-      for (var j = 0; j < n - 1; j++) {
-        var op = pickOp(needMulDiv && j === n - 2 && !hasMulDiv);
+      for (var j = 0; j < opCount; j++) {
+        var op = pickOp(j === opCount - 1 && !hasMulDiv);
         ops.push(op);
         if (op === "*" || op === "/") hasMulDiv = true;
       }
-      if (needMulDiv && !hasMulDiv) continue;
+      if (!hasMulDiv) continue;
+      if (!passesMulRules(nums, ops)) continue;
       var ans = evalLeft(nums, ops);
       if (ans === null || ans < 0 || ans > 999) continue;
       return { text: formatExpr(nums, ops), answer: ans };
     }
-    return { text: "6 + 6", answer: 12 };
+    return { text: "2 + 3 × 4 − 1", answer: 13 };
   }
 
   var tier = "intro";
@@ -453,6 +497,7 @@ SCRIPT = r"""
         tierLabel: "初阶",
         metrics: {
           timeMs: Math.round(total),
+          done: TOTAL,
           correct: TOTAL,
           total: TOTAL,
           wrong: wrongCount,

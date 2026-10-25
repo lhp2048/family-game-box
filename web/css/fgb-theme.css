@@ -1947,11 +1947,74 @@ body.fgb-lobby-toy .fgb-nav-pill-toy:hover {
   color: var(--toy-ink);
 }
 
-body.fgb-lobby-toy .fgb-chip {
-  color: var(--toy-muted);
+body.fgb-lobby-toy .fgb-topbar-toy .fgb-nav {
+  gap: 0.45rem;
 }
 
-body.fgb-lobby-toy .fgb-chip strong {
+body.fgb-lobby-toy .fgb-chip-toy,
+body.fgb-lobby-toy .fgb-topbar-toy .fgb-chip {
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  padding: 0.4rem 0.55rem 0.4rem 0.85rem;
+  color: var(--toy-muted);
+  background: linear-gradient(165deg, #fffef9 0%, #fff0f5 55%, #f0f9ff 100%);
+  border: 2px solid rgba(255, 107, 157, 0.22);
+  box-shadow: 0 4px 0 rgba(255, 107, 157, 0.1);
+}
+
+body.fgb-lobby-toy .fgb-chip-toy strong,
+body.fgb-lobby-toy .fgb-topbar-toy .fgb-chip strong {
+  color: #c43d7a;
+  font-weight: 800;
+}
+
+body.fgb-lobby-toy .fgb-toy-user-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  min-width: auto;
+  padding: 0.35rem 0.7rem;
+  margin-left: 0;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
+  color: #1a5c45;
+  background: linear-gradient(180deg, #d4fce8 0%, #a8f0c8 100%);
+  border: 2px solid rgba(46, 204, 113, 0.35);
+  box-shadow: 0 3px 0 rgba(46, 140, 90, 0.18);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+body.fgb-lobby-toy .fgb-toy-user-btn:hover {
+  color: #0d3d28;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 rgba(46, 140, 90, 0.22);
+}
+
+body.fgb-lobby-toy .fgb-toy-user-btn-out {
+  color: #6b3d10;
+  background: linear-gradient(180deg, #fff5e6 0%, #ffd9a8 100%);
+  border-color: rgba(255, 159, 67, 0.45);
+  box-shadow: 0 3px 0 rgba(200, 120, 40, 0.2);
+}
+
+body.fgb-lobby-toy .fgb-toy-user-btn-out:hover {
+  color: #4a2808;
+  box-shadow: 0 4px 0 rgba(200, 120, 40, 0.25);
+}
+
+body.fgb-lobby-toy .fgb-topbar-toy [data-fgb-auth-links] .fgb-nav-link {
+  background: #fff;
+  color: var(--toy-ink);
+  border: 2px solid rgba(26, 43, 60, 0.08);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
+}
+
+body.fgb-lobby-toy .fgb-topbar-toy [data-fgb-auth-links] .fgb-nav-link:hover {
+  background: #fffaf5;
+  border-color: rgba(255, 107, 157, 0.35);
   color: var(--toy-ink);
 }
 

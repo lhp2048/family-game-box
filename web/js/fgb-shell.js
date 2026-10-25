@@ -373,19 +373,31 @@
       );
     }
     if (showUser) {
+      var chipClass = "fgb-chip" + (toyLobby ? " fgb-chip-toy" : "");
+      var renameLogout = toyLobby
+        ? '<a href="#" class="fgb-toy-user-btn" data-fgb-rename>改名</a>' +
+          '<a href="#" class="fgb-toy-user-btn fgb-toy-user-btn-out" data-fgb-logout>退出</a>'
+        : '<a href="#" data-fgb-rename style="margin-left:6px;color:var(--muted);font-size:.85rem">改名</a> ' +
+          '<a href="#" data-fgb-logout style="margin-left:2px;color:var(--muted);font-size:.85rem">退出</a>';
       navParts.push(
-        '<div class="fgb-chip" data-fgb-user-chip hidden>你好，' +
+        '<div class="' +
+          chipClass +
+          '" data-fgb-user-chip hidden>你好，' +
           '<strong data-fgb-user-name>—</strong> ' +
-          '<a href="#" data-fgb-rename style="margin-left:6px;color:var(--muted);font-size:.85rem">改名</a> ' +
-          '<a href="#" data-fgb-logout style="margin-left:2px;color:var(--muted);font-size:.85rem">退出</a>' +
+          renameLogout +
           "</div>"
       );
+      var authLinkClass = toyLobby ? "fgb-nav-link fgb-nav-pill fgb-nav-pill-toy" : "fgb-nav-link";
       navParts.push(
         '<span data-fgb-auth-links>' +
-          '<a class="fgb-nav-link" href="' +
+          '<a class="' +
+          authLinkClass +
+          '" href="' +
           fgbUrl("/login") +
           '">登录</a> ' +
-          '<a class="fgb-nav-link" href="' +
+          '<a class="' +
+          authLinkClass +
+          '" href="' +
           fgbUrl("/register") +
           '">注册</a>' +
           "</span>"

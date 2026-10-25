@@ -119,6 +119,29 @@ EXTRA_CSS = r"""
 .ns-board button.is-near {
   box-shadow: inset 0 0 0 2px rgba(96, 165, 250, 0.35);
 }
+.ns-board button.is-settled {
+  border-color: rgba(62, 207, 142, 0.5);
+  background: linear-gradient(
+    165deg,
+    rgba(62, 207, 142, 0.24),
+    rgba(62, 207, 142, 0.08)
+  );
+  color: #d4f5e6;
+  box-shadow: inset 0 0 0 1px rgba(62, 207, 142, 0.4);
+}
+.ns-board button.is-settled:hover:not(:disabled) {
+  border-color: rgba(62, 207, 142, 0.65);
+  background: linear-gradient(
+    165deg,
+    rgba(62, 207, 142, 0.32),
+    rgba(62, 207, 142, 0.12)
+  );
+}
+.ns-board button.is-settled.is-near {
+  box-shadow:
+    inset 0 0 0 2px rgba(96, 165, 250, 0.35),
+    inset 0 0 0 1px rgba(62, 207, 142, 0.45);
+}
 html.fgb-daily-mode .ns-board {
   width: min(100%, var(--fgb-board, 360px));
   max-width: min(100%, var(--fgb-board, 360px));
@@ -322,6 +345,14 @@ SCRIPT = r"""
     return true;
   }
 
+  function targetValueAt(idx) {
+    return idx === n * n - 1 ? 0 : idx + 1;
+  }
+
+  function isTileSettled(idx) {
+    return board[idx] === targetValueAt(idx);
+  }
+
   function renderBoard() {
     var el = document.getElementById("ns-board");
     el.style.gridTemplateColumns = "repeat(" + n + ", minmax(0, 1fr))";
@@ -339,6 +370,10 @@ SCRIPT = r"""
       } else {
         btn.textContent = String(val);
         btn.dataset.idx = String(i);
+        if (isTileSettled(i)) {
+          btn.classList.add("is-settled");
+          btn.setAttribute("aria-label", val + " 已到位");
+        }
         if (isAdjacentToBlank(i)) btn.classList.add("is-near");
         btn.addEventListener("click", function () {
           tryMove(Number(this.dataset.idx));

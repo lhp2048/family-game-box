@@ -47,10 +47,11 @@ EXTRA_CSS = r"""
   padding: 0.85rem 1rem;
   border-radius: 16px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.04);
+  background: #fff;
   color: var(--ink);
   font: inherit;
   cursor: pointer;
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.05);
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 .wb-tier-btn strong { font-family: var(--display); font-size: 1.05rem; }
@@ -90,8 +91,9 @@ EXTRA_CSS = r"""
   margin: 0.35rem 0 0.65rem;
   padding: 0.65rem 0.5rem;
   border-radius: 18px;
-  border: 1px solid rgba(251, 191, 36, 0.28);
-  background: linear-gradient(165deg, rgba(251, 191, 36, 0.1), rgba(12, 20, 17, 0.55));
+  border: 2px solid rgba(251, 191, 36, 0.35);
+  background: linear-gradient(165deg, #fffef9 0%, #fff5e6 55%, #fff8f0 100%);
+  box-shadow: 0 8px 24px rgba(45, 62, 90, 0.08);
 }
 .wb-spell.is-flash-err {
   animation: wbShake 0.35s ease;
@@ -118,9 +120,10 @@ EXTRA_CSS = r"""
   min-width: 1.35em;
   min-height: 1.55em;
   border-radius: 10px;
-  border: 2px dashed rgba(255, 255, 255, 0.16);
-  color: var(--ink);
-  opacity: 0.26;
+  border: 2px dashed rgba(251, 191, 36, 0.45);
+  background: rgba(255, 248, 235, 0.6);
+  color: var(--muted);
+  opacity: 0.85;
 }
 .wb-char.is-slot.is-next {
   opacity: 0.42;
@@ -136,9 +139,10 @@ EXTRA_CSS = r"""
 }
 .wb-char.is-slot.is-speaking {
   opacity: 1;
-  color: #fde68a;
+  color: #b45309;
   border-style: solid;
   border-color: rgba(251, 191, 36, 0.85);
+  background: #fff8e6;
   box-shadow: 0 0 14px rgba(251, 191, 36, 0.32);
   transform: scale(1.06);
   transition: transform 0.1s ease, opacity 0.1s ease, border-color 0.1s ease;
@@ -168,13 +172,15 @@ EXTRA_CSS = r"""
   padding: 0.35rem 0.75rem;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.04);
+  background: #fff;
   color: var(--muted);
   cursor: pointer;
+  box-shadow: 0 2px 0 rgba(26, 43, 60, 0.05);
 }
 .wb-kb-toggle button[aria-pressed="true"] {
   border-color: rgba(251, 191, 36, 0.55);
-  color: #fde68a;
+  color: #b45309;
+  background: #fff8e6;
 }
 .wb-keyboard {
   display: grid;
@@ -196,8 +202,9 @@ EXTRA_CSS = r"""
   min-height: 44px;
   padding: 0;
   border-radius: 10px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  background: linear-gradient(180deg, #fff 0%, #fff8eb 100%);
+  box-shadow: 0 3px 0 rgba(26, 43, 60, 0.06);
   font-family: var(--display);
   font-size: 0.95rem;
   font-weight: 700;
@@ -211,7 +218,7 @@ EXTRA_CSS = r"""
   font-size: 0.85rem;
   color: var(--muted);
 }
-.wb-hint.is-wait { color: #fde68a; }
+.wb-hint.is-wait { color: #d97706; font-weight: 600; }
 """
 
 BODY = r"""

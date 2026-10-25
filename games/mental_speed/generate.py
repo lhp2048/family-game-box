@@ -57,9 +57,9 @@ EXTRA_CSS = r"""
   margin: 0.5rem 0 0.85rem;
   padding: 1rem 0.75rem;
   border-radius: 20px;
-  border: 1px solid rgba(62, 207, 142, 0.28);
-  background: linear-gradient(165deg, rgba(62, 207, 142, 0.12), rgba(12, 20, 17, 0.55));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+  border: 2px solid rgba(244, 114, 182, 0.35);
+  background: linear-gradient(165deg, #fff5f9 0%, #ffe8f4 55%, #f0f9ff 100%);
+  box-shadow: 0 8px 24px rgba(45, 62, 90, 0.08);
 }
 .ms-expr {
   font-family: var(--display);
@@ -86,8 +86,9 @@ EXTRA_CSS = r"""
   min-height: 3rem;
   padding: 0.45rem 0.85rem;
   border-radius: 14px;
-  border: 2px solid var(--line);
-  background: rgba(0,0,0,0.25);
+  border: 2px solid rgba(244, 114, 182, 0.35);
+  background: linear-gradient(180deg, #fff 0%, #fff8fc 100%);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
   font-family: var(--display);
   font-size: 1.85rem;
   font-weight: 700;
@@ -114,8 +115,9 @@ EXTRA_CSS = r"""
 .ms-numpad button {
   min-height: 52px;
   border-radius: 16px;
-  border: 1px solid var(--line);
-  background: rgba(255,255,255,0.05);
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  background: linear-gradient(180deg, #fff 0%, #fff5f8 100%);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
   font-family: var(--display);
   font-size: 1.35rem;
   font-weight: 700;

@@ -444,8 +444,10 @@ h1 em { font-style: italic; color: var(--accent); }
   justify-content: center;
   padding: .65rem;
   margin: 0 0 .7rem;
-  border-radius: 14px;
-  background: rgba(255,255,255,.04);
+  border-radius: 18px;
+  background: linear-gradient(165deg, #fff9eb 0%, #e8fff4 55%, #eef4ff 100%);
+  border: 2px solid rgba(251, 191, 36, 0.22);
+  box-shadow: 0 8px 24px rgba(45, 62, 90, 0.08);
 }
 .sudoku-wrap { width: min(100%, 480px, 82vmin); margin: 0 auto; }
 .sudoku {
@@ -453,11 +455,11 @@ h1 em { font-style: italic; color: var(--accent); }
   width: 100%;
   aspect-ratio: 1;
   max-height: min(82vmin, 480px);
-  background: #1a2420;
-  border: 2.5px solid #1a2420;
-  border-radius: 6px;
+  background: #fffef8;
+  border: 2.5px solid rgba(26, 43, 60, 0.18);
+  border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0,0,0,.35);
+  box-shadow: 0 8px 24px rgba(45, 62, 90, 0.1);
 }
 .sudoku button {
   box-sizing: border-box;
@@ -473,30 +475,30 @@ h1 em { font-style: italic; color: var(--accent); }
   margin: 0;
   padding: 0;
   line-height: 1;
-  background: rgba(232,242,236,.1);
+  background: #fff;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-variant-numeric: tabular-nums;
   font-size: clamp(.9rem, 4.2vw, 1.35rem);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-deep);
   cursor: pointer;
   transition: background .1s ease, color .1s ease;
 }
-.sudoku button.box-alt { background: rgba(232,242,236,.06); }
-.sudoku button.bdr-r-thin { border-right: 1px solid rgba(232,242,236,.14); }
-.sudoku button.bdr-r-thick { border-right: 2px solid #0a1210; }
-.sudoku button.bdr-b-thin { border-bottom: 1px solid rgba(232,242,236,.14); }
-.sudoku button.bdr-b-thick { border-bottom: 2px solid #0a1210; }
-.sudoku button:not(.given):hover { background: rgba(62,207,142,.14); }
+.sudoku button.box-alt { background: #f6faf8; }
+.sudoku button.bdr-r-thin { border-right: 1px solid rgba(26, 43, 60, 0.1); }
+.sudoku button.bdr-r-thick { border-right: 2px solid rgba(26, 43, 60, 0.22); }
+.sudoku button.bdr-b-thin { border-bottom: 1px solid rgba(26, 43, 60, 0.1); }
+.sudoku button.bdr-b-thick { border-bottom: 2px solid rgba(26, 43, 60, 0.22); }
+.sudoku button:not(.given):hover { background: rgba(62,207,142,.12); }
 .sudoku button.given {
-  background: rgba(232,242,236,.14);
+  background: #f0f4f2;
   color: var(--ink);
   font-weight: 700;
   cursor: default;
 }
-.sudoku button.given.box-alt { background: rgba(232,242,236,.1); }
+.sudoku button.given.box-alt { background: #e8eeeb; }
 .sudoku button.related { background: rgba(62,207,142,.1) !important; }
-.sudoku button.given.related { background: rgba(232,242,236,.18) !important; }
+.sudoku button.given.related { background: #dcefe4 !important; }
 .sudoku button.same-num {
   color: var(--accent);
   font-weight: 700;
@@ -510,8 +512,8 @@ h1 em { font-style: italic; color: var(--accent); }
 }
 .sudoku button.selected.given { color: var(--ink) !important; }
 .sudoku button.conflict {
-  background: rgba(224, 112, 96, 0.28) !important;
-  color: #f0b0a4 !important;
+  background: rgba(224, 112, 96, 0.35) !important;
+  color: #8b2e22 !important;
 }
 .sudoku button.hinted { color: var(--warn); }
 .sudoku.size-4 button { font-size: clamp(1.2rem, 7vw, 1.75rem); }
@@ -521,9 +523,10 @@ h1 em { font-style: italic; color: var(--accent); }
 /* ── 操作区 ── */
 .play-dock {
   padding: .65rem;
-  border-radius: 14px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.05);
 }
 .numpad {
   display: flex;
@@ -547,9 +550,10 @@ h1 em { font-style: italic; color: var(--accent); }
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--accent-deep);
-  background: rgba(255,255,255,.92);
+  background: linear-gradient(180deg, #fff 0%, #fff8eb 100%);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  border: 2px solid rgba(26, 43, 60, 0.08);
+  box-shadow: 0 3px 0 rgba(26, 43, 60, 0.08);
   transition: background .1s ease, transform .08s ease;
 }
 .numpad.grid-9 button { max-width: none; height: 2.5rem; font-size: 1rem; }
@@ -567,7 +571,7 @@ h1 em { font-style: italic; color: var(--accent); }
   box-shadow: none;
   border: 1px dashed var(--line);
 }
-.numpad button.clear:hover { background: rgba(255,255,255,.08); }
+.numpad button.clear:hover { background: #f0f4f8; }
 
 .play-chrome {
   margin-top: .55rem;
@@ -580,16 +584,16 @@ h1 em { font-style: italic; color: var(--accent); }
   gap: .4rem;
 }
 .tool-row button {
-  border: 0;
-  border-radius: 10px;
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  border-radius: 999px;
   padding: .55rem .3rem;
   font: inherit;
   font-size: .84rem;
-  font-weight: 600;
-  background: rgba(255,255,255,.08);
+  font-weight: 700;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
   color: var(--ink);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  box-shadow: 0 3px 0 rgba(26, 43, 60, 0.06);
   transition: background .1s ease;
 }
 .tool-row button:hover { background: rgba(62,207,142,.16); }

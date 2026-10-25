@@ -448,8 +448,10 @@ h1 em { font-style: italic; color: var(--accent); }
 .maze {
   display: grid;
   gap: 0;
-  border: 2px solid #e8f2ec;
-  background: #050a08;
+  border: 3px solid rgba(52, 211, 153, 0.45);
+  border-radius: 12px;
+  background: #e8f4ef;
+  box-shadow: 0 10px 28px rgba(45, 62, 90, 0.1);
   --cell: 24px;
 }
 .maze .cell {
@@ -461,26 +463,26 @@ h1 em { font-style: italic; color: var(--accent); }
   cursor: default;
   flex-shrink: 0;
 }
-.maze .wall { background: #050a08; }
+.maze .wall { background: #4a8f72; }
 .maze .path,
 .maze .start,
 .maze .end {
-  background: #d8e8df;
+  background: #f0fff8;
   cursor: pointer;
   transition: background .14s ease, box-shadow .14s ease, transform .14s ease;
 }
-.maze .path:hover { background: #b8dcc8; }
-.maze .start { background: #2bb673; }
-.maze .end { background: #e8a04a; }
+.maze .path:hover { background: #d4f5e6; }
+.maze .start { background: #5fd99a; }
+.maze .end { background: #ffc978; }
 .maze .player {
-  background: #3ecf8e !important;
-  box-shadow: inset 0 0 0 2px #062016;
+  background: #2ecc71 !important;
+  box-shadow: inset 0 0 0 2px #1a6b45;
   transform: scale(1.06);
   z-index: 1;
 }
 .maze .player.is-sliding {
   transform: scale(1.14);
-  box-shadow: inset 0 0 0 2px #062016, 0 0 10px rgba(62, 207, 142, 0.45);
+  box-shadow: inset 0 0 0 2px #1a6b45, 0 0 10px rgba(62, 207, 142, 0.45);
 }
 /* 走过痕迹：琥珀，与浅色通道、深色墙都易区分 */
 .maze .path.in-trail { background: #f0c86a; }

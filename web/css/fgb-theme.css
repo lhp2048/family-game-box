@@ -3002,3 +3002,18 @@ body[data-game-skin] .diff-desc {
   border: 2px solid rgba(46, 204, 113, 0.2);
   color: var(--ink);
 }
+
+body[data-game-skin="mental-speed"] .ms-expr-wrap,
+body[data-game-skin="mental-speed"] .ms-answer-display {
+  color: var(--ink);
+}
+
+body[data-game-skin="yuwen"] .yuwen-passage,
+body[data-game-skin="yuwen"] .yuwen-explain {
+  border: 2px solid rgba(240, 193, 74, 0.25);
+}
+
+body[data-game-skin="24points-library"] .wrap {
+  position: relative;
+  z-index: 1;
+}

@@ -56,8 +56,9 @@ EXTRA_CSS = r"""
   margin: 0 auto;
 }
 .color-grid button {
-  border: 2px solid var(--line);
+  border: 2px solid rgba(255, 255, 255, 0.65);
   border-radius: 22px;
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.12);
   padding: 0;
   font: inherit;
   font-size: clamp(1.25rem, 4vw, 1.65rem);

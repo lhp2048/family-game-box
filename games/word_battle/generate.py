@@ -116,22 +116,26 @@ EXTRA_CSS = r"""
   min-width: 1.35em;
   min-height: 1.55em;
   border-radius: 10px;
-  border: 2px dashed rgba(255, 255, 255, 0.22);
-  color: transparent;
+  border: 2px dashed rgba(255, 255, 255, 0.16);
+  color: var(--ink);
+  opacity: 0.26;
 }
 .wb-char.is-slot.is-next {
-  border-color: rgba(251, 191, 36, 0.75);
-  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.15);
+  opacity: 0.42;
+  border-color: rgba(251, 191, 36, 0.55);
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.12);
 }
 .wb-char.is-filled {
   border-style: solid;
   border-color: rgba(62, 207, 142, 0.55);
   background: rgba(62, 207, 142, 0.12);
   color: var(--ink);
+  opacity: 1;
 }
-.wb-char.is-speaking {
+.wb-char.is-slot.is-speaking {
+  opacity: 0.5;
   color: #fde68a;
-  border-color: rgba(251, 191, 36, 0.8);
+  border-color: rgba(251, 191, 36, 0.75);
 }
 .wb-meta {
   text-align: center;
@@ -491,15 +495,12 @@ SCRIPT = r"""
       }
       var slotNum = slots.indexOf(i);
       span.className = "wb-char is-slot";
+      span.textContent = ch;
       if (slotNum < filledCount) {
         span.className = "wb-char is-filled";
-        span.textContent = ch;
       } else if (slotNum === filledCount && nextHighlight) {
         span.classList.add("is-next");
         if (speakingIdx === i) span.classList.add("is-speaking");
-        span.textContent = " ";
-      } else {
-        span.textContent = " ";
       }
       spellEl.appendChild(span);
     }

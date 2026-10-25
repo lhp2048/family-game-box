@@ -31,6 +31,7 @@ def test_setup_login_and_status():
 def test_template_default_and_put():
     t = da.get_template()
     assert len(t["stages"]) == 9
+    assert t["stages"][-1]["gameId"] == "mental-speed"
     assert t["stages"][0]["tier"] == "normal"
     da.put_template([{"gameId": "schulte", "tier": "hard"}, {"gameId": "sudoku", "tier": "simple"}])
     assert da.get_template()["stages"][0]["gameId"] == "schulte"
@@ -38,3 +39,32 @@ def test_template_default_and_put():
         da.put_template([])
     with pytest.raises(ValueError):
         da.put_template([{"gameId": "nope", "tier": "normal"}])
+
+
+def test_template_migrates_missing_mental_speed():
+    from app.storage import save_json
+
+    legacy = [
+        {"gameId": "24points", "tier": "normal"},
+        {"gameId": "schulte", "tier": "normal"},
+        {"gameId": "stroop", "tier": "normal"},
+        {"gameId": "cancel", "tier": "normal"},
+        {"gameId": "simon", "tier": "normal"},
+        {"gameId": "spot-diff", "tier": "normal"},
+        {"gameId": "maze", "tier": "normal"},
+        {"gameId": "sudoku", "tier": "normal"},
+    ]
+    save_json(
+        "daily_admin.json",
+        {
+            "version": 1,
+            "passwordHash": "",
+            "salt": "",
+            "sessionToken": "",
+            "sessionExpiresAt": "",
+            "template": {"stages": legacy},
+        },
+    )
+    t = da.get_template()
+    assert len(t["stages"]) == 9
+    assert t["stages"][-1] == {"gameId": "mental-speed", "tier": "normal"}

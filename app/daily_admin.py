@@ -41,6 +41,35 @@ def default_template() -> Dict[str, Any]:
     return {"stages": [{"gameId": g["id"], "tier": "normal"} for g in RANKABLE_GAMES]}
 
 
+DAILY_TAIL_GAME_ID = "mental-speed"
+
+
+def _normalize_stage_row(s: Dict[str, Any]) -> Optional[Dict[str, str]]:
+    gid = str(s.get("gameId") or "").strip()
+    if not gid:
+        return None
+    tier = str(s.get("tier") or "normal").strip() or "normal"
+    return {"gameId": gid, "tier": tier}
+
+
+def _ensure_mental_speed_last(stages: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    """Persisted templates from before 心算快答 may omit the final daily stage."""
+    clean: List[Dict[str, str]] = []
+    for s in stages:
+        row = _normalize_stage_row(s)
+        if row:
+            clean.append(row)
+    if not clean:
+        return list(default_template()["stages"])
+    playable = set(_playable_ids())
+    if DAILY_TAIL_GAME_ID not in playable:
+        return clean
+    ids = [r["gameId"] for r in clean]
+    if DAILY_TAIL_GAME_ID not in ids:
+        clean.append({"gameId": DAILY_TAIL_GAME_ID, "tier": "normal"})
+    return clean
+
+
 def _play_fields(data: Dict[str, Any]) -> Dict[str, Any]:
     data.setdefault("playGateEnabled", False)
     data.setdefault("playPassphraseSalt", "")
@@ -61,6 +90,15 @@ def _load() -> Dict[str, Any]:
     data = load_json(STORE, _empty())
     if not isinstance(data.get("template"), dict):
         data["template"] = default_template()
+    else:
+        raw = data.get("template", {}).get("stages") or []
+        if not isinstance(raw, list):
+            raw = []
+        prev = [r for s in raw if (r := _normalize_stage_row(s))]
+        normed = _ensure_mental_speed_last(raw)
+        if normed != prev:
+            data["template"] = {"stages": normed}
+            _save(data)
     return _play_fields(data)
 
 
@@ -231,7 +269,7 @@ def get_template() -> Dict[str, Any]:
     stages = data.get("template", {}).get("stages") or []
     if not stages:
         return default_template()
-    return {"stages": list(stages)}
+    return {"stages": _ensure_mental_speed_last(list(stages))}
 
 
 def put_template(stages: List[Dict[str, Any]]) -> Dict[str, Any]:

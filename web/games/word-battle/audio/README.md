@@ -22,4 +22,4 @@ python3 games/word_battle/generate.py   # 同步到 web/games/word-battle/audio/
 
 ## 整词读音
 
-整词仍可使用浏览器 `speechSynthesis`（`en-US`）；若环境不支持则静默，不影响拼写。
+游戏**不**播报整词，仅字母 MP3 + 拼写输入。

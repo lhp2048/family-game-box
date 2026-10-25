@@ -297,7 +297,6 @@ SCRIPT = r"""
     v: "vee", w: "double you", x: "ex", y: "why", z: "zee",
   };
   var PAUSE_AFTER_LETTER_MS = 260;
-  var PAUSE_BEFORE_WHOLE_WORD_MS = 300;
   var enVoice = null;
   var letterAudio = FgbAudioClips({
     clipIds: LETTER_CLIP_IDS,

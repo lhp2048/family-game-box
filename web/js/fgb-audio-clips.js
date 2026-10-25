@@ -28,6 +28,7 @@
     var bad = {};
     var playToken = 0;
     var activeSource = null;
+    var overlapSources = [];
 
     function getCtx() {
       if (ctx) return ctx;
@@ -167,17 +168,24 @@
       ]);
     }
 
+    function stopOneSource(source) {
+      if (!source) return;
+      try {
+        source.onended = null;
+        source.stop(0);
+      } catch (e) {}
+      try {
+        source.disconnect();
+      } catch (e2) {}
+    }
+
     function stopSourceOnly() {
-      if (activeSource) {
-        try {
-          activeSource.onended = null;
-          activeSource.stop(0);
-        } catch (e) {}
-        try {
-          activeSource.disconnect();
-        } catch (e2) {}
-        activeSource = null;
+      stopOneSource(activeSource);
+      activeSource = null;
+      for (var oi = 0; oi < overlapSources.length; oi++) {
+        stopOneSource(overlapSources[oi]);
       }
+      overlapSources = [];
     }
 
     function stop() {
@@ -185,7 +193,9 @@
       stopSourceOnly();
     }
 
-    function play(id, onDone) {
+    function play(id, onDone, playOpts) {
+      playOpts = playOpts || {};
+      var overlap = !!playOpts.overlap;
       if (!id) {
         if (onDone) onDone(false);
         return false;
@@ -196,7 +206,7 @@
       }
       var myToken = playToken;
       readyPromise(id, 6000).then(function (ready) {
-        if (myToken !== playToken) return;
+        if (!overlap && myToken !== playToken) return;
         if (!ready || !buffers[id]) {
           if (onDone) onDone(false);
           return;
@@ -207,18 +217,30 @@
           return;
         }
         function startPlayback() {
-          if (myToken !== playToken) return;
-          stopSourceOnly();
+          if (!overlap && myToken !== playToken) return;
+          if (!overlap) {
+            stopOneSource(activeSource);
+            activeSource = null;
+          }
           try {
             var source = audioCtx.createBufferSource();
             source.buffer = buffers[id];
             source.connect(audioCtx.destination);
             source.onended = function () {
-              if (myToken !== playToken) return;
-              activeSource = null;
+              if (overlap) {
+                var oi = overlapSources.indexOf(source);
+                if (oi >= 0) overlapSources.splice(oi, 1);
+              } else {
+                if (myToken !== playToken) return;
+                activeSource = null;
+              }
               if (onDone) onDone(true);
             };
-            activeSource = source;
+            if (overlap) {
+              overlapSources.push(source);
+            } else {
+              activeSource = source;
+            }
             source.start(0);
           } catch (e) {
             bad[id] = true;

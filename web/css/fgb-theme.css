@@ -2233,7 +2233,8 @@ body.fgb-lobby-toy .fgb-lobby-topbar {
 
 .fgb-toy-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(min(260px, 100%), 0.95fr);
+  /* 今日挑战：固定窄栏；游戏库：占满剩余宽度 */
+  grid-template-columns: minmax(min(240px, 100%), 300px) minmax(0, 1fr);
   gap: clamp(1rem, 2.5vw, 1.75rem);
   align-items: start;
   width: 100%;

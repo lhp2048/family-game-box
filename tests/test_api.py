@@ -275,6 +275,11 @@ def test_word_battle_page():
     assert 'data-game-skin="word-battle"' in text
     assert 'id="wb-spell"' in text
     assert "words.json" in text
+    assert "FgbAudioClips" in text
+    assert "audio/" in text and ".mp3" in text
+    letter_a = client.get(p("/games/word-battle/audio/a.mp3"))
+    assert letter_a.status_code == 200
+    assert len(letter_a.content) > 400
     bank = client.get(p("/games/word-battle/words.json"))
     assert bank.status_code == 200
     data = bank.json()

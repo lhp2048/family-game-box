@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 import sys
 from pathlib import Path
 
@@ -19,6 +20,7 @@ from common.paths import game_page_paths
 from parse_bank import BANK_PATH, main as build_words_json
 
 SLUG = "word-battle"
+AUDIO_SRC = Path(__file__).resolve().parent / "audio"
 
 EXTRA_CSS = r"""
 .wb-hero { text-align: center; margin-bottom: 1rem; }
@@ -287,16 +289,23 @@ SCRIPT = r"""
     ielts: "雅思",
   };
   var ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
-  /** Standard en-US letter names (not single-glyph / IPA readings). */
+  var LETTER_CLIP_IDS = "abcdefghijklmnopqrstuvwxyz".split("");
   var LETTER_NAMES = {
     a: "ay", b: "bee", c: "see", d: "dee", e: "ee", f: "eff", g: "jee",
     h: "aych", i: "eye", j: "jay", k: "kay", l: "ell", m: "em", n: "en",
     o: "oh", p: "pee", q: "cue", r: "ar", s: "ess", t: "tee", u: "you",
     v: "vee", w: "double you", x: "ex", y: "why", z: "zee",
   };
-  var PAUSE_AFTER_LETTER_MS = 240;
-  var PAUSE_BEFORE_WHOLE_WORD_MS = 280;
+  var PAUSE_AFTER_LETTER_MS = 260;
+  var PAUSE_BEFORE_WHOLE_WORD_MS = 300;
   var enVoice = null;
+  var letterAudio = FgbAudioClips({
+    clipIds: LETTER_CLIP_IDS,
+    resolveUrl: function (id) {
+      return "audio/" + id + ".mp3";
+    },
+  });
+  letterAudio.warmNetwork();
 
   var views = {
     home: document.getElementById("view-home"),
@@ -432,8 +441,24 @@ SCRIPT = r"""
     });
   }
 
-  function speakLetter(ch, rate, cancelFirst) {
-    return speakText(letterSpeakText(ch), rate, cancelFirst);
+  function playLetterClip(ch) {
+    var id = String(ch || "").toLowerCase();
+    if (!/^[a-z]$/.test(id)) return Promise.resolve(false);
+    letterAudio.unlock();
+    return new Promise(function (resolve) {
+      letterAudio.play(id, function (ok) {
+        resolve(!!ok);
+      });
+    });
+  }
+
+  function playLetterSound(ch) {
+    return playLetterClip(ch).then(function (ok) {
+      if (ok) return true;
+      return speakText(letterSpeakText(ch), 0.78, false).then(function () {
+        return false;
+      });
+    });
   }
 
   function delay(ms) {
@@ -441,6 +466,7 @@ SCRIPT = r"""
   }
 
   function stopSpeech() {
+    letterAudio.stop();
     if (!window.speechSynthesis) return;
     try {
       window.speechSynthesis.cancel();
@@ -539,7 +565,7 @@ SCRIPT = r"""
     var item = currentWord();
     letterIdx += 1;
     renderSpell(item.w, letterIdx, true, -1);
-    speakLetter(key, 0.88, false);
+    playLetterClip(key);
     var slots = letterPositions(item.w);
     if (letterIdx >= slots.length) {
       accepting = false;
@@ -579,7 +605,7 @@ SCRIPT = r"""
       for (i = 0; i < letters.length; i++) {
         if (myGen !== introGen) return;
         renderSpell(item.w, 0, true, slots[i]);
-        await speakLetter(letters[i], 0.78, i === 0);
+        await playLetterSound(letters[i]);
         if (myGen !== introGen) return;
         await delay(PAUSE_AFTER_LETTER_MS);
       }
@@ -623,9 +649,12 @@ SCRIPT = r"""
     var run = window.FGBUI && FGBUI.runWhenPlayable
       ? FGBUI.runWhenPlayable.bind(FGBUI)
       : function (prep, done) { prep(); done(Date.now()); };
+    letterAudio.unlock();
     run(function () {}, function (t) {
-      startTimer(t);
-      startWord();
+      letterAudio.preloadAll().then(function () {
+        startTimer(t);
+        startWord();
+      });
     });
   }
 
@@ -745,6 +774,27 @@ SCRIPT = r"""
 """
 
 
+def sync_audio(web_index: Path) -> None:
+    if not AUDIO_SRC.is_dir():
+        print("NOTE: no %s — run games/word_battle/fetch_audio.py" % AUDIO_SRC)
+        return
+    mp3s = sorted(AUDIO_SRC.glob("*.mp3"))
+    if len(mp3s) < 26:
+        print("NOTE: expected 26 mp3 in %s (got %d)" % (AUDIO_SRC, len(mp3s)))
+        return
+    targets = [web_index.parent / "audio"]
+    build_index = Path(__file__).resolve().parent / "build" / "index.html"
+    targets.append(build_index.parent / "audio")
+    readme = AUDIO_SRC / "README.md"
+    for dst in targets:
+        dst.mkdir(parents=True, exist_ok=True)
+        for src in mp3s:
+            shutil.copy2(src, dst / src.name)
+        if readme.is_file():
+            shutil.copy2(readme, dst / "README.md")
+        print("Synced %d letter clips → %s" % (len(mp3s), dst))
+
+
 def build_html() -> str:
     return build_page(
         "单词大作战",
@@ -754,6 +804,7 @@ def build_html() -> str:
         wide=True,
         game_skin="word-battle",
         game_title="单词大作战",
+        audio_clips=True,
     )
 
 
@@ -767,6 +818,7 @@ def main() -> None:
     parser.add_argument("--dist", default=str(web))
     args = parser.parse_args()
     run_generator(build_html, args.out, args.dist, SLUG)
+    sync_audio(Path(args.dist))
 
 
 if __name__ == "__main__":

@@ -730,6 +730,7 @@ h1 em { font-style: italic; color: var(--accent); }
 <script src="/js/fgb-client.js"></script>
 <script src="/js/fgb-ui.js"></script>
 <script src="/js/fgb-shell.js"></script>
+<script src="/js/fgb-audio-clips.js"></script>
 <script>
 /* fgb-daily-boot */
 
@@ -906,16 +907,23 @@ function celebrateThen(message, callback, delayMs) {
     ielts: "雅思",
   };
   var ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
-  /** Standard en-US letter names (not single-glyph / IPA readings). */
+  var LETTER_CLIP_IDS = "abcdefghijklmnopqrstuvwxyz".split("");
   var LETTER_NAMES = {
     a: "ay", b: "bee", c: "see", d: "dee", e: "ee", f: "eff", g: "jee",
     h: "aych", i: "eye", j: "jay", k: "kay", l: "ell", m: "em", n: "en",
     o: "oh", p: "pee", q: "cue", r: "ar", s: "ess", t: "tee", u: "you",
     v: "vee", w: "double you", x: "ex", y: "why", z: "zee",
   };
-  var PAUSE_AFTER_LETTER_MS = 240;
-  var PAUSE_BEFORE_WHOLE_WORD_MS = 280;
+  var PAUSE_AFTER_LETTER_MS = 260;
+  var PAUSE_BEFORE_WHOLE_WORD_MS = 300;
   var enVoice = null;
+  var letterAudio = FgbAudioClips({
+    clipIds: LETTER_CLIP_IDS,
+    resolveUrl: function (id) {
+      return "audio/" + id + ".mp3";
+    },
+  });
+  letterAudio.warmNetwork();
 
   var views = {
     home: document.getElementById("view-home"),
@@ -1051,8 +1059,24 @@ function celebrateThen(message, callback, delayMs) {
     });
   }
 
-  function speakLetter(ch, rate, cancelFirst) {
-    return speakText(letterSpeakText(ch), rate, cancelFirst);
+  function playLetterClip(ch) {
+    var id = String(ch || "").toLowerCase();
+    if (!/^[a-z]$/.test(id)) return Promise.resolve(false);
+    letterAudio.unlock();
+    return new Promise(function (resolve) {
+      letterAudio.play(id, function (ok) {
+        resolve(!!ok);
+      });
+    });
+  }
+
+  function playLetterSound(ch) {
+    return playLetterClip(ch).then(function (ok) {
+      if (ok) return true;
+      return speakText(letterSpeakText(ch), 0.78, false).then(function () {
+        return false;
+      });
+    });
   }
 
   function delay(ms) {
@@ -1060,6 +1084,7 @@ function celebrateThen(message, callback, delayMs) {
   }
 
   function stopSpeech() {
+    letterAudio.stop();
     if (!window.speechSynthesis) return;
     try {
       window.speechSynthesis.cancel();
@@ -1158,7 +1183,7 @@ function celebrateThen(message, callback, delayMs) {
     var item = currentWord();
     letterIdx += 1;
     renderSpell(item.w, letterIdx, true, -1);
-    speakLetter(key, 0.88, false);
+    playLetterClip(key);
     var slots = letterPositions(item.w);
     if (letterIdx >= slots.length) {
       accepting = false;
@@ -1198,7 +1223,7 @@ function celebrateThen(message, callback, delayMs) {
       for (i = 0; i < letters.length; i++) {
         if (myGen !== introGen) return;
         renderSpell(item.w, 0, true, slots[i]);
-        await speakLetter(letters[i], 0.78, i === 0);
+        await playLetterSound(letters[i]);
         if (myGen !== introGen) return;
         await delay(PAUSE_AFTER_LETTER_MS);
       }
@@ -1242,9 +1267,12 @@ function celebrateThen(message, callback, delayMs) {
     var run = window.FGBUI && FGBUI.runWhenPlayable
       ? FGBUI.runWhenPlayable.bind(FGBUI)
       : function (prep, done) { prep(); done(Date.now()); };
+    letterAudio.unlock();
     run(function () {}, function (t) {
-      startTimer(t);
-      startWord();
+      letterAudio.preloadAll().then(function () {
+        startTimer(t);
+        startWord();
+      });
     });
   }
 

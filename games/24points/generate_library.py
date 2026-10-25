@@ -106,7 +106,7 @@ body::before { content: none; }
   max-width: none;
   box-sizing: border-box;
   margin: 0 auto;
-  padding: 2.5rem var(--console-gutter, clamp(0.75rem, 3vw, 1.5rem)) 4rem;
+  padding: 2.5rem var(--console-gutter, clamp(1rem, 3vw, 2.25rem)) 4rem;
   min-width: 0;
 }
 .brand {

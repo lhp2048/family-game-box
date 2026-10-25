@@ -141,7 +141,7 @@ BODY = r"""
     </div>
     <p class="hint" id="play-hint">点击任一侧的差异格</p>
     <div class="card">
-      <div class="diff-panels">
+      <div class="diff-panels" data-fgb-board>
         <div class="diff-panel left">
           <div class="panel-label">左图</div>
           <div class="grid-cells compact" id="grid-left"></div>

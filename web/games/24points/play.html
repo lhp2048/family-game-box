@@ -36,7 +36,7 @@ body::before { content: none; }
   max-width: none;
   box-sizing: border-box;
   margin: 0 auto;
-  padding: 1.6rem var(--play-gutter, clamp(0.75rem, 3vw, 1.5rem)) 3rem;
+  padding: 1.6rem var(--play-gutter, var(--console-gutter, clamp(1rem, 3vw, 2.25rem))) 3rem;
   min-width: 0;
 }
 .hidden { display: none !important; }
@@ -702,7 +702,7 @@ html.fgb-daily-mode .board {
     <div class="card play-console">
       <p class="tip">点数字 → 选运算 → 再点数字合并。桌面：<kbd>1</kbd>–<kbd>4</kbd> 选牌，<kbd>+−*/</kbd> 运算，<kbd>Z</kbd> 撤销，<kbd>R</kbd> 重来，<kbd>Esc</kbd> 取消选中。</p>
       <div class="play-stage">
-        <div class="card-board-wrap">
+        <div class="card-board-wrap" data-fgb-board>
           <div class="card-board" id="card-board" data-count="4" role="group" aria-label="数字牌"></div>
         </div>
         <div class="play-controls">

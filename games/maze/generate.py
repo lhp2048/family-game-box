@@ -169,7 +169,7 @@ BODY = r"""
     </div>
     <p class="hint" id="play-hint">点击同行或同列、路径畅通的格子移动</p>
     <div class="card">
-      <div class="maze-wrap"><div class="maze" id="maze"></div></div>
+      <div class="maze-wrap" data-fgb-board><div class="maze" id="maze"></div></div>
       <div class="actions">
         <button type="button" class="danger" id="btn-exit">退出</button>
         <button type="button" id="btn-restart">重来</button>

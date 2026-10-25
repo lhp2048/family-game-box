@@ -182,7 +182,7 @@ BODY = r"""
         <span class="ms-timer" id="ms-timer" aria-live="polite">0.0s</span>
       </div>
       <p class="ms-penalty" id="ms-penalty"></p>
-      <div class="ms-play-grid">
+      <div class="ms-play-grid" data-fgb-board>
         <div>
           <div class="ms-expr-wrap">
             <p class="ms-expr" id="ms-expr">—</p>

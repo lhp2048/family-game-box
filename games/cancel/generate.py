@@ -62,10 +62,10 @@ body[data-game-skin="cancel"] #view-play .grid-wrap {
 }
 .grid-cells.dense {
   --cancel-side: min(
-    calc(100vw - 1.5rem),
+    100%,
     calc(100dvh - var(--cancel-chrome, 13.5rem)),
     calc(100svh - var(--cancel-chrome, 13.5rem)),
-    720px
+    var(--fgb-play-max, 560px)
   );
   width: var(--cancel-side);
   max-width: 100%;
@@ -178,7 +178,7 @@ BODY = r"""
     <div class="target-bar">请找出所有的：<strong id="target-display">7</strong></div>
     <p class="hint" id="play-hint">点击目标格进行划销</p>
     <div class="card">
-      <div class="grid-wrap">
+      <div class="grid-wrap" data-fgb-board>
         <div class="grid-cells dense" id="grid"></div>
       </div>
       <div class="actions">

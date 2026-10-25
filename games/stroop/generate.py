@@ -154,7 +154,7 @@ BODY = r"""
     <p class="hint" id="play-hint">看颜色，点下方色块</p>
     <div class="card">
       <div class="stroop-word" id="stroop-word">—</div>
-      <div class="color-grid" id="color-grid"></div>
+      <div class="color-grid" id="color-grid" data-fgb-board></div>
       <div class="stat-row">
         <span>连击 <strong id="streak">0</strong></span>
         <span>正确 <strong id="correct-n">0</strong></span>

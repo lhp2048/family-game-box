@@ -84,7 +84,7 @@ EXTRA_CSS = r"""
 .ns-board {
   display: grid;
   gap: clamp(2px, 0.45vw, 5px);
-  width: min(92vw, min(78vmin, 440px));
+  width: min(100%, min(78vmin, 440px));
   aspect-ratio: 1;
   padding: clamp(4px, 1vw, 8px);
   border-radius: 18px;

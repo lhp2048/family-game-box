@@ -175,7 +175,7 @@ BODY = r"""
     <div class="card">
       <div class="command-box" id="command">准备…</div>
       <div class="tts-note" id="tts-note"></div>
-      <div class="action-grid" id="actions">
+      <div class="action-grid" id="actions" data-fgb-board>
         <button type="button" data-act="hands_up">↑ 举手</button>
         <button type="button" data-act="turn_left">← 左转</button>
         <button type="button" data-act="jump">跳</button>

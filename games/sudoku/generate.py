@@ -280,7 +280,7 @@ BODY = r"""
     </div>
     <p class="hint" id="play-hint">点格选中，再点数字填入</p>
     <div class="card play-card">
-      <div class="sudoku-stage">
+      <div class="sudoku-stage" data-fgb-board>
         <div class="sudoku-wrap"><div class="sudoku" id="board"></div></div>
       </div>
       <div class="play-dock">

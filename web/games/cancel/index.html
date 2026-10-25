@@ -88,7 +88,8 @@ html.fgb-daily-mode .board {
   --shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
   --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
   --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
-  --play-gutter: clamp(0.75rem, 3vw, 1.5rem);
+  --play-gutter: var(--console-gutter, clamp(1rem, 3vw, 2.25rem));
+  --fgb-play-max: 560px;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
@@ -110,7 +111,19 @@ body::before {
   padding: 1.6rem var(--play-gutter) 3rem;
   min-width: 0;
 }
-.wrap.wide { width: 100%; max-width: none; }
+.wrap.wide {
+  width: 100%;
+  max-width: none;
+  --fgb-play-max: 720px;
+}
+.fgb-play-stage,
+[data-fgb-board] {
+  width: 100%;
+  max-width: min(var(--fgb-play-max), 100%);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
 .hidden { display: none !important; }
 /* 平板横屏 / 矮视口：压缩边距；棋盘尺寸由各游戏用 vmin 吃满短边 */
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
@@ -469,10 +482,10 @@ body[data-game-skin="cancel"] #view-play .grid-wrap {
 }
 .grid-cells.dense {
   --cancel-side: min(
-    calc(100vw - 1.5rem),
+    100%,
     calc(100dvh - var(--cancel-chrome, 13.5rem)),
     calc(100svh - var(--cancel-chrome, 13.5rem)),
-    720px
+    var(--fgb-play-max, 560px)
   );
   width: var(--cancel-side);
   max-width: 100%;
@@ -603,7 +616,7 @@ body[data-game-skin="cancel"] #view-play .grid-wrap {
     <div class="target-bar">请找出所有的：<strong id="target-display">7</strong></div>
     <p class="hint" id="play-hint">点击目标格进行划销</p>
     <div class="card">
-      <div class="grid-wrap">
+      <div class="grid-wrap" data-fgb-board>
         <div class="grid-cells dense" id="grid"></div>
       </div>
       <div class="actions">

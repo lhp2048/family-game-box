@@ -27,6 +27,9 @@
   --console-glow: rgba(62, 207, 142, 0.35);
   --console-focus: 0 0 0 3px rgba(62, 207, 142, 0.55), 0 0 28px rgba(62, 207, 142, 0.25);
   --console-gutter: clamp(1rem, 3vw, 2.25rem);
+  --fgb-play-max: 560px;
+  --fgb-play-max-wide: 720px;
+  --fgb-play-max-xl: 960px;
   --motion-fast: 0.16s ease;
   --motion-med: 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -924,6 +927,69 @@ body[data-game-skin] .wrap {
   width: 100%;
   max-width: none;
   min-width: 0;
+  padding-left: max(var(--console-gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--console-gutter), env(safe-area-inset-right, 0px));
+}
+body[data-game-skin] .wrap.wide {
+  --fgb-play-max: var(--fgb-play-max-wide);
+}
+body[data-game-skin="number-slide"],
+body[data-game-skin="huarongdao"] {
+  --fgb-play-max: 400px;
+}
+body[data-game-skin="sudoku"] {
+  --fgb-play-max: 520px;
+}
+body[data-game-skin="spot-diff"] {
+  --fgb-play-max: var(--fgb-play-max-wide);
+}
+body[data-game-skin="24points-library"] {
+  --fgb-play-max: var(--fgb-play-max-xl);
+}
+
+/* Play interaction surfaces: centered, aspect-friendly caps (chrome stays full width). */
+body[data-game-skin] :is(
+  [data-fgb-board],
+  .fgb-play-stage,
+  .hrg-board-wrap,
+  .ns-board-wrap,
+  .card-board-wrap,
+  .grid-wrap,
+  .maze-wrap,
+  .sudoku-stage,
+  .diff-panels,
+  .clover-wrap,
+  .board:not(.grid-cells),
+  .color-grid,
+  .action-grid,
+  .ms-play-grid,
+  .stroop-word,
+  .play-console,
+  .wb-console,
+  .wb-spell
+) {
+  width: 100%;
+  max-width: min(var(--fgb-play-max), 100%);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+body[data-game-skin] :is(
+  .ns-board,
+  .hrg-board,
+  .maze,
+  .sudoku-wrap,
+  .sudoku,
+  .grid-cells.dense,
+  .grid-cells.compact,
+  .clover,
+  .diff-panel .grid-cells
+) {
+  width: 100%;
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
 }
 
 .fgb-result {

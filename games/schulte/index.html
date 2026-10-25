@@ -19,7 +19,7 @@
   --shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
   --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
   --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
-  --play-gutter: clamp(0.75rem, 3vw, 1.5rem);
+  --play-gutter: var(--console-gutter, clamp(1rem, 3vw, 2.25rem));
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
@@ -302,7 +302,7 @@ h1 {
     <p class="target-banner">下一个：<em id="next-num">1</em></p>
     <p class="hint" id="play-hint">按顺序点击数字</p>
     <div class="card">
-      <div class="board" id="board" style="grid-template-columns: repeat(5, 1fr);"></div>
+      <div class="board fgb-play-stage" id="board" data-fgb-board style="grid-template-columns: repeat(5, 1fr);"></div>
       <div class="actions" id="casual-actions">
         <button type="button" class="ghost" id="btn-hint">提示</button>
         <button type="button" class="ghost" id="btn-restart">重来</button>

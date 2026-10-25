@@ -86,7 +86,8 @@ EXTRA_CSS = r"""
 }
 .hrg-board {
   position: relative;
-  width: min(92vw, 360px);
+  width: 100%;
+  max-width: 360px;
   aspect-ratio: 4 / 5;
   border-radius: 18px;
   border: 2px solid rgba(255, 159, 67, 0.35);
@@ -199,7 +200,7 @@ BODY = r"""
         <button type="button" id="btn-exit-play">退出</button>
       </div>
       <p class="hrg-hint" id="hrg-hint"></p>
-      <div class="hrg-board-wrap">
+      <div class="hrg-board-wrap" data-fgb-board>
         <div class="hrg-board" id="hrg-board" aria-label="华容道棋盘"></div>
       </div>
       <p class="hint">步数 <strong id="hrg-steps">0</strong> · 曹操到达底部中间出口即胜</p>

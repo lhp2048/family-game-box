@@ -283,6 +283,16 @@ SCRIPT = r"""
     ielts: "雅思",
   };
   var ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
+  /** Standard en-US letter names (not single-glyph / IPA readings). */
+  var LETTER_NAMES = {
+    a: "ay", b: "bee", c: "see", d: "dee", e: "ee", f: "eff", g: "jee",
+    h: "aych", i: "eye", j: "jay", k: "kay", l: "ell", m: "em", n: "en",
+    o: "oh", p: "pee", q: "cue", r: "ar", s: "ess", t: "tee", u: "you",
+    v: "vee", w: "double you", x: "ex", y: "why", z: "zee",
+  };
+  var PAUSE_AFTER_LETTER_MS = 240;
+  var PAUSE_BEFORE_WHOLE_WORD_MS = 280;
+  var enVoice = null;
 
   var views = {
     home: document.getElementById("view-home"),
@@ -359,26 +369,78 @@ SCRIPT = r"""
     return out;
   }
 
-  function speak(text, rate) {
+  function pickEnVoice() {
+    if (!window.speechSynthesis) return null;
+    var voices = speechSynthesis.getVoices() || [];
+    var i;
+    for (i = 0; i < voices.length; i++) {
+      var lang = (voices[i].lang || "").toLowerCase();
+      if (lang.indexOf("en-us") >= 0) return voices[i];
+    }
+    for (i = 0; i < voices.length; i++) {
+      var lang2 = (voices[i].lang || "").toLowerCase();
+      if (lang2.indexOf("en") === 0) return voices[i];
+    }
+    return null;
+  }
+
+  function ensureVoices() {
+    if (enVoice) return;
+    enVoice = pickEnVoice();
+    if (!enVoice && window.speechSynthesis) {
+      speechSynthesis.addEventListener("voiceschanged", function () {
+        if (!enVoice) enVoice = pickEnVoice();
+      });
+    }
+  }
+
+  function letterSpeakText(ch) {
+    var key = String(ch || "").toLowerCase();
+    if (!/^[a-z]$/.test(key)) return "";
+    return LETTER_NAMES[key] || key;
+  }
+
+  function speakText(text, rate, cancelFirst) {
     if (!text) return Promise.resolve();
     if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === "undefined") {
       return Promise.resolve();
     }
+    ensureVoices();
     return new Promise(function (resolve) {
-      try {
-        window.speechSynthesis.cancel();
-      } catch (e) {}
+      if (cancelFirst) {
+        try {
+          window.speechSynthesis.cancel();
+        } catch (e) {}
+      }
       var u = new SpeechSynthesisUtterance(text);
       u.lang = "en-US";
-      u.rate = rate == null ? 0.75 : rate;
-      u.onend = function () { resolve(); };
-      u.onerror = function () { resolve(); };
+      u.rate = rate == null ? 0.78 : rate;
+      if (enVoice) u.voice = enVoice;
+      var done = false;
+      function finish() {
+        if (done) return;
+        done = true;
+        resolve();
+      }
+      u.onend = finish;
+      u.onerror = finish;
       window.speechSynthesis.speak(u);
     });
   }
 
+  function speakLetter(ch, rate, cancelFirst) {
+    return speakText(letterSpeakText(ch), rate, cancelFirst);
+  }
+
   function delay(ms) {
     return new Promise(function (r) { setTimeout(r, ms); });
+  }
+
+  function stopSpeech() {
+    if (!window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel();
+    } catch (e) {}
   }
 
   function buildKeyboard() {
@@ -476,7 +538,7 @@ SCRIPT = r"""
     var item = currentWord();
     letterIdx += 1;
     renderSpell(item.w, letterIdx, true, -1);
-    speak(key, 0.85);
+    speakLetter(key, 0.88, false);
     var slots = letterPositions(item.w);
     if (letterIdx >= slots.length) {
       accepting = false;
@@ -511,16 +573,20 @@ SCRIPT = r"""
     var letters = slots.map(function (idx) { return item.w.charAt(idx); });
 
     (async function () {
+      stopSpeech();
       var i;
       for (i = 0; i < letters.length; i++) {
         if (myGen !== introGen) return;
         renderSpell(item.w, 0, true, slots[i]);
-        await speak(letters[i], 0.75);
-        await delay(80);
+        await speakLetter(letters[i], 0.78, i === 0);
+        if (myGen !== introGen) return;
+        await delay(PAUSE_AFTER_LETTER_MS);
       }
       if (myGen !== introGen) return;
       renderSpell(item.w, 0, true, -1);
-      await speak(item.w, 0.82);
+      await delay(PAUSE_BEFORE_WHOLE_WORD_MS);
+      if (myGen !== introGen) return;
+      await speakText(item.w, 0.84, false);
       if (myGen !== introGen) return;
       accepting = true;
       hintEl.textContent = "请拼写单词（键盘或屏幕键）";
@@ -566,6 +632,7 @@ SCRIPT = r"""
     stopTimer();
     accepting = false;
     introGen += 1;
+    stopSpeech();
     var elapsed = elapsedMs();
     document.getElementById("st-tier").textContent = TIER_LABEL[tierKey] || tierKey;
     document.getElementById("st-time").textContent = formatSec(elapsed);
@@ -636,6 +703,7 @@ SCRIPT = r"""
         stopTimer();
         introGen += 1;
         accepting = false;
+        stopSpeech();
         show("home");
       });
     } else {
@@ -659,6 +727,7 @@ SCRIPT = r"""
 
   buildKeyboard();
   setKbVisible(defaultKbVisible());
+  ensureVoices();
 
   var seed = Date.now() ^ ((Math.random() * 0x7fffffff) | 0);
   loadBank()

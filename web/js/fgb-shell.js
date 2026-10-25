@@ -13,6 +13,7 @@
  * Public API: window.FGBShell
    *   - mountTopbar(rootEl, options)
    *       options: { title?, showBack?, backHref?, showUser?, console? }
+   *       console defaults true on lobby shell pages (main.fgb-shell, no data-game-skin body).
  *   - safeNext(defaultPath)  — open-redirect-safe ?next= (same-origin relative only)
  *   - requireUserOrRedirect() — authMe; if not logged in, redirect to /login?next=…
  */
@@ -258,6 +259,43 @@
    * @param {HTMLElement} rootEl
    * @param {{ title?: string, showBack?: boolean, backHref?: string, showUser?: boolean }} [options]
    */
+  function isLobbyShellPage() {
+    try {
+      var body = global.document && global.document.body;
+      return !!(body && !body.getAttribute("data-game-skin"));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function applyConsoleDocument(mainEl) {
+    var doc = global.document;
+    if (!doc || !doc.body) return;
+    if (!doc.body.classList.contains("fgb-console")) {
+      doc.body.classList.add("fgb-console");
+    }
+    if (!doc.querySelector(".fgb-console-bezel")) {
+      var bezel = doc.createElement("div");
+      bezel.className = "fgb-console-bezel";
+      bezel.setAttribute("aria-hidden", "true");
+      doc.body.insertBefore(bezel, doc.body.firstChild);
+    }
+    var main = mainEl;
+    if (!main || !main.classList || main.classList.contains("fgb-shell") === false) {
+      main = doc.querySelector("main.fgb-shell");
+    }
+    if (main && !main.classList.contains("fgb-console-shell")) {
+      main.classList.add("fgb-console-shell");
+    }
+  }
+
+  function resolveConsoleShell(opts, rootEl) {
+    if (opts && opts.console != null) return !!opts.console;
+    if (!isLobbyShellPage()) return false;
+    if (rootEl && rootEl.closest && rootEl.closest("main.fgb-shell")) return true;
+    return !!global.document.querySelector("main.fgb-shell");
+  }
+
   function mountTopbar(rootEl, options) {
     if (!rootEl) return;
     var opts = options || {};
@@ -265,7 +303,12 @@
     var showBack = !!opts.showBack;
     var backHref = opts.backHref != null && opts.backHref !== "" ? opts.backHref : "/";
     var showUser = !!opts.showUser;
-    var consoleShell = !!opts.console;
+    var consoleShell = resolveConsoleShell(opts, rootEl);
+    if (consoleShell) {
+      applyConsoleDocument(
+        rootEl.closest ? rootEl.closest("main.fgb-shell") : null
+      );
+    }
 
     if (
       rootEl.className.indexOf("fgb-topbar") === -1

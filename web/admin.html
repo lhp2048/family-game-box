@@ -6,7 +6,6 @@
 <title>管理 · 家庭游戏盒</title>
 <link rel="stylesheet" href="/css/fgb-theme.css">
 <style>
-main { max-width: 720px; }
 h1 { font-family: var(--display); font-size: 1.75rem; margin: 0 0 8px; }
 .lead { color: var(--muted); margin: 0 0 20px; }
 .card {
@@ -98,11 +97,12 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
 #users-reset-mask:not(.hidden) { display: flex !important; }
 </style>
 </head>
-<body>
-<main class="fgb-shell">
-  <header class="fgb-topbar">
-    <div>
-      <a class="fgb-brand" href="/">家庭<em>游戏盒</em></a>
+<body class="fgb-console">
+<div class="fgb-console-bezel" aria-hidden="true"></div>
+<main class="fgb-shell fgb-console-shell">
+  <header class="fgb-topbar fgb-topbar-console">
+    <div class="fgb-brand-block">
+      <a class="fgb-brand fgb-brand-console" href="/"><span class="fgb-brand-mark" aria-hidden="true"></span><span class="fgb-brand-text">家庭<em>游戏盒</em></span></a>
       <span class="fgb-page-kicker">管理</span>
     </div>
     <div class="fgb-nav">

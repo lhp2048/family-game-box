@@ -526,7 +526,8 @@ body.fgb-daily-playing main.fgb-shell {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  width: min(1080px, calc(100% - 1rem));
+  width: 100%;
+  max-width: none;
   height: 100%;
   height: 100vh;
   height: 100dvh;
@@ -582,8 +583,9 @@ body.fgb-daily-playing .fgb-frame iframe {
 }
 
 @media (max-width: 560px) {
-  .fgb-shell,
-  main.fgb-shell { width: calc(100% - 1.25rem); padding-top: 1.25rem; }
+  body[data-game-skin] .fgb-shell,
+  body[data-game-skin] main.fgb-shell { width: calc(100% - 1.25rem); }
+  body:not([data-game-skin]) main.fgb-shell { width: 100%; padding-top: 1.25rem; }
   .fgb-page-title { font-size: 1.75rem; }
 }
 
@@ -1344,13 +1346,17 @@ body.fgb-console::before {
     inset 0 0 80px rgba(0, 0, 0, 0.45);
 }
 
-body.fgb-console main.fgb-shell.fgb-console-shell {
+/* Hall + shell subpages (leaderboard, auth, daily hub, …) — not in-game skins */
+body:not([data-game-skin]) main.fgb-shell {
   width: 100%;
   max-width: none;
-  padding-top: 1.35rem;
-  padding-bottom: 4rem;
   padding-left: max(var(--console-gutter), env(safe-area-inset-left, 0px));
   padding-right: max(var(--console-gutter), env(safe-area-inset-right, 0px));
+}
+
+body.fgb-console main.fgb-shell.fgb-console-shell {
+  padding-top: 1.35rem;
+  padding-bottom: 4rem;
 }
 
 .fgb-topbar-console {

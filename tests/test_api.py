@@ -130,6 +130,8 @@ def test_leaderboard_page():
     r = client.get(p("/leaderboard"))
     assert r.status_code == 200
     assert "排行榜" in r.text
+    assert "fgb-console" in r.text
+    assert "fgb-console-shell" in r.text
 
 
 def test_build_packs_shell_pages():

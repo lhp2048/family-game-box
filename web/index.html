@@ -12,43 +12,26 @@
   <header id="fgb-topbar" class="fgb-lobby-topbar"></header>
 
   <div class="fgb-toy-page">
-    <div class="fgb-toy-masthead" aria-label="客厅游戏盒">
-      <div class="fgb-toy-welcome">
-        <p class="fgb-toy-eyebrow">客厅 · 家庭游戏盒</p>
-        <h1 class="fgb-toy-title">一起开玩</h1>
-        <p class="fgb-toy-tagline">每日挑战冲榜，自由训练练手 — 大屏也好点，孩子也好找。</p>
-      </div>
-      <div class="fgb-toy-clock-card" aria-label="状态">
-        <span class="fgb-toy-clock-dot" title="在线"></span>
-        <time class="fgb-toy-clock" id="console-clock" aria-live="polite">--:--</time>
-      </div>
-    </div>
-
-    <div class="fgb-toy-stats-ribbon" id="stat-strip" aria-label="我的战绩">
-      <div class="fgb-toy-stat">
-        <span class="fgb-toy-stat-label">专注力名次</span>
-        <span class="fgb-toy-stat-value" id="stat-rank">—</span>
-      </div>
-      <div class="fgb-toy-stat fgb-toy-stat-yuwen">
-        <span class="fgb-toy-stat-label">语文名次</span>
-        <span class="fgb-toy-stat-value" id="stat-yuwen">—</span>
-      </div>
-      <div class="fgb-toy-stat fgb-toy-stat-wide">
-        <span class="fgb-toy-stat-label">最近一局</span>
-        <span class="fgb-toy-stat-value fgb-toy-stat-recent" id="stat-recent">—</span>
-      </div>
-    </div>
-
     <section class="fgb-toy-scoreboards" aria-label="挑战排行榜">
       <header class="fgb-toy-scoreboards-head">
-        <h2 class="fgb-toy-zone-title">挑战排行榜</h2>
-        <p class="fgb-toy-zone-sub">今日前三名 · 全家冲榜看这里</p>
+        <div class="fgb-toy-scoreboards-head-main">
+          <h2 class="fgb-toy-zone-title">挑战排行榜</h2>
+          <p class="fgb-toy-zone-sub">今日前三名 · 全家冲榜看这里</p>
+        </div>
+        <div class="fgb-toy-stat-chip fgb-toy-stat-chip-recent" id="stat-strip" aria-label="我的战绩">
+          <span class="fgb-toy-stat-chip-label">最近一局</span>
+          <span class="fgb-toy-stat-chip-value fgb-toy-stat-recent" id="stat-recent">—</span>
+        </div>
       </header>
       <div class="fgb-toy-scoreboards-grid">
         <div class="fgb-toy-leaderboard fgb-toy-leaderboard-daily">
           <div class="fgb-toy-leaderboard-head">
             <span class="fgb-toy-leaderboard-icon" aria-hidden="true">🏆</span>
             <h3 class="fgb-toy-leaderboard-title">专注力挑战榜</h3>
+          </div>
+          <div class="fgb-toy-stat-chip fgb-toy-stat-chip-rank">
+            <span class="fgb-toy-stat-chip-label">我的专注力名次</span>
+            <span class="fgb-toy-stat-chip-value" id="stat-rank">—</span>
           </div>
           <ol class="fgb-podium-list fgb-toy-podium-list fgb-toy-leaderboard-list" id="podium-list"></ol>
           <a class="fgb-toy-board-link fgb-toy-board-link-btn" href="/daily/leaderboard">完整榜 →</a>
@@ -57,6 +40,10 @@
           <div class="fgb-toy-leaderboard-head">
             <span class="fgb-toy-leaderboard-icon" aria-hidden="true">🏆</span>
             <h3 class="fgb-toy-leaderboard-title">语文挑战榜</h3>
+          </div>
+          <div class="fgb-toy-stat-chip fgb-toy-stat-chip-rank fgb-toy-stat-chip-yuwen">
+            <span class="fgb-toy-stat-chip-label">我的语文名次</span>
+            <span class="fgb-toy-stat-chip-value" id="stat-yuwen">—</span>
           </div>
           <ol class="fgb-podium-list fgb-toy-podium-list fgb-toy-leaderboard-list" id="yuwen-podium"></ol>
           <a class="fgb-toy-board-link fgb-toy-board-link-btn" href="/yuwen-daily/leaderboard">完整榜 →</a>
@@ -119,10 +106,6 @@
     console: false,
     toyLobby: true,
   });
-
-  if (window.FGBHome && FGBHome.mountClock) {
-    FGBHome.mountClock(document.getElementById("console-clock"));
-  }
 
   var topNav = document.querySelector("#fgb-topbar .fgb-nav");
   if (topNav) {

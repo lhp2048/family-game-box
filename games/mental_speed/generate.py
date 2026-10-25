@@ -285,7 +285,10 @@ SCRIPT = r"""
 
   function applyOp(a, b, op) {
     if (op === "+") return a + b;
-    if (op === "-") return a - b;
+    if (op === "-") {
+      if (a < b) return null;
+      return a - b;
+    }
     if (op === "*") return a * b;
     if (op === "/") {
       if (b === 0 || a % b !== 0) return null;
@@ -342,6 +345,17 @@ SCRIPT = r"""
     return true;
   }
 
+  /** 左到右每一步中间结果与最终值均 ≥ 0 */
+  function passesNonNegative(nums, ops) {
+    var v = nums[0];
+    if (v < 0) return false;
+    for (var i = 0; i < ops.length; i++) {
+      v = applyOp(v, nums[i + 1], ops[i]);
+      if (v === null || v < 0) return false;
+    }
+    return true;
+  }
+
   function formatExpr(nums, ops) {
     var parts = [String(nums[0])];
     for (var i = 0; i < ops.length; i++) {
@@ -376,6 +390,7 @@ SCRIPT = r"""
       }
       if (!hasMulDiv) continue;
       if (!passesMulRules(nums, ops)) continue;
+      if (!passesNonNegative(nums, ops)) continue;
       var ans = evalLeft(nums, ops);
       if (ans === null || ans < 0 || ans > 999) continue;
       return { text: formatExpr(nums, ops), answer: ans };

@@ -28,6 +28,8 @@ def apply_op(a: int, b: int, op: str) -> int | None:
     if op == "+":
         return a + b
     if op == "-":
+        if a < b:
+            return None
         return a - b
     if op == "*":
         return a * b
@@ -56,6 +58,17 @@ def passes_mul_rules(nums: list[int], ops: list[str]) -> bool:
             v = prod
             continue
         v = prod
+    return True
+
+
+def passes_non_negative(nums: list[int], ops: list[str]) -> bool:
+    v = nums[0]
+    if v < 0:
+        return False
+    for i, op in enumerate(ops):
+        v = apply_op(v, nums[i + 1], op)
+        if v is None or v < 0:
+            return False
     return True
 
 
@@ -91,6 +104,12 @@ def test_rejects_hard_consecutive_mul():
     assert passes_mul_rules([4, 25, 2], ["*", "*"]) is False
 
 
+def test_rejects_negative_subtraction():
+    assert apply_op(3, 5, "-") is None
+    assert passes_non_negative([8, 3, 2], ["-", "-"]) is True
+    assert passes_non_negative([2, 5, 1], ["-", "+"]) is False
+
+
 def test_allows_whitelist_big_mul_only():
     assert passes_mul_rules([8, 25], ["*"])
     assert passes_mul_rules([25, 4], ["*"])
@@ -103,6 +122,7 @@ def test_page_declares_min_three_operators():
         encoding="utf-8"
     )
     assert "operatorCountForQuestion" in html
+    assert "passesNonNegative" in html
     assert "operandCountForQuestion" not in html
 
 
@@ -115,7 +135,7 @@ def test_monte_carlo_generated_batch():
         n = op_count + 1
         nums = [random.randint(1, 12) for _ in range(n)]
         ops = [random.choice(["+", "-", "*", "/"]) for _ in range(op_count)]
-        if not passes_mul_rules(nums, ops):
+        if not passes_mul_rules(nums, ops) or not passes_non_negative(nums, ops):
             continue
         ans = eval_left(nums, ops)
         if ans is None or ans < 0 or ans > 999:

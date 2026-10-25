@@ -107,7 +107,9 @@ def authenticate(username: str, password: str) -> dict:
     item = (data.get("users") or {}).get(user_id)
     if not isinstance(item, dict):
         raise ValueError("口令不对")
-    if _hash(item.get("passwordSalt") or "", password or "") != item.get("passwordHash"):
+    expect = _hash(item.get("passwordSalt") or "", password or "")
+    stored = str(item.get("passwordHash") or "")
+    if not hmac.compare_digest(expect, stored):
         raise ValueError("口令不对")
     return _public_user(item)
 
@@ -308,5 +310,6 @@ def admin_set_password(user_id: str, new_password: str) -> dict:
     item["passwordSalt"] = salt
     item["passwordHash"] = _hash(salt, pw)
     data.setdefault("users", {})[uid] = item
+    data["sessionGeneration"] = int(data.get("sessionGeneration") or 0) + 1
     _save(data)
     return _public_user(item)

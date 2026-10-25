@@ -120,6 +120,8 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
       <input id="pw1" type="password" autocomplete="new-password">
       <label for="pw2">再输入一次</label>
       <input id="pw2" type="password" autocomplete="new-password">
+      <label for="pw-bootstrap">初始化密钥（服务器已配置 ADMIN_BOOTSTRAP_SECRET 时必填）</label>
+      <input id="pw-bootstrap" type="password" autocomplete="off" placeholder="可选">
       <button type="button" id="btn-setup">保存并进入</button>
     </div>
     <div id="login-fields" class="hidden">
@@ -936,7 +938,10 @@ ul.hist { margin: 0; padding-left: 18px; color: var(--muted); font-size: .9rem; 
     var b = document.getElementById("pw2").value;
     if (!a || a.length < 4) { err.textContent = "密码至少 4 位"; return; }
     if (a !== b) { err.textContent = "两次密码不一致"; return; }
-    api("/api/v1/admin/setup", { method: "POST", body: { password: a } }).then(function (data) {
+    var boot = document.getElementById("pw-bootstrap").value;
+    var body = { password: a };
+    if (boot) body.bootstrapSecret = boot;
+    api("/api/v1/admin/setup", { method: "POST", body: body }).then(function (data) {
       setToken(data.token);
       showPanel();
     }).catch(function (e) { err.textContent = authFailMessage(e); });

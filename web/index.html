@@ -132,6 +132,12 @@
     });
   }
 
+  function esc(s) {
+    return String(s || "").replace(/[&<>"']/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
+    });
+  }
+
   function renderSummary(s) {
     if (!s) return;
     var me = s.me || {};
@@ -158,7 +164,7 @@
         var titles = { 1: "冠军", 2: "亚军", 3: "季军" };
         var medal = medals[p.rank] ? ('<span class="medal">' + medals[p.rank] + "</span>") : "";
         var title = titles[p.rank] ? (titles[p.rank] + " · ") : (p.rank + ". ");
-        li.innerHTML = "<span>" + medal + title + (p.nickname || "—") + "</span><span>" + (p.display || "") + "</span>";
+        li.innerHTML = "<span>" + medal + title + esc(p.nickname || "—") + "</span><span>" + esc(p.display || "") + "</span>";
         ol.appendChild(li);
       });
     }
@@ -179,7 +185,7 @@
       var titles = { 1: "冠军", 2: "亚军", 3: "季军" };
       var medal = medals[p.rank] ? ('<span class="medal">' + medals[p.rank] + "</span>") : "";
       var title = titles[p.rank] ? (titles[p.rank] + " · ") : (p.rank + ". ");
-      li.innerHTML = "<span>" + medal + title + (p.nickname || "—") + "</span><span>" + (p.display || "") + "</span>";
+      li.innerHTML = "<span>" + medal + title + esc(p.nickname || "—") + "</span><span>" + esc(p.display || "") + "</span>";
       yol.appendChild(li);
     });
   }

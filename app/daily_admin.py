@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import os
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
@@ -132,6 +133,20 @@ def _hash(salt: str, password: str) -> str:
     return hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
 
 
+def _password_ok(salt: str, password: str, stored_hash: str) -> bool:
+    expect = _hash(salt, password or "")
+    return hmac.compare_digest(expect, stored_hash or "")
+
+
+def _require_bootstrap(provided: Optional[str]) -> None:
+    expected = os.environ.get("ADMIN_BOOTSTRAP_SECRET", "").strip()
+    if not expected:
+        return
+    got = (provided or "").strip()
+    if not got or not hmac.compare_digest(expected, got):
+        raise PermissionError("bootstrap secret required")
+
+
 def _now() -> datetime:
     return datetime.now(timezone.utc)
 
@@ -167,7 +182,8 @@ def admin_status(token: Optional[str] = None) -> Dict[str, Any]:
     }
 
 
-def setup_password(password: str) -> Dict[str, str]:
+def setup_password(password: str, bootstrap_secret: Optional[str] = None) -> Dict[str, str]:
+    _require_bootstrap(bootstrap_secret)
     password = (password or "").strip()
     if len(password) < 4:
         raise ValueError("password too short")
@@ -184,7 +200,7 @@ def login(password: str) -> Dict[str, str]:
     data = _load()
     if not data.get("passwordHash"):
         raise ValueError("password not set")
-    if _hash(data.get("salt") or "", password or "") != data["passwordHash"]:
+    if not _password_ok(data.get("salt") or "", password, str(data.get("passwordHash") or "")):
         raise ValueError("invalid password")
     return _issue_session(data)
 
@@ -230,7 +246,11 @@ def issue_play_cookie(passphrase: str, now: Optional[int] = None) -> str:
     passphrase = (passphrase or "").strip()
     if not data.get("playPassphraseHash"):
         raise ValueError("口令不对")
-    if _hash(data.get("playPassphraseSalt") or "", passphrase or "") != data["playPassphraseHash"]:
+    if not _password_ok(
+        data.get("playPassphraseSalt") or "",
+        passphrase,
+        str(data.get("playPassphraseHash") or ""),
+    ):
         raise ValueError("口令不对")
     current = int(now if now is not None else time.time())
     exp = current + PLAY_TTL

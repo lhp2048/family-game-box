@@ -26,7 +26,7 @@
   --console-edge: rgba(62, 207, 142, 0.22);
   --console-glow: rgba(62, 207, 142, 0.35);
   --console-focus: 0 0 0 3px rgba(62, 207, 142, 0.55), 0 0 28px rgba(62, 207, 142, 0.25);
-  --console-max: 1180px;
+  --console-max: 1240px;
   --motion-fast: 0.16s ease;
   --motion-med: 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -1662,25 +1662,34 @@ body.fgb-console::before {
 }
 
 .fgb-shelf-row {
-  display: flex;
+  display: grid;
   gap: 0.85rem;
-  overflow-x: auto;
-  overflow-y: visible;
-  padding: 0.35rem 0.25rem 1.1rem;
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(62, 207, 142, 0.35) transparent;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 0.35rem 0 1.25rem;
+  overflow: visible;
 }
 
-.fgb-shelf-row::after {
-  content: "";
-  flex: 0 0 0.25rem;
+@media (min-width: 520px) {
+  .fgb-shelf-row {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 720px) {
+  .fgb-shelf-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1024px) {
+  .fgb-shelf-row {
+    grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
+  }
 }
 
 .fgb-cover {
-  flex: 0 0 min(168px, 42vw);
-  scroll-snap-align: start;
+  min-width: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
   text-decoration: none;

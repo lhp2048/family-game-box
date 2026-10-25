@@ -76,20 +76,50 @@
         "</span>";
 
       a.addEventListener("keydown", function (e) {
-        if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-        var row = listEl.querySelectorAll(".fgb-cover");
+        var key = e.key;
+        if (
+          key !== "ArrowRight" &&
+          key !== "ArrowLeft" &&
+          key !== "ArrowUp" &&
+          key !== "ArrowDown"
+        ) {
+          return;
+        }
+        var cards = listEl.querySelectorAll(".fgb-cover");
         var i = -1;
-        for (var j = 0; j < row.length; j++) {
-          if (row[j] === a) {
+        for (var j = 0; j < cards.length; j++) {
+          if (cards[j] === a) {
             i = j;
             break;
           }
         }
         if (i < 0) return;
-        var next = e.key === "ArrowRight" ? i + 1 : i - 1;
-        if (next >= 0 && next < row.length) {
+        var cols = 1;
+        if (cards.length > 1) {
+          var top0 = cards[0].offsetTop;
+          for (var c = 1; c < cards.length; c++) {
+            if (cards[c].offsetTop > top0 + 4) break;
+            cols = c + 1;
+          }
+        }
+        var row = Math.floor(i / cols);
+        var col = i % cols;
+        var next = i;
+        if (key === "ArrowRight") next = i + 1;
+        else if (key === "ArrowLeft") next = i - 1;
+        else if (key === "ArrowDown") next = i + cols;
+        else if (key === "ArrowUp") next = i - cols;
+        if (next >= 0 && next < cards.length) {
+          var nextRow = Math.floor(next / cols);
+          var nextCol = next % cols;
+          if (key === "ArrowUp" || key === "ArrowDown") {
+            if (nextCol !== col) return;
+          }
+          if (key === "ArrowLeft" || key === "ArrowRight") {
+            if (nextRow !== row) return;
+          }
           e.preventDefault();
-          row[next].focus();
+          cards[next].focus();
         }
       });
 

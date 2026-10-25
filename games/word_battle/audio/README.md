@@ -12,7 +12,7 @@
 | **许可** | [**CC BY 4.0**](https://creativecommons.org/licenses/by/4.0/) — 可再分发与修改，**须署名** |
 | **署名建议** | Letter sounds by tim.kahn (Freesound), CC BY 4.0 — https://freesound.org/people/tim.kahn/packs/4371/ |
 
-本仓库中的 MP3 由 Freesound **HQ preview**（或可选 API 下载的原始 WAV）经 ffmpeg 轻微降音量 + `dynaudnorm` 柔和处理后生成，便于儿童向听感。
+本仓库中的 MP3 由 Freesound **HQ preview**（或可选 API 下载的原始 WAV）经 ffmpeg **`silenceremove` 裁掉首尾静音** + 略提音量（约 1.12×）后生成，单字母约 **0.4–0.7s**，拼读更利落。
 
 ## 生成 / 更新
 

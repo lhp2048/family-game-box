@@ -31,8 +31,13 @@ PACK_URL = "https://freesound.org/people/tim.kahn/packs/4371/"
 FIRST_SOUND_ID = 67712  # a.wav
 USER_AGENT = "family-game-box/1.0 (word-battle; CC-BY tim.kahn alphabet)"
 
-# Slightly softer / less peaky than raw recordings
-FFMPEG_AF = "volume=0.88,dynaudnorm=f=90:g=12"
+# Trim trailing/leading silence; slightly louder for mobile speakers (still same tim.kahn takes)
+FFMPEG_AF = (
+    "silenceremove=stop_periods=-1:stop_duration=0.01:stop_threshold=-30dB:"
+    "start_periods=1:start_duration=0.01:start_threshold=-30dB,"
+    "volume=1.12"
+)
+MAX_LETTER_SEC = 0.75
 
 
 def _open(url: str, timeout: int = 120) -> bytes:
@@ -51,7 +56,7 @@ def download_preview_mp3(sound_id: int, dest: Path) -> None:
     raw = OUT / "_src" / ("%d.mp3" % sound_id)
     raw.parent.mkdir(parents=True, exist_ok=True)
     raw.write_bytes(_open(preview_hq_url(sound_id)))
-    soften_mp3(raw, dest)
+    process_mp3(raw, dest)
 
 
 def download_wav_api(sound_id: int, dest: Path, token: str) -> None:
@@ -63,10 +68,10 @@ def download_wav_api(sound_id: int, dest: Path, token: str) -> None:
     sep = "&" if "?" in dl else "?"
     wav = OUT / "_src" / ("%d.wav" % sound_id)
     wav.write_bytes(_open("%s%stoken=%s" % (dl, sep, token)))
-    soften_from_wav(wav, dest)
+    process_from_wav(wav, dest)
 
 
-def soften_from_wav(src: Path, dest: Path) -> None:
+def _encode_mp3(src: Path, dest: Path) -> None:
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
         raise SystemExit("ffmpeg not found")
@@ -95,34 +100,37 @@ def soften_from_wav(src: Path, dest: Path) -> None:
     )
 
 
-def soften_mp3(src: Path, dest: Path) -> None:
+def process_from_wav(src: Path, dest: Path) -> None:
+    _encode_mp3(src, dest)
+
+
+def process_mp3(src: Path, dest: Path) -> None:
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
         shutil.copy2(src, dest)
         return
-    subprocess.run(
+    _encode_mp3(src, dest)
+
+
+def clip_duration(path: Path) -> float:
+    ffprobe = shutil.which("ffprobe")
+    if not ffprobe:
+        return 0.0
+    out = subprocess.check_output(
         [
-            ffmpeg,
-            "-y",
+            ffprobe,
             "-hide_banner",
             "-loglevel",
             "error",
-            "-i",
-            str(src),
-            "-af",
-            FFMPEG_AF,
-            "-codec:a",
-            "libmp3lame",
-            "-ar",
-            "24000",
-            "-ac",
-            "1",
-            "-qscale:a",
-            "4",
-            str(dest),
+            "-show_entries",
+            "format=duration",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            str(path),
         ],
-        check=True,
+        text=True,
     )
+    return float(out.strip() or "0")
 
 
 def main() -> int:
@@ -144,6 +152,10 @@ def main() -> int:
         if dest.stat().st_size < 400:
             print("  ERROR: %s too small" % dest, file=sys.stderr)
             return 2
+        dur = clip_duration(dest)
+        print("  %.2fs" % dur)
+        if dur > MAX_LETTER_SEC:
+            print("  WARN: %s longer than %.2fs" % (dest.name, MAX_LETTER_SEC), file=sys.stderr)
         ok += 1
         time.sleep(0.35)
     shutil.rmtree(OUT / "_src", ignore_errors=True)

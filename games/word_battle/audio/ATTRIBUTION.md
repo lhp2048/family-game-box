@@ -1,10 +1,10 @@
-# Audio attribution
+# Audio attribution (CC BY 4.0)
 
 English alphabet letter sounds (a–z) derived from:
 
-- **ChotoTheBright** — [Alphabet-English.wav](https://freesound.org/people/ChotoTheBright/sounds/700028/) on Freesound (sound 700028)
-- License: [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (public domain dedication)
+- **groovy_turnokk** — [ClairesAlphabet.mp3](https://freesound.org/people/groovy_turnokk/sounds/147504/) on Freesound (sound 147504)
+- License: [Creative Commons Attribution 4.0 International](https://creativecommons.org/licenses/by/4.0/)
 
-Optional credit:
+Required credit (example):
 
-> Alphabet recording by ChotoTheBright (Freesound), CC0.
+> ClairesAlphabet.mp3 by groovy_turnokk — https://freesound.org/s/147504/ — License: CC BY 4.0

@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 """Build female English letter-name clips for word-battle.
 
-Source: ChotoTheBright — Freesound sound 700028 (CC0), one continuous A–Z read,
-split on silence into 26 clips. Not tim.kahn / pack 4371.
+Source: groovy_turnokk — ClairesAlphabet.mp3 (Freesound 147504, CC BY 4.0).
+British English alphabet, female speaker (Claire). Silence-split to 26 letters.
 
-https://freesound.org/people/ChotoTheBright/sounds/700028/
+https://freesound.org/people/groovy_turnokk/sounds/147504/
 
 Usage:
   python3 games/word_battle/fetch_audio.py
@@ -13,7 +13,6 @@ Usage:
 
 from __future__ import annotations
 
-import re
 import shutil
 import subprocess
 import sys
@@ -25,16 +24,15 @@ HERE = Path(__file__).resolve().parent
 OUT = HERE / "audio"
 SRC = OUT / "_src"
 
-SOUND_ID = 700028
-PREVIEW_HQ = "https://cdn.freesound.org/previews/700/%d_13863797-hq.mp3" % SOUND_ID
-USER_AGENT = "family-game-box/1.0 (word-battle; CC0 ChotoTheBright alphabet)"
+SOUND_ID = 147504
+PREVIEW_HQ = "https://cdn.freesound.org/previews/147/%d_2635315-hq.mp3" % SOUND_ID
+USER_AGENT = "family-game-box/1.0 (word-battle; CC-BY groovy_turnokk ClairesAlphabet)"
 
-SILENCE_DETECT = "silencedetect=noise=-34dB:d=0.06"
-MERGE_GAP_SEC = 0.32
+SILENCE_DETECT = "silencedetect=noise=-30dB:d=0.08"
+MERGE_GAP_SEC = 0.35
 MIN_SPEECH_SEC = 0.12
-# Segments are already tight; avoid silenceremove eating very short letters.
-CLIP_AF_TAIL = "volume=1.14,alimiter=limit=0.98"
-MAX_LETTER_SEC = 0.85
+CLIP_AF_TAIL = "volume=1.12,alimiter=limit=0.98"
+MAX_LETTER_SEC = 0.9
 
 
 def _open(url: str, timeout: int = 180) -> bytes:
@@ -97,8 +95,17 @@ def speech_segments(events: list[tuple[str, float]]) -> list[tuple[float, float]
     return [s for s in merged if s[1] - s[0] >= MIN_SPEECH_SEC]
 
 
+def letter_segments(raw: list[tuple[float, float]]) -> list[tuple[float, float]]:
+    """Claire's track yields ~52 bursts; take every other chunk (26 letter names)."""
+    if len(raw) == 52:
+        return [raw[i] for i in range(0, 52, 2)]
+    if len(raw) == 26:
+        return raw
+    return []
+
+
 def extract_clip(ffmpeg: str, src: Path, start: float, end: float, dest: Path) -> None:
-    pad = 0.03
+    pad = 0.025
     ss = max(0.0, start - pad)
     dur = (end - start) + pad * 2
     af = "atrim=start=%.4f:duration=%.4f,asetpts=PTS-STARTPTS,%s" % (ss, dur, CLIP_AF_TAIL)
@@ -153,7 +160,7 @@ def main() -> int:
         return 2
 
     OUT.mkdir(parents=True, exist_ok=True)
-    track = SRC / "alphabet-hq.mp3"
+    track = SRC / "claires-alphabet-hq.mp3"
     print("Downloading %s" % PREVIEW_HQ)
     try:
         download_alphabet_track(track)
@@ -161,13 +168,13 @@ def main() -> int:
         print("ERROR: %s" % exc, file=sys.stderr)
         return 2
 
-    events = _silence_events(ffmpeg, track)
-    segments = speech_segments(events)
+    raw = speech_segments(_silence_events(ffmpeg, track))
+    segments = letter_segments(raw)
     letters = "abcdefghijklmnopqrstuvwxyz"
     if len(segments) != len(letters):
         print(
-            "ERROR: expected %d speech segments, got %d (tune MERGE_GAP_SEC)"
-            % (len(letters), len(segments)),
+            "ERROR: expected 26 letters, got %d (from %d raw segments)"
+            % (len(segments), len(raw)),
             file=sys.stderr,
         )
         return 2
@@ -180,14 +187,14 @@ def main() -> int:
         dur = clip_duration(ffprobe, dest)
         print("  %.2fs" % dur)
         if dest.stat().st_size < 400 or dur < 0.08:
-            print("  ERROR: %s too small (%.2fs)" % (dest.name, dur), file=sys.stderr)
+            print("  ERROR: %s too small" % dest.name, file=sys.stderr)
             return 2
         if dur > MAX_LETTER_SEC:
             print("  WARN: longer than %.2fs" % MAX_LETTER_SEC, file=sys.stderr)
         ok += 1
 
     shutil.rmtree(SRC, ignore_errors=True)
-    print("Done: %d clips in %s (ChotoTheBright CC0)" % (ok, OUT))
+    print("Done: %d clips in %s (groovy_turnokk CC BY)" % (ok, OUT))
     return 0
 
 

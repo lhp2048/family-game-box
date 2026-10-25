@@ -47,45 +47,67 @@ EXTRA_CSS = r"""
 .target-bar strong {
   font-family: var(--display);
   font-size: 1.6rem;
-  color: var(--accent-deep);
+  color: var(--accent);
 }
-.grid-wrap {
+/* Play view: scale whole N×N board to fit viewport (avoid row overlap from clipped aspect-ratio). */
+body[data-game-skin="cancel"] #view-play .grid-wrap {
   overflow: auto;
-  max-height: min(82vmin, 720px);
+  max-height: none;
   display: flex;
   justify-content: center;
+  align-items: flex-start;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -.15rem;
+  padding: .15rem 0;
 }
 .grid-cells.dense {
-  width: min(100%, 82vmin, 640px);
-  margin: 0;
+  --cancel-side: min(
+    calc(100vw - 1.5rem),
+    calc(100dvh - var(--cancel-chrome, 13.5rem)),
+    calc(100svh - var(--cancel-chrome, 13.5rem)),
+    720px
+  );
+  width: var(--cancel-side);
+  max-width: 100%;
+  aspect-ratio: 1;
+  height: auto;
+  margin: 0 auto;
+  gap: clamp(1px, 0.28vw, 3px);
+  grid-auto-rows: 1fr;
+  align-content: stretch;
 }
 .grid-cells.dense button {
-  min-height: 0;
-  aspect-ratio: 1;
-  /* Safari 会给 grid/flex 按钮再套一层空壳，和数字叠成两行。 */
-  display: block;
   width: 100%;
-  position: relative;
-  font-size: clamp(.72rem, 2.6cqi, 1.25rem);
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  aspect-ratio: unset;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: clamp(
+    0.62rem,
+    calc(var(--cancel-side, 320px) / var(--cancel-cols, 12) * 0.44),
+    1.2rem
+  );
   font-weight: 700;
 }
 .grid-cells.dense button > span {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
+  line-height: 1;
   pointer-events: none;
 }
-.grid-cells.dense { container-type: inline-size; }
-.target-bar strong {
-  color: var(--accent);
-}
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  body[data-game-skin="cancel"] {
+    --cancel-chrome: 11rem;
+  }
   .target-bar { margin-bottom: .35rem; font-size: 1rem; }
   .target-bar strong { font-size: 1.25rem; }
-  .grid-wrap { max-height: min(86vmin, 720px); }
-  .grid-cells.dense { width: min(100%, 86vmin, 720px); }
+}
+@media (max-width: 420px) {
+  body[data-game-skin="cancel"] {
+    --cancel-chrome: 14.5rem;
+  }
 }
 """
 
@@ -304,7 +326,11 @@ SCRIPT_MID = r""";
 
   function renderGrid() {
     var grid = document.getElementById("grid");
-    grid.style.gridTemplateColumns = "repeat(" + puzzle.n + ", 1fr)";
+    var n = puzzle.n;
+    grid.style.setProperty("--cancel-cols", String(n));
+    grid.style.setProperty("--cancel-rows", String(n));
+    grid.style.gridTemplateColumns = "repeat(" + n + ", minmax(0, 1fr))";
+    grid.style.gridTemplateRows = "repeat(" + n + ", minmax(0, 1fr))";
     grid.innerHTML = "";
     marked = {};
     for (var i = 0; i < puzzle.cells.length; i++) {

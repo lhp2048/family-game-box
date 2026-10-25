@@ -127,6 +127,8 @@ def test_lobby_html():
     assert "fgb-home.js" in text
     assert "fgb-toy-shelf-grid" in text
     assert "fgb-toy-layout" in text
+    assert "fgb-toy-scoreboards" in text
+    assert 'id="podium-list"' in text
     assert "FGBHome.renderGameShelf" in text
 
 

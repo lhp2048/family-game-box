@@ -2231,14 +2231,18 @@ body.fgb-lobby-toy .fgb-lobby-topbar {
   line-height: 1.35;
 }
 
-.fgb-toy-layout {
+.fgb-toy-top-row {
   display: grid;
-  /* 今日挑战：固定窄栏；游戏库：占满剩余宽度 */
-  grid-template-columns: minmax(min(240px, 100%), 300px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(min(240px, 100%), 300px);
   gap: clamp(1rem, 2.5vw, 1.75rem);
-  align-items: start;
+  align-items: stretch;
   width: 100%;
   min-width: 0;
+}
+
+body.fgb-lobby-toy .fgb-toy-top-row .fgb-toy-scoreboards,
+body.fgb-lobby-toy .fgb-toy-top-row .fgb-toy-challenge-rail {
+  min-height: 0;
 }
 
 body.fgb-lobby-toy .fgb-toy-scoreboards,
@@ -2533,6 +2537,11 @@ body.fgb-lobby-toy .fgb-toy-leaderboard-list li .medal {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-width: 0;
+}
+
+.fgb-toy-top-row .fgb-toy-challenge-rail {
+  justify-content: flex-start;
 }
 
 .fgb-toy-challenge-pack {
@@ -2712,7 +2721,7 @@ body.fgb-lobby-toy .fgb-toy-podium-list li:last-child {
 }
 
 @media (max-width: 960px) {
-  .fgb-toy-layout {
+  .fgb-toy-top-row {
     grid-template-columns: 1fr;
   }
 

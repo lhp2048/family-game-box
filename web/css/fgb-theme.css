@@ -2668,9 +2668,26 @@ body.fgb-lobby-toy .fgb-toy-podium-list li:last-child {
 }
 
 /* === MX游戏盒子 — global toy product chrome (hall + games) === */
+html:has(body.fgb-console),
+html:has(body.fgb-lobby-toy),
+html:has(body[data-game-skin]),
+html.fgb-product-toy {
+  min-height: 100%;
+  min-height: 100dvh;
+  background-color: #fff8f0;
+  background-image:
+    radial-gradient(ellipse 90% 60% at 10% -5%, rgba(255, 159, 67, 0.35), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 95% 8%, rgba(78, 205, 196, 0.35), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(166, 107, 255, 0.12), transparent 55%),
+    linear-gradient(180deg, #fff8f0 0%, #fef3e8 42%, #f5f9ff 100%);
+  background-attachment: fixed;
+}
+
 body.fgb-console,
 body.fgb-lobby-toy,
 body[data-game-skin] {
+  min-height: 100%;
+  min-height: 100dvh;
   --ink: #1a2b3c;
   --muted: #5c6d7e;
   --accent: #2ecc71;
@@ -2693,6 +2710,7 @@ body[data-game-skin] {
     radial-gradient(ellipse 70% 50% at 95% 8%, rgba(78, 205, 196, 0.35), transparent 50%),
     radial-gradient(ellipse 60% 40% at 50% 100%, rgba(166, 107, 255, 0.12), transparent 55%),
     linear-gradient(180deg, #fff8f0 0%, #fef3e8 42%, #f5f9ff 100%) !important;
+  background-attachment: fixed;
 }
 
 body.fgb-console::before,

@@ -915,7 +915,6 @@ function celebrateThen(message, callback, delayMs) {
     v: "vee", w: "double you", x: "ex", y: "why", z: "zee",
   };
   var PAUSE_AFTER_LETTER_MS = 260;
-  var PAUSE_BEFORE_WHOLE_WORD_MS = 300;
   var enVoice = null;
   var letterAudio = FgbAudioClips({
     clipIds: LETTER_CLIP_IDS,
@@ -1229,10 +1228,6 @@ function celebrateThen(message, callback, delayMs) {
       }
       if (myGen !== introGen) return;
       renderSpell(item.w, 0, true, -1);
-      await delay(PAUSE_BEFORE_WHOLE_WORD_MS);
-      if (myGen !== introGen) return;
-      await speakText(item.w, 0.84, false);
-      if (myGen !== introGen) return;
       accepting = true;
       hintEl.textContent = "请拼写单词（键盘或屏幕键）";
       hintEl.classList.remove("is-wait");

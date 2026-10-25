@@ -352,10 +352,10 @@
       fgbUrl("/") +
       '">' +
       (toyLobby
-        ? '<span class="fgb-brand-toy-mark" aria-hidden="true"><span></span><span></span><span></span></span><span class="fgb-brand-text">家庭<em>游戏盒</em></span>'
+        ? '<span class="fgb-brand-toy-mark" aria-hidden="true"><span></span><span></span><span></span></span><span class="fgb-brand-text">MX游戏<em>盒子</em></span>'
         : consoleShell
-        ? '<span class="fgb-brand-mark" aria-hidden="true"></span><span class="fgb-brand-text">家庭<em>游戏盒</em></span>'
-        : "家庭<em>游戏盒</em>") +
+        ? '<span class="fgb-brand-mark" aria-hidden="true"></span><span class="fgb-brand-text">MX游戏<em>盒子</em></span>'
+        : "MX游戏<em>盒子</em>") +
       "</a>" +
       (title
         ? '<span class="fgb-page-kicker">' + escapeHtml(title) + "</span>"

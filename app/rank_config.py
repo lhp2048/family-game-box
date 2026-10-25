@@ -55,6 +55,8 @@ TIER_LABELS: Dict[str, str] = {
     "gushi-extra": "古诗词补充",
     "yingyong": "应用文",
     "mingzhu": "名著阅读",
+    "campaign": "闯关",
+    "classic": "名局",
     "primary": "入门",
     "junior": "初级",
     "senior": "中级",
@@ -72,6 +74,7 @@ GAME_TIERS: Dict[str, List[str]] = {
     "sudoku": STANDARD_TIER_IDS[:],
     "mental-speed": STANDARD_TIER_IDS[:],
     "number-slide": ["intro", "normal", "hard"],
+    "huarongdao": ["campaign", "classic"],
     "word-battle": ["primary", "junior", "senior", "ielts"],
 }
 

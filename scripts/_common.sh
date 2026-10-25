@@ -71,7 +71,7 @@ fgb_generate_games() {
   "${FGB_PYTHON}" games/24points/generate_play.py
 
   local game
-  for game in stroop cancel simon spot_diff maze sudoku mental_speed number_slide word_battle; do
+  for game in stroop cancel simon spot_diff maze sudoku mental_speed number_slide word_battle huarongdao; do
     "${FGB_PYTHON}" "games/${game}/generate.py"
   done
 

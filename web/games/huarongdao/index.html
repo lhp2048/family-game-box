@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>华容道</title>
+<link rel="stylesheet" href="/css/fgb-theme.css">
+
+<script>
+(function fgbDailyHead() {
+  if (/(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+    document.documentElement.classList.add("fgb-daily-mode");
+  }
+})();
+</script>
+<style>
+html.fgb-daily-mode #view-home,
+html.fgb-daily-mode #view-setup,
+html.fgb-daily-mode #view-casual,
+html.fgb-daily-mode #view-size,
+html.fgb-daily-mode #view-result,
+html.fgb-daily-mode #view-casual-done { display: none !important; }
+html.fgb-daily-mode .mode-btn,
+html.fgb-daily-mode #casual-extra,
+html.fgb-daily-mode #btn-next,
+html.fgb-daily-mode #btn-restart { display: none !important; }
+/* 闯关 iframe 内：收掉重复顶栏/长说明；棋盘边长由 --fgb-board 动态计算 */
+html.fgb-daily-mode {
+  --fgb-board: 280px;
+  height: 100%;
+}
+html.fgb-daily-mode body { height: 100%; }
+html.fgb-daily-mode:not(.fgb-play-scroll),
+html.fgb-daily-mode:not(.fgb-play-scroll) body { overflow: hidden; }
+html.fgb-daily-mode.fgb-play-scroll,
+html.fgb-daily-mode.fgb-play-scroll body { overflow: auto; }
+html.fgb-daily-mode .wrap {
+  width: 100%;
+  max-width: none;
+  padding: 0.35rem var(--play-gutter) 0.4rem;
+  box-sizing: border-box;
+}
+html.fgb-daily-mode #view-play > .topbar { display: none !important; }
+html.fgb-daily-mode #fgb-topbar,
+html.fgb-daily-mode #fgb-result { display: none !important; }
+html.fgb-daily-mode #view-play > .hint { margin: 0 0 0.3rem; min-height: 1.05em; font-size: 0.88rem; }
+html.fgb-daily-mode #view-play .tip { display: none !important; }
+html.fgb-daily-mode .clover {
+  width: var(--fgb-board) !important;
+  height: var(--fgb-board) !important;
+}
+html.fgb-daily-mode .clover-wrap { margin: 0.1rem 0 0.3rem; }
+html.fgb-daily-mode .leaf { font-size: calc(var(--fgb-board) * 0.11) !important; }
+html.fgb-daily-mode .card-board-wrap {
+  max-width: var(--fgb-board) !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+html.fgb-daily-mode .num-card .val {
+  font-size: calc(var(--fgb-board) * 0.14) !important;
+}
+html.fgb-daily-mode .num-card .expr {
+  font-size: calc(var(--fgb-board) * 0.045) !important;
+}
+html.fgb-daily-mode .sudoku-wrap { width: min(100%, var(--fgb-board)) !important; }
+html.fgb-daily-mode .sudoku { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .maze-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .grid-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .diff-panels { max-height: var(--fgb-board) !important; overflow: auto; }
+html.fgb-daily-mode .board {
+  width: min(100%, var(--fgb-board)) !important;
+  max-height: var(--fgb-board) !important;
+}
+</style>
+
+<style>
+
+:root {
+  --ink: #1a2b3c;
+  --muted: #5c6d7e;
+  --line: rgba(26, 43, 60, 0.12);
+  --paper: #fff8f0;
+  --panel: #ffffff;
+  --accent: #2ecc71;
+  --accent-deep: #1a9f68;
+  --warn: #e8a04a;
+  --danger: #e07060;
+  --shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
+  --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
+  --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --play-gutter: clamp(0.75rem, 3vw, 1.5rem);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: transparent;
+}
+body::before {
+  content: none;
+}
+.wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 1.6rem var(--play-gutter) 3rem;
+  min-width: 0;
+}
+.wrap.wide { width: 100%; max-width: none; }
+.hidden { display: none !important; }
+/* 平板横屏 / 矮视口：压缩边距；棋盘尺寸由各游戏用 vmin 吃满短边 */
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .wrap { padding: .55rem var(--play-gutter) 1rem; }
+  .wrap.wide { width: 100%; max-width: none; }
+  h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); margin-bottom: .2rem; }
+  .sub { margin: 0 0 .65rem; font-size: .88rem; }
+  .card { padding: .75rem; border-radius: 14px; }
+  .topbar { margin-bottom: .45rem; }
+  .hint { margin: 0 0 .4rem; min-height: 1.1em; font-size: .88rem; }
+  .actions { margin-top: .3rem; gap: .35rem; }
+  .actions button { padding: .35rem .2rem; font-size: .82rem; border-radius: 10px; }
+  .task-bar { padding: .45rem .65rem; margin-bottom: .5rem; }
+  .mode-btn { padding: .75rem .85rem; }
+  .choice-row { margin: .65rem 0; }
+  .choice-row button { padding: .65rem .3rem; }
+}
+h1 {
+  font-family: var(--display);
+  font-size: clamp(2rem, 8vw, 3rem);
+  margin: 0 0 .35rem;
+  letter-spacing: -.02em;
+  line-height: .95;
+}
+h1 em { font-style: italic; color: var(--accent); }
+.sub { margin: 0 0 1.4rem; color: var(--muted); line-height: 1.5; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 1.15rem;
+}
+.mode-grid { display: grid; gap: .75rem; }
+.mode-btn {
+  text-align: left;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 1rem 1.05rem;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.05);
+  transition: transform .15s ease, border-color .15s ease;
+}
+.mode-btn:hover { transform: translateY(-1px); border-color: rgba(62,207,142,.4); }
+.mode-btn strong { display: block; font-size: 1.15rem; margin-bottom: .25rem; }
+.mode-btn span { color: var(--muted); font-size: .92rem; }
+.choice-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin: 1rem 0; }
+.choice-row.two { grid-template-columns: repeat(2, 1fr); }
+.choice-row.six { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 640px) {
+  .choice-row.six { grid-template-columns: repeat(6, 1fr); }
+}
+.choice-row button {
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  padding: .9rem .4rem;
+  font: inherit;
+  font-weight: 700;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.05);
+}
+.choice-row button.active {
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #062016;
+  border-color: transparent;
+}
+.primary {
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  padding: .85rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  color: #062016;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  cursor: pointer;
+}
+.ghost {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: .7rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: .9rem;
+  color: var(--muted);
+  font-size: .92rem;
+  flex-wrap: wrap;
+}
+.topbar strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.hint {
+  text-align: center;
+  min-height: 1.4em;
+  margin: 0 0 .8rem;
+  color: var(--muted);
+  font-size: .95rem;
+}
+.hint.err { color: var(--danger); }
+.hint.ok { color: var(--accent); font-weight: 600; }
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .55rem;
+  margin-top: .75rem;
+}
+.actions.two { grid-template-columns: repeat(2, 1fr); }
+.actions button {
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  border-radius: 999px;
+  min-height: 44px;
+  padding: .65rem .4rem;
+  font: inherit;
+  font-weight: 700;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
+  cursor: pointer;
+  color: var(--ink);
+}
+.actions button.warn {
+  color: #a65c10;
+  background: linear-gradient(180deg, #fffef9 0%, #fff5e6 100%);
+  border-color: rgba(232, 160, 74, 0.35);
+}
+.actions button.danger {
+  color: #b33d30;
+  background: linear-gradient(180deg, #fff5f5 0%, #ffe8e6 100%);
+  border-color: rgba(224, 112, 96, 0.35);
+}
+.stats-list { margin: .8rem 0 1.1rem; padding: 0; list-style: none; }
+.stats-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: .55rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.stats-list li:last-child { border-bottom: 0; }
+.linkish {
+  display: inline-block;
+  margin-top: 1rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.grid-cells {
+  display: grid;
+  gap: 2px;
+  margin: .5rem 0;
+  user-select: none;
+}
+.grid-wrap { overflow: auto; max-height: min(82vmin, 720px); }
+.grid-cells button, .grid-cells .cell {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 2px solid rgba(26, 43, 60, 0.08);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff 0%, #f6fffb 100%);
+  color: var(--ink);
+  box-shadow: 0 2px 0 rgba(26, 43, 60, 0.05);
+  font: inherit;
+  font-weight: 600;
+  aspect-ratio: 1;
+  /* Safari：button+flex 会多出一块空壳，改用 grid 居中 */
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  min-width: 0;
+  line-height: 1;
+}
+.grid-cells button.marked {
+  background: rgba(62,207,142,.18);
+  color: var(--accent);
+  text-decoration: line-through;
+}
+.grid-cells button.found {
+  background: rgba(62,207,142,.25);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.grid-cells button.wrong-flash {
+  animation: wrongFlash .5s ease;
+}
+@keyframes wrongFlash {
+  0%, 100% { background: linear-gradient(180deg, #fff 0%, #f6fffb 100%); }
+  50% { background: rgba(224, 112, 96, 0.35); }
+}
+.task-bar {
+  text-align: center;
+  padding: .65rem .8rem;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #e8fff4 0%, #d4fce8 100%);
+  border: 2px solid rgba(46, 204, 113, 0.25);
+  color: var(--accent-deep);
+  font-weight: 700;
+  margin-bottom: .85rem;
+}
+
+
+.confirm-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(6, 14, 12, 0.72);
+  backdrop-filter: blur(2px);
+}
+.confirm-mask.hidden { display: none !important; }
+.confirm-box {
+  width: min(360px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.2rem 1.1rem;
+}
+.confirm-box p {
+  margin: 0 0 1.1rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .55rem;
+}
+.confirm-actions button {
+  border-radius: 14px;
+  padding: .75rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.confirm-actions .confirm-cancel {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+}
+.confirm-actions .confirm-ok {
+  border: 0;
+  color: #062016;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+}
+/* 统一完成反馈：轻量、不挡操作 */
+.celebrate {
+  position: fixed;
+  left: 50%;
+  top: 18%;
+  transform: translate(-50%, -12px) scale(.92);
+  z-index: 1100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease, transform .28s cubic-bezier(.2,.9,.3,1.2);
+}
+.celebrate.show {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+.celebrate-pill {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .7rem 1.1rem .7rem .85rem;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid rgba(62,207,142,.35);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+.celebrate-mark {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #062016;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .95rem;
+  line-height: 1;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(62,207,142,.35);
+  animation: celebratePulse .55s ease;
+}
+@keyframes celebratePulse {
+  0% { box-shadow: 0 0 0 0 rgba(15,122,90,.4); transform: scale(.85); }
+  60% { box-shadow: 0 0 0 10px rgba(15,122,90,0); transform: scale(1.06); }
+  100% { box-shadow: 0 0 0 0 rgba(15,122,90,0); transform: scale(1); }
+}
+.celebrate-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+}
+.celebrate.show .celebrate-burst {
+  animation: celebrateBurst .5s ease forwards;
+}
+.celebrate-burst:nth-child(1) { --dx: -28px; --dy: -22px; }
+.celebrate-burst:nth-child(2) { --dx: 30px; --dy: -18px; background: #c9a227; }
+.celebrate-burst:nth-child(3) { --dx: -22px; --dy: 24px; background: #9a4a12; }
+.celebrate-burst:nth-child(4) { --dx: 26px; --dy: 20px; background: #2471a3; }
+.celebrate-burst:nth-child(5) { --dx: 0; --dy: -32px; background: #7d3c98; }
+.celebrate-burst:nth-child(6) { --dx: 0; --dy: 30px; background: #1e8449; }
+@keyframes celebrateBurst {
+  0% { opacity: .9; transform: translate(0,0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3); }
+}
+
+
+.hrg-hero { text-align: center; margin-bottom: 1rem; }
+.hrg-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+.hrg-mode-grid { display: grid; gap: 0.75rem; }
+.hrg-level-list { display: grid; gap: 0.55rem; max-height: min(58vh, 520px); overflow: auto; }
+.hrg-level-btn {
+  text-align: left;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 0.75rem 0.9rem;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  color: var(--ink);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.05);
+}
+.hrg-level-btn strong { display: block; font-family: var(--display); font-size: 1.05rem; }
+.hrg-level-btn span { display: block; margin-top: 0.2rem; font-size: 0.82rem; color: var(--muted); }
+.hrg-level-btn.is-locked { opacity: 0.45; cursor: not-allowed; }
+.hrg-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: center;
+  margin-bottom: 0.55rem;
+}
+.hrg-toolbar button {
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  border-radius: 999px;
+  min-height: 42px;
+  padding: 0.45rem 0.85rem;
+  font: inherit;
+  font-weight: 700;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  box-shadow: 0 3px 0 rgba(26, 43, 60, 0.06);
+  cursor: pointer;
+}
+.hrg-meta {
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--muted);
+  margin: 0 0 0.45rem;
+  min-height: 1.2em;
+}
+.hrg-hint {
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--accent-deep);
+  min-height: 1.2em;
+  margin: 0 0 0.35rem;
+}
+.hrg-board-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 0.25rem 0 0.65rem;
+}
+.hrg-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(5, 1fr);
+  gap: clamp(3px, 0.8vw, 6px);
+  width: min(92vw, 360px);
+  aspect-ratio: 4 / 5;
+  padding: clamp(6px, 1.2vw, 10px);
+  border-radius: 18px;
+  border: 2px solid rgba(255, 159, 67, 0.35);
+  background: linear-gradient(165deg, #fff8f0 0%, #ffe8d4 45%, #fff5eb 100%);
+  box-shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
+  position: relative;
+  touch-action: none;
+}
+.hrg-exit {
+  grid-row: 5;
+  grid-column: 2 / span 2;
+  border: 2px dashed rgba(46, 204, 113, 0.55);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: #1a7a4a;
+  background: rgba(232, 255, 244, 0.55);
+  pointer-events: none;
+  z-index: 0;
+}
+.hrg-piece {
+  z-index: 1;
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  border-radius: 14px;
+  margin: 0;
+  padding: 0;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(0.95rem, 4vw, 1.25rem);
+  color: #1a2b3c;
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.08);
+  transition: transform 0.08s ease;
+}
+.hrg-piece:active { cursor: grabbing; }
+.hrg-piece.is-selected {
+  outline: 3px solid rgba(255, 159, 67, 0.65);
+  transform: translateY(-2px);
+}
+.hrg-cao {
+  background: linear-gradient(180deg, #ffd4a8 0%, #ffb07a 100%);
+  color: #6b2f10;
+}
+.hrg-v {
+  background: linear-gradient(180deg, #fffef9 0%, #f5efe0 100%);
+}
+.hrg-guan {
+  background: linear-gradient(180deg, #fff8eb 0%, #ffe4b8 100%);
+}
+.hrg-s {
+  background: linear-gradient(180deg, #e8fff4 0%, #c8f5e0 100%);
+  font-size: clamp(0.82rem, 3.2vw, 1rem);
+}
+.hrg-piece-label { pointer-events: none; }
+
+</style>
+</head>
+<body data-game-skin="huarongdao">
+<header id="fgb-topbar"></header>
+<div class="wrap">
+
+  <section id="view-home">
+    <div class="hrg-hero">
+      <p class="hrg-tag">经典滑块</p>
+      <h1>华容<em>道</em></h1>
+      <p class="sub">曹操逃出底部出口。拖动或方向键移动棋子；同一手势连续挪动只计 1 步。</p>
+    </div>
+    <div class="card hrg-mode-grid">
+      <button type="button" class="mode-btn" id="btn-campaign">
+        <strong>闯关模式</strong>
+        <span>18 关 · 解锁制 · 星级评价</span>
+      </button>
+      <button type="button" class="mode-btn" id="btn-classic">
+        <strong>经典十局</strong>
+        <span>名局挑战 · 按最少步数排行</span>
+      </button>
+    </div>
+    <a class="linkish fgb-nav-link" href="/">← 返回大厅</a>
+  </section>
+
+  <section id="view-pick" class="hidden">
+    <h1 id="pick-title">选关</h1>
+    <p class="sub">布局来自开源 jeantimex/klotski（MIT），最优步数为宏步（换子 +1）。</p>
+    <div class="card">
+      <div class="hrg-level-list" id="level-list"></div>
+      <div style="height:.65rem"></div>
+      <button type="button" class="ghost" id="btn-pick-back" style="width:100%">返回</button>
+    </div>
+  </section>
+
+  <section id="view-play" class="hidden">
+    <h1 id="play-title">对局</h1>
+    <p class="hrg-meta" id="hrg-meta"></p>
+    <div class="card play-card">
+      <div class="hrg-toolbar">
+        <button type="button" id="btn-undo">撤销</button>
+        <button type="button" id="btn-restart">重来</button>
+        <button type="button" id="btn-hint">看解法</button>
+        <button type="button" id="btn-exit-play">退出</button>
+      </div>
+      <p class="hrg-hint" id="hrg-hint"></p>
+      <div class="hrg-board-wrap">
+        <div class="hrg-board" id="hrg-board" aria-label="华容道棋盘"></div>
+      </div>
+      <p class="hint">步数 <strong id="hrg-steps">0</strong> · 曹操到达底部中间出口即胜</p>
+    </div>
+  </section>
+
+  <section id="view-result" class="hidden">
+    <h1>通关</h1>
+    <div class="card">
+      <ul class="stats-list">
+        <li><span>本局步数</span><strong id="res-steps">0</strong></li>
+        <li><span>最少步数</span><strong id="res-opt">0</strong></li>
+        <li><span>星级</span><strong id="res-stars">★★★</strong></li>
+        <li><span>用时</span><strong id="res-time">00:00</strong></li>
+      </ul>
+      <button type="button" class="primary" id="btn-again">再来一局</button>
+      <div style="height:.55rem"></div>
+      <button type="button" class="ghost" id="btn-back-pick" style="width:100%">选关</button>
+    </div>
+  </section>
+
+</div>
+
+<div id="fgb-result" class="fgb-result hidden" role="dialog" aria-modal="true" aria-labelledby="fgb-result-title">
+  <div class="fgb-result-box">
+    <h2 id="fgb-result-title" class="fgb-result-title">本局结束</h2>
+    <p id="fgb-result-sub" class="fgb-result-sub"></p>
+    <div id="fgb-result-stats" class="fgb-result-stats"></div>
+    <div class="fgb-result-actions">
+      <button type="button" class="fgb-btn" id="fgb-result-retry">再来一局</button>
+      <a class="fgb-btn-ghost" id="fgb-result-hall" href="/">回大厅</a>
+      <a class="fgb-btn-ghost" id="fgb-result-board" href="/leaderboard">排行榜</a>
+    </div>
+  </div>
+</div>
+
+
+<div class="confirm-mask hidden" id="confirm-mask" role="dialog" aria-modal="true">
+  <div class="confirm-box">
+    <p id="confirm-msg">确定？</p>
+    <div class="confirm-actions">
+      <button type="button" class="confirm-cancel" id="confirm-cancel">取消</button>
+      <button type="button" class="confirm-ok" id="confirm-ok">确定</button>
+    </div>
+  </div>
+</div>
+<div class="celebrate hidden" id="celebrate" aria-live="polite">
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <div class="celebrate-pill">
+    <span class="celebrate-mark">✓</span>
+    <span id="celebrate-text">完成！</span>
+  </div>
+</div>
+
+<script src="/js/fgb-daily.js"></script>
+<script src="/js/fgb-client.js"></script>
+<script src="/js/fgb-ui.js"></script>
+<script src="/js/fgb-shell.js"></script>
+<script src="hrd-solver.js"></script>
+<script>
+/* fgb-daily-boot */
+
+function showView(views, name) {
+  if (window.__FGB_IS_DAILY__ && name !== "play") return;
+  Object.keys(views).forEach(function (k) {
+    views[k].classList.toggle("hidden", k !== name);
+  });
+}
+function fmtTime(ms) {
+  var s = Math.floor(ms / 1000);
+  var m = Math.floor(s / 60);
+  var r = s % 60;
+  return String(m).padStart(2, "0") + ":" + String(r).padStart(2, "0");
+}
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = (Math.random() * (i + 1)) | 0;
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function randInt(n) { return (Math.random() * n) | 0; }
+function pick(arr) { return arr[randInt(arr.length)]; }
+
+var FGB_MSG = {
+  exitConfirm: "退出并查看统计？",
+  done: "完成！",
+  sessionDone: "本局完成！"
+};
+
+var _confirmCb = null;
+function askConfirm(message, onYes, onNo) {
+  var mask = document.getElementById("confirm-mask");
+  var msg = document.getElementById("confirm-msg");
+  if (!mask || !msg) {
+    // 无页面内弹层时走 FGBUI；禁止回退到浏览器 confirm/alert
+    if (window.FGBUI && FGBUI.askConfirm) {
+      FGBUI.askConfirm(message, onYes, onNo);
+      return;
+    }
+    if (onYes) onYes();
+    return;
+  }
+  msg.textContent = message || FGB_MSG.exitConfirm;
+  _confirmCb = { yes: onYes, no: onNo };
+  mask.classList.remove("hidden");
+}
+function _resolveConfirm(ok) {
+  var mask = document.getElementById("confirm-mask");
+  if (mask) mask.classList.add("hidden");
+  var cb = _confirmCb;
+  _confirmCb = null;
+  if (!cb) return;
+  if (ok && cb.yes) cb.yes();
+  if (!ok && cb.no) cb.no();
+}
+(function bindConfirmUI() {
+  var ok = document.getElementById("confirm-ok");
+  var cancel = document.getElementById("confirm-cancel");
+  var mask = document.getElementById("confirm-mask");
+  if (ok) ok.addEventListener("click", function () { _resolveConfirm(true); });
+  if (cancel) cancel.addEventListener("click", function () { _resolveConfirm(false); });
+  if (mask) mask.addEventListener("click", function (e) {
+    if (e.target === mask) _resolveConfirm(false);
+  });
+})();
+
+var _celebrateTimer = null;
+/** 轻量完成动效：不挡点击，约 0.5s 自动消失 */
+function celebrate(message) {
+  var el = document.getElementById("celebrate");
+  var text = document.getElementById("celebrate-text");
+  if (!el || !text) return;
+  text.textContent = message || FGB_MSG.done;
+  el.classList.remove("show");
+  void el.offsetWidth;
+  el.classList.add("show");
+  el.classList.remove("hidden");
+  if (_celebrateTimer) clearTimeout(_celebrateTimer);
+  _celebrateTimer = setTimeout(function () {
+    el.classList.remove("show");
+    setTimeout(function () { el.classList.add("hidden"); }, 200);
+  }, 520);
+}
+/** 播完成动效后短延迟回调；默认 480ms，几乎不拖慢下一局 */
+function celebrateThen(message, callback, delayMs) {
+  celebrate(message);
+  var wait = delayMs == null ? 480 : delayMs;
+  setTimeout(function () {
+    if (callback) callback();
+  }, wait);
+}
+
+
+(function () {
+  var qraw = location.search || "";
+  if (!/(?:^|[?&])daily=1(?:&|$)/.test(qraw)) return;
+  var params = new URLSearchParams(qraw);
+  var q = {
+    daily: true,
+    runId: params.get("runId") || "",
+    tier: params.get("tier") || "normal",
+    seed: Number(params.get("seed") || "0") || 1,
+    stageIndex: Number(params.get("stageIndex") || "0") || 0,
+  };
+  window.__FGB_DAILY_Q__ = q;
+  window.__FGB_IS_DAILY__ = true;
+  document.documentElement.classList.add("fgb-daily-mode");
+  if (window.FGBDaily && FGBDaily.installMathRandom) {
+    FGBDaily.installMathRandom(q.seed);
+  }
+  if (window.FGBDaily && FGBDaily.installFitPlay) {
+    FGBDaily.installFitPlay({ min: 168, max: 480, pad: 16 });
+  }
+  window.fgbSubmitScore = function (payload) {
+    var ms = 0;
+    if (payload && payload.metrics && payload.metrics.timeMs != null) ms = payload.metrics.timeMs | 0;
+    if (window.FGBDaily && FGBDaily.notifyStageDone) FGBDaily.notifyStageDone(ms);
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-stage-done", timeMs: ms }, "*");
+    }
+  };
+  function abortDaily(e) {
+    if (e) {
+      e.preventDefault();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      else e.stopPropagation();
+    }
+    if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-abort" }, "*");
+    }
+  }
+  var base = (window.__FGB_BASE__ || "").replace(/\/$/, "");
+  var homeSel = 'a.linkish[href="/"], a[href="/"]';
+  if (base) {
+    homeSel += ', a.linkish[href="' + base + '/"], a[href="' + base + '/"], a.linkish[href="' + base + '"], a[href="' + base + '"]';
+  }
+  document.querySelectorAll(homeSel).forEach(function (a) {
+    a.textContent = "退出本关";
+    a.href = "#";
+    a.addEventListener("click", abortDaily);
+  });
+  // 游戏内退出按钮：每日模式禁止 show(home)，须通知父页结束挑战
+  ["btn-exit", "btn-exit-casual", "btn-exit-challenge", "btn-quit"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", abortDaily, true);
+  });
+})();
+
+/* fgb-game-chrome-boot */
+(function () {
+  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) return;
+  var el = document.getElementById("fgb-topbar");
+  if (!el || !window.FGBShell || !FGBShell.mountTopbar) return;
+  FGBShell.mountTopbar(el, {
+    title: "华容道",
+    showBack: true,
+    backHref: "/",
+    showUser: true
+  });
+})();
+
+var HRD_LAYOUTS = {"version":1,"board":{"rows":5,"cols":4},"escape":{"row":3,"col":1},"source":"jeantimex/klotski hrd-games.json (MIT)","notes":[],"layouts":[{"id":"camp-01","name":"初出茅庐","mode":"campaign","optimal":3,"verifiedMacro":3,"pieces":[{"id":"cao","type":"cao","label":"曹","r":3,"c":0,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":2,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":0,"c":1,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":0,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":3,"c":2,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":2,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":2,"c":1,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":2,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":3,"w":1,"h":1}]},{"id":"camp-02","name":"匹马单枪","mode":"campaign","optimal":7,"verifiedMacro":7,"pieces":[{"id":"cao","type":"cao","label":"曹","r":2,"c":0,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":2,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":0,"c":1,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":0,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":3,"c":2,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":2,"c":2,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":2,"c":3,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":0,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":3,"w":1,"h":1}]},{"id":"camp-03","name":"兵挡将阻","mode":"campaign","optimal":12,"verifiedMacro":12,"pieces":[{"id":"cao","type":"cao","label":"曹","r":2,"c":0,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":0,"c":1,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":4,"c":2,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":2,"c":2,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":3,"c":2,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":0,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":1,"w":1,"h":1}]},{"id":"camp-04","name":"众兵挡道","mode":"campaign","optimal":18,"verifiedMacro":18,"pieces":[{"id":"cao","type":"cao","label":"曹","r":2,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":2,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":0,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":4,"c":2,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":0,"c":2,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":1,"c":1,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":0,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":1,"w":1,"h":1}]},{"id":"camp-05","name":"左右为难","mode":"campaign","optimal":25,"verifiedMacro":25,"pieces":[{"id":"cao","type":"cao","label":"曹","r":2,"c":2,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":3,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":2,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":0,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":0,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":4,"c":2,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":0,"c":1,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":1,"c":1,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":1,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":3,"c":1,"w":1,"h":1}]},{"id":"camp-06","name":"齐头并进","mode":"campaign","optimal":32,"verifiedMacro":32,"pieces":[{"id":"cao","type":"cao","label":"曹","r":2,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":3,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":1,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":4,"c":2,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":0,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":0,"c":1,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":1,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":1,"c":1,"w":1,"h":1}]},{"id":"camp-07","name":"燕飞南北","mode":"campaign","optimal":38,"verifiedMacro":38,"pieces":[{"id":"cao","type":"cao","label":"曹","r":1,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":3,"c":1,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":3,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":4,"c":2,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":2,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":0,"c":1,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":3,"c":2,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":0,"c":2,"w":1,"h":1}]},{"id":"camp-08","name":"风烟四起","mode":"campaign","optimal":44,"verifiedMacro":44,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":2,"c":1,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":4,"c":2,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":2,"c":2,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":1,"c":0,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":3,"c":2,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":0,"c":0,"w":1,"h":1}]},{"id":"camp-09","name":"鸟飞汉阳","mode":"campaign","optimal":50,"verifiedMacro":50,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":2,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":2,"c":1,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":2,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":2,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":4,"c":0,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":4,"c":2,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":1,"c":0,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":3,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":0,"c":0,"w":1,"h":1}]},{"id":"camp-10","name":"一路顺风","mode":"campaign","optimal":56,"verifiedMacro":56,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":2,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":1,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":2,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":4,"c":0,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":4,"c":2,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":3,"c":0,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":3,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":2,"c":0,"w":1,"h":1}]},{"id":"camp-11","name":"雨声淅沥","mode":"campaign","optimal":62,"verifiedMacro":70,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":3,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":3,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":2,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":2,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":2,"c":3,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":3,"c":1,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":3,"c":2,"w":1,"h":1}]},{"id":"camp-12","name":"捷足先登","mode":"campaign","optimal":68,"verifiedMacro":70,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":3,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":3,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":2,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":2,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":2,"c":3,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":3,"c":1,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":3,"c":2,"w":1,"h":1}]},{"id":"camp-13","name":"束手无策","mode":"campaign","optimal":72,"verifiedMacro":72,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":1,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":1,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":1,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":2,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":4,"c":0,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":3,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":3,"c":3,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":2,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":3,"w":1,"h":1}]},{"id":"camp-14","name":"将拥曹营","mode":"campaign","optimal":75,"verifiedMacro":72,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":1,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":1,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":1,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":2,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":4,"c":0,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":3,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":3,"c":3,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":2,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":3,"w":1,"h":1}]},{"id":"camp-15","name":"层层设防","mode":"campaign","optimal":77,"verifiedMacro":81,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":2,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":3,"c":1,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":3,"c":2,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":0,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":3,"w":1,"h":1}]},{"id":"camp-16","name":"指挥若定","mode":"campaign","optimal":79,"verifiedMacro":81,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":2,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":3,"c":1,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":3,"c":2,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":0,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":3,"w":1,"h":1}]},{"id":"camp-17","name":"峰回路转","mode":"campaign","optimal":80,"verifiedMacro":81,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":2,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":3,"c":1,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":3,"c":2,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":0,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":3,"w":1,"h":1}]},{"id":"camp-18","name":"横刀立马","mode":"campaign","optimal":81,"verifiedMacro":81,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":2,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":3,"c":1,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":3,"c":2,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":0,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":3,"w":1,"h":1}]},{"id":"classic-01","name":"捷足先登","mode":"classic","optimal":32,"verifiedMacro":32,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":3,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":3,"c":1,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":3,"c":2,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":3,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":2,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":0,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":0,"c":3,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":1,"c":0,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":1,"c":3,"w":1,"h":1}]},{"id":"classic-02","name":"兵分三路","mode":"classic","optimal":73,"verifiedMacro":73,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":1,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":1,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":3,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":3,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":2,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":0,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":0,"c":3,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":3,"c":1,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":3,"c":2,"w":1,"h":1}]},{"id":"classic-03","name":"一路顺风","mode":"classic","optimal":39,"verifiedMacro":39,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":2,"c":0,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":3,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":3,"c":2,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":2,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":0,"c":3,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":1,"c":3,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":3,"c":1,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":1,"w":1,"h":1}]},{"id":"classic-04","name":"雨声淅沥","mode":"classic","optimal":47,"verifiedMacro":47,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":2,"c":0,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":3,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":3,"c":1,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":2,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":0,"c":3,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":1,"c":3,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":0,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":3,"w":1,"h":1}]},{"id":"classic-05","name":"齐头并进","mode":"classic","optimal":60,"verifiedMacro":60,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":3,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":3,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":3,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":2,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":2,"c":1,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":2,"c":2,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":2,"c":3,"w":1,"h":1}]},{"id":"classic-06","name":"指挥若定","mode":"classic","optimal":70,"verifiedMacro":70,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":3,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":3,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":2,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":2,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":2,"c":3,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":3,"c":1,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":3,"c":2,"w":1,"h":1}]},{"id":"classic-07","name":"将拥曹营","mode":"classic","optimal":72,"verifiedMacro":72,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":1,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":1,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":1,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":2,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":4,"c":0,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":3,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":3,"c":3,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":2,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":3,"w":1,"h":1}]},{"id":"classic-08","name":"横刀立马","mode":"classic","optimal":81,"verifiedMacro":81,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":0,"w":1,"h":2},{"id":"v4","type":"v","label":"黄","r":2,"c":3,"w":1,"h":2},{"id":"guan5","type":"guan","label":"关","r":2,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":3,"c":1,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":3,"c":2,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":4,"c":0,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":3,"w":1,"h":1}]},{"id":"classic-09","name":"层层设防","mode":"classic","optimal":102,"verifiedMacro":102,"pieces":[{"id":"cao","type":"cao","label":"曹","r":0,"c":1,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":0,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":0,"c":3,"w":1,"h":2},{"id":"guan3","type":"guan","label":"关","r":2,"c":1,"w":2,"h":1},{"id":"guan4","type":"guan","label":"关","r":3,"c":1,"w":2,"h":1},{"id":"guan5","type":"guan","label":"关","r":4,"c":1,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":2,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":2,"c":3,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":3,"c":0,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":3,"c":3,"w":1,"h":1}]},{"id":"classic-10","name":"峰回路转","mode":"classic","optimal":138,"verifiedMacro":138,"pieces":[{"id":"cao","type":"cao","label":"曹","r":1,"c":0,"w":2,"h":2},{"id":"v1","type":"v","label":"张","r":0,"c":3,"w":1,"h":2},{"id":"v2","type":"v","label":"马","r":1,"c":2,"w":1,"h":2},{"id":"v3","type":"v","label":"关","r":2,"c":3,"w":1,"h":2},{"id":"guan4","type":"guan","label":"关","r":3,"c":1,"w":2,"h":1},{"id":"guan5","type":"guan","label":"关","r":4,"c":2,"w":2,"h":1},{"id":"s6","type":"s","label":"兵","r":0,"c":0,"w":1,"h":1},{"id":"s7","type":"s","label":"兵","r":0,"c":1,"w":1,"h":1},{"id":"s8","type":"s","label":"兵","r":0,"c":2,"w":1,"h":1},{"id":"s9","type":"s","label":"兵","r":4,"c":1,"w":1,"h":1}]}]};
+/* global HRD_LAYOUTS, Klotski, FGBUI, FGBShell, fgbSubmitScore, celebrate, askConfirm, fmtTime */
+(function () {
+  "use strict";
+
+  var ROWS = 5;
+  var COLS = 4;
+  var ESC = (HRD_LAYOUTS && HRD_LAYOUTS.escape) || { row: 3, col: 1 };
+  var LEVELS = (HRD_LAYOUTS && HRD_LAYOUTS.layouts) || [];
+
+  var views = {
+    home: document.getElementById("view-home"),
+    pick: document.getElementById("view-pick"),
+    play: document.getElementById("view-play"),
+    result: document.getElementById("view-result"),
+  };
+
+  var mode = "campaign";
+  var levelId = "";
+  var levelMeta = null;
+  var pieces = [];
+  var steps = 0;
+  var startedAt = 0;
+  var playing = false;
+  var selectedId = null;
+  var undoStack = [];
+  var drag = null;
+  var campaignUnlock = 1;
+
+  function loadUnlock() {
+    try {
+      var n = parseInt(localStorage.getItem("hrg-campaign-unlock") || "1", 10);
+      campaignUnlock = isNaN(n) ? 1 : Math.max(1, Math.min(18, n));
+    } catch (e) {
+      campaignUnlock = 1;
+    }
+  }
+
+  function saveUnlock(n) {
+    campaignUnlock = Math.max(campaignUnlock, n);
+    try {
+      localStorage.setItem("hrg-campaign-unlock", String(campaignUnlock));
+    } catch (e) {}
+  }
+
+  function show(name) {
+    Object.keys(views).forEach(function (k) {
+      views[k].classList.toggle("hidden", k !== name);
+    });
+  }
+
+  function levelsFor(m) {
+    return LEVELS.filter(function (lv) {
+      return lv.mode === m;
+    });
+  }
+
+  function findLevel(id) {
+    for (var i = 0; i < LEVELS.length; i++) {
+      if (LEVELS[i].id === id) return LEVELS[i];
+    }
+    return null;
+  }
+
+  function clonePieces(src) {
+    return src.map(function (p) {
+      return {
+        id: p.id,
+        type: p.type,
+        label: p.label,
+        r: p.r,
+        c: p.c,
+        w: p.w,
+        h: p.h,
+      };
+    });
+  }
+
+  function snapshot() {
+    return JSON.stringify(clonePieces(pieces));
+  }
+
+  function restore(snap) {
+    pieces = JSON.parse(snap);
+  }
+
+  function isWin() {
+    var cao = pieces.filter(function (p) {
+      return p.type === "cao";
+    })[0];
+    return cao && cao.r === ESC.row && cao.c === ESC.col;
+  }
+
+  function occupancy(excludeId) {
+    var grid = [];
+    var r, c;
+    for (r = 0; r < ROWS; r++) {
+      grid[r] = [];
+      for (c = 0; c < COLS; c++) grid[r][c] = -1;
+    }
+    pieces.forEach(function (p, idx) {
+      if (p.id === excludeId) return;
+      for (r = 0; r < p.h; r++) {
+        for (c = 0; c < p.w; c++) {
+          grid[p.r + r][p.c + c] = idx;
+        }
+      }
+    });
+    return grid;
+  }
+
+  function canPlace(p, nr, nc, excludeId) {
+    if (nr < 0 || nc < 0 || nr + p.h > ROWS || nc + p.w > COLS) return false;
+    var grid = occupancy(excludeId);
+    var r, c;
+    for (r = 0; r < p.h; r++) {
+      for (c = 0; c < p.w; c++) {
+        if (grid[nr + r][nc + c] !== -1) return false;
+      }
+    }
+    return true;
+  }
+
+  function pieceAt(nr, nc) {
+    for (var i = 0; i < pieces.length; i++) {
+      var p = pieces[i];
+      if (nr >= p.r && nr < p.r + p.h && nc >= p.c && nc < p.c + p.w) return p;
+    }
+    return null;
+  }
+
+  function tryMovePiece(id, dr, dc) {
+    var p = pieces.filter(function (x) {
+      return x.id === id;
+    })[0];
+    if (!p) return false;
+    var nr = p.r + dr;
+    var nc = p.c + dc;
+    if (!canPlace(p, nr, nc, id)) return false;
+    p.r = nr;
+    p.c = nc;
+    return true;
+  }
+
+  function slideSelected(dr, dc) {
+    if (!selectedId || !playing) return false;
+    var moved = false;
+    while (tryMovePiece(selectedId, dr, dc)) moved = true;
+    return moved;
+  }
+
+  function piecesToBlocks() {
+    return pieces.map(function (p) {
+      return { shape: [p.h, p.w], position: [p.r, p.c] };
+    });
+  }
+
+  function macroCount(moves) {
+    if (!moves || !moves.length) return 0;
+    var macro = 0;
+    var last = -1;
+    moves.forEach(function (m) {
+      if (m.blockIdx !== last) macro += 1;
+      last = m.blockIdx;
+    });
+    return macro;
+  }
+
+  function renderBoard() {
+    var board = document.getElementById("hrg-board");
+    if (!board) return;
+    board.innerHTML = "";
+    var exit = document.createElement("div");
+    exit.className = "hrg-exit";
+    exit.setAttribute("aria-hidden", "true");
+    exit.textContent = "出口";
+    board.appendChild(exit);
+
+    pieces.forEach(function (p) {
+      var el = document.createElement("button");
+      el.type = "button";
+      el.className =
+        "hrg-piece hrg-" +
+        p.type +
+        (p.id === selectedId ? " is-selected" : "");
+      el.dataset.id = p.id;
+      el.style.gridRow = p.r + 1 + " / span " + p.h;
+      el.style.gridColumn = p.c + 1 + " / span " + p.w;
+      el.innerHTML =
+        '<span class="hrg-piece-label">' + (p.label || "") + "</span>";
+      board.appendChild(el);
+    });
+  }
+
+  function updateHud() {
+    var meta = document.getElementById("hrg-meta");
+    var st = document.getElementById("hrg-steps");
+    if (st) st.textContent = String(steps);
+    if (meta && levelMeta) {
+      meta.textContent =
+        levelMeta.name +
+        " · 最少 " +
+        levelMeta.optimal +
+        " 步 · 已走 " +
+        steps +
+        " 步";
+    }
+  }
+
+  function starsFor(optimal, used) {
+    if (used <= optimal * 1.2) return 3;
+    if (used <= optimal * 2) return 2;
+    return 1;
+  }
+
+  function finish() {
+    playing = false;
+    var elapsed = Date.now() - startedAt;
+    var stars = starsFor(levelMeta.optimal, steps);
+    document.getElementById("res-steps").textContent = String(steps);
+    document.getElementById("res-opt").textContent = String(levelMeta.optimal);
+    document.getElementById("res-stars").textContent =
+      "★".repeat(stars) + "☆".repeat(3 - stars);
+    document.getElementById("res-time").textContent = fmtTime(elapsed);
+    show("result");
+    celebrate("通关！");
+    if (mode === "campaign") {
+      var num = parseInt(levelId.replace("camp-", ""), 10);
+      if (!isNaN(num) && num >= campaignUnlock) saveUnlock(num + 1);
+    }
+    if (typeof fgbSubmitScore === "function") {
+      fgbSubmitScore({
+        gameId: "huarongdao",
+        mode: mode === "campaign" ? "challenge" : "casual",
+        tier: levelId,
+        tierLabel: levelMeta.name,
+        metrics: {
+          timeMs: elapsed,
+          moves: steps,
+          done: 1,
+          total: 1,
+          stars: stars,
+        },
+      });
+    }
+  }
+
+  function pushUndo() {
+    undoStack.push(snapshot());
+  }
+
+  function onMoved(didMove) {
+    if (!didMove) return;
+    steps += 1;
+    updateHud();
+    renderBoard();
+    if (isWin()) finish();
+  }
+
+  function beginLevel(id) {
+    levelMeta = findLevel(id);
+    if (!levelMeta) return;
+    levelId = id;
+    pieces = clonePieces(levelMeta.pieces);
+    steps = 0;
+    undoStack = [];
+    selectedId = null;
+    playing = true;
+    startedAt = Date.now();
+    document.getElementById("play-title").textContent = levelMeta.name;
+    updateHud();
+    renderBoard();
+    show("play");
+  }
+
+  function renderPickList() {
+    var list = document.getElementById("level-list");
+    if (!list) return;
+    list.innerHTML = "";
+    var items = levelsFor(mode);
+    items.forEach(function (lv, idx) {
+      var locked =
+        mode === "campaign" && idx + 1 > campaignUnlock;
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "hrg-level-btn" + (locked ? " is-locked" : "");
+      btn.disabled = locked;
+      btn.innerHTML =
+        "<strong>" +
+        lv.name +
+        "</strong><span>最少 " +
+        lv.optimal +
+        " 步" +
+        (lv.verifiedMacro != null
+          ? " · 验证 " + lv.verifiedMacro
+          : "") +
+        "</span>";
+      btn.addEventListener("click", function () {
+        if (!locked) beginLevel(lv.id);
+      });
+      list.appendChild(btn);
+    });
+  }
+
+  function blocksForSolver() {
+    return piecesToBlocks();
+  }
+
+  function showHint() {
+    if (!playing || typeof Klotski === "undefined") return;
+    var k = new Klotski();
+    var moves = k.solve({ blocks: blocksForSolver() });
+    if (!moves || !moves.length) {
+      document.getElementById("hrg-hint").textContent = "暂无解法提示";
+      return;
+    }
+    var fwd = moves.slice().reverse();
+    var m = fwd[0];
+    var p = pieces[m.blockIdx];
+    if (p) selectedId = p.id;
+    var names = ["下", "右", "上", "左"];
+    document.getElementById("hrg-hint").textContent =
+      "提示：移动「" + (p ? p.label : "") + "」向" + names[m.dirIdx];
+    renderBoard();
+  }
+
+  function bindBoard() {
+    var board = document.getElementById("hrg-board");
+    if (!board) return;
+
+    board.addEventListener("click", function (e) {
+      var t = e.target.closest(".hrg-piece");
+      if (!t || !playing) return;
+      selectedId = t.dataset.id;
+      renderBoard();
+    });
+
+    function onPointerDown(e) {
+      var t = e.target.closest(".hrg-piece");
+      if (!t || !playing) return;
+      selectedId = t.dataset.id;
+      var p = pieces.filter(function (x) {
+        return x.id === selectedId;
+      })[0];
+      if (!p) return;
+      drag = {
+        id: selectedId,
+        startR: p.r,
+        startC: p.c,
+        moved: false,
+        lastX: e.clientX,
+        lastY: e.clientY,
+      };
+      pushUndo();
+      e.preventDefault();
+    }
+
+    function onPointerMove(e) {
+      if (!drag || !playing) return;
+      var dx = e.clientX - drag.lastX;
+      var dy = e.clientY - drag.lastY;
+      var adx = Math.abs(dx);
+      var ady = Math.abs(dy);
+      if (adx < 14 && ady < 14) return;
+      var dr = 0;
+      var dc = 0;
+      if (adx > ady) dc = dx > 0 ? 1 : -1;
+      else dr = dy > 0 ? 1 : -1;
+      if (tryMovePiece(drag.id, dr, dc)) {
+        drag.moved = true;
+        drag.lastX = e.clientX;
+        drag.lastY = e.clientY;
+        renderBoard();
+      }
+    }
+
+    function onPointerUp() {
+      if (!drag) return;
+      if (drag.moved) onMoved(true);
+      else undoStack.pop();
+      drag = null;
+    }
+
+    board.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
+  }
+
+  document.getElementById("btn-campaign").addEventListener("click", function () {
+    mode = "campaign";
+    document.getElementById("pick-title").textContent = "闯关模式";
+    loadUnlock();
+    renderPickList();
+    show("pick");
+  });
+
+  document.getElementById("btn-classic").addEventListener("click", function () {
+    mode = "classic";
+    document.getElementById("pick-title").textContent = "经典十局";
+    renderPickList();
+    show("pick");
+  });
+
+  document.getElementById("btn-pick-back").addEventListener("click", function () {
+    show("home");
+  });
+
+  document.getElementById("btn-undo").addEventListener("click", function () {
+    if (!playing || !undoStack.length) return;
+    restore(undoStack.pop());
+    steps = Math.max(0, steps - 1);
+    updateHud();
+    renderBoard();
+  });
+
+  document.getElementById("btn-restart").addEventListener("click", function () {
+    beginLevel(levelId);
+  });
+
+  document.getElementById("btn-hint").addEventListener("click", showHint);
+
+  document.getElementById("btn-exit-play").addEventListener("click", function () {
+    askConfirm("确定退出本局？", function () {
+      playing = false;
+      show(mode === "campaign" ? "pick" : "pick");
+      renderPickList();
+    });
+  });
+
+  document.getElementById("btn-again").addEventListener("click", function () {
+    beginLevel(levelId);
+  });
+
+  document.getElementById("btn-back-pick").addEventListener("click", function () {
+    show("pick");
+    renderPickList();
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (views.play.classList.contains("hidden") || !playing) return;
+    var map = {
+      ArrowUp: [-1, 0],
+      ArrowDown: [1, 0],
+      ArrowLeft: [0, -1],
+      ArrowRight: [0, 1],
+      w: [-1, 0],
+      s: [1, 0],
+      a: [0, -1],
+      d: [0, 1],
+    };
+    var k = e.key;
+    var d = map[k] || map[k.toLowerCase()];
+    if (!d) return;
+    e.preventDefault();
+    if (!selectedId) {
+      selectedId = pieces[0] && pieces[0].id;
+    }
+    pushUndo();
+    if (slideSelected(d[0], d[1])) onMoved(true);
+    else undoStack.pop();
+  });
+
+  loadUnlock();
+  bindBoard();
+  show("home");
+})();
+
+</script>
+</body>
+</html>

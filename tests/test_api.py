@@ -32,6 +32,7 @@ GAME_IDS = [
     "sudoku",
     "mental-speed",
     "number-slide",
+    "huarongdao",
     "word-battle",
     "yuwen",
     "24points-library",
@@ -268,6 +269,24 @@ def test_number_slide_daily_candidate():
     from app.game_registry import daily_candidate_games
 
     assert "number-slide" in [g["id"] for g in daily_candidate_games()]
+
+
+def test_huarongdao_page():
+    login_as(client, "hrd_player")
+    r = client.get(p("/games/huarongdao/"))
+    assert r.status_code == 200
+    text = r.text
+    assert "华容道" in text
+    assert 'data-game-skin="huarongdao"' in text
+    assert 'id="hrg-board"' in text or 'class="hrg-board"' in text
+    assert "hrd-solver.js" in text
+    assert "fgb-shell.js" in text
+
+
+def test_huarongdao_not_daily_candidate():
+    from app.game_registry import daily_candidate_games
+
+    assert "huarongdao" not in [g["id"] for g in daily_candidate_games()]
 
 
 def test_word_battle_page():

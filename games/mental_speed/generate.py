@@ -150,7 +150,6 @@ EXTRA_CSS = r"""
   min-height: 1.1em;
 }
 @media (orientation: landscape) and (min-width: 640px) {
-  .wrap { width: min(720px, calc(100% - 1.5rem)); }
   .ms-play-grid {
     display: grid;
     grid-template-columns: 1fr min(300px, 42vw);

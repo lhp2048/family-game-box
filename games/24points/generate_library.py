@@ -102,9 +102,12 @@ body {
 body::before { content: none; }
 .wrap {
   position: relative;
-  width: min(960px, calc(100% - 2rem));
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   margin: 0 auto;
-  padding: 2.5rem 0 4rem;
+  padding: 2.5rem var(--console-gutter, clamp(0.75rem, 3vw, 1.5rem)) 4rem;
+  min-width: 0;
 }
 .brand {
   font-family: var(--display);

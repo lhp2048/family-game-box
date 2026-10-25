@@ -149,6 +149,16 @@ BUILTIN_GAMES: List[Dict[str, Any]] = [
         "tiers": ["intro", "normal", "hard"],
     },
     {
+        "id": "huarongdao",
+        "title": "华容道",
+        "subtitle": "经典 Klotski · 闯关与名局",
+        "path": "/games/huarongdao/",
+        "entry": "index.html",
+        "supportsDaily": False,
+        "rankable": True,
+        "tiers": ["campaign", "classic"],
+    },
+    {
         "id": "word-battle",
         "title": "单词大作战",
         "subtitle": "听音拼写 · 入门到高级",

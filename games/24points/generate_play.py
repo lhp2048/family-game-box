@@ -183,10 +183,19 @@ body {
   background: transparent;
 }
 body::before { content: none; }
-.wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
+.wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 1.6rem var(--play-gutter, clamp(0.75rem, 3vw, 1.5rem)) 3rem;
+  min-width: 0;
+}
 .hidden { display: none !important; }
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
-  .wrap { padding: .55rem 0 1rem; width: min(560px, calc(100% - 1rem)); }
+  .wrap { padding: .55rem var(--play-gutter, clamp(0.75rem, 3vw, 1.5rem)) 1rem; }
   h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); }
   .sub { margin: 0 0 .65rem; font-size: .88rem; }
   .card { padding: .75rem; border-radius: 14px; }

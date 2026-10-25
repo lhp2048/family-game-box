@@ -31,9 +31,12 @@ body {
 body::before { content: none; }
 .wrap {
   position: relative;
-  width: min(960px, calc(100% - 2rem));
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   margin: 0 auto;
-  padding: 2.5rem 0 4rem;
+  padding: 2.5rem var(--console-gutter, clamp(0.75rem, 3vw, 1.5rem)) 4rem;
+  min-width: 0;
 }
 .brand {
   font-family: var(--display);
@@ -235,8 +238,9 @@ html.fgb-daily-mode:not(.fgb-play-scroll) body { overflow: hidden; }
 html.fgb-daily-mode.fgb-play-scroll,
 html.fgb-daily-mode.fgb-play-scroll body { overflow: auto; }
 html.fgb-daily-mode .wrap {
-  width: min(720px, calc(100% - 0.75rem));
-  padding: 0.35rem 0 0.4rem;
+  width: 100%;
+  max-width: none;
+  padding: 0.35rem var(--play-gutter, clamp(0.75rem, 3vw, 1.5rem)) 0.4rem;
   box-sizing: border-box;
 }
 html.fgb-daily-mode #view-play > .topbar { display: none !important; }

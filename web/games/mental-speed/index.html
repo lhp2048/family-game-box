@@ -35,8 +35,9 @@ html.fgb-daily-mode:not(.fgb-play-scroll) body { overflow: hidden; }
 html.fgb-daily-mode.fgb-play-scroll,
 html.fgb-daily-mode.fgb-play-scroll body { overflow: auto; }
 html.fgb-daily-mode .wrap {
-  width: min(720px, calc(100% - 0.75rem));
-  padding: 0.35rem 0 0.4rem;
+  width: 100%;
+  max-width: none;
+  padding: 0.35rem var(--play-gutter) 0.4rem;
   box-sizing: border-box;
 }
 html.fgb-daily-mode #view-play > .topbar { display: none !important; }
@@ -87,6 +88,7 @@ html.fgb-daily-mode .board {
   --shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
   --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
   --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --play-gutter: clamp(0.75rem, 3vw, 1.5rem);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
@@ -98,13 +100,22 @@ body {
 body::before {
   content: none;
 }
-.wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
-.wrap.wide { width: min(720px, calc(100% - 1.5rem)); }
+.wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 1.6rem var(--play-gutter) 3rem;
+  min-width: 0;
+}
+.wrap.wide { width: 100%; max-width: none; }
 .hidden { display: none !important; }
 /* 平板横屏 / 矮视口：压缩边距；棋盘尺寸由各游戏用 vmin 吃满短边 */
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
-  .wrap { padding: .55rem 0 1rem; width: min(560px, calc(100% - 1rem)); }
-  .wrap.wide { width: min(960px, calc(100% - 1rem)); }
+  .wrap { padding: .55rem var(--play-gutter) 1rem; }
+  .wrap.wide { width: 100%; max-width: none; }
   h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); margin-bottom: .2rem; }
   .sub { margin: 0 0 .65rem; font-size: .88rem; }
   .card { padding: .75rem; border-radius: 14px; }
@@ -567,7 +578,6 @@ h1 em { font-style: italic; color: var(--accent); }
   min-height: 1.1em;
 }
 @media (orientation: landscape) and (min-width: 640px) {
-  .wrap { width: min(720px, calc(100% - 1.5rem)); }
   .ms-play-grid {
     display: grid;
     grid-template-columns: 1fr min(300px, 42vw);

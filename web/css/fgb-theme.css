@@ -2368,7 +2368,8 @@ body.fgb-lobby-toy .fgb-cover-toy:focus-visible {
   box-shadow: var(--toy-focus), var(--toy-shadow-lg);
 }
 
-.fgb-toy-scoreboards {
+.fgb-toy-scoreboards,
+.fgb-toy-challenges-band {
   padding: 1rem 1.1rem 1.15rem;
   border-radius: var(--toy-radius);
   background: linear-gradient(165deg, #fff 0%, #fff9e8 48%, #fff5f0 100%);
@@ -2376,6 +2377,11 @@ body.fgb-lobby-toy .fgb-cover-toy:focus-visible {
   box-shadow:
     var(--toy-shadow-lg),
     inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  box-sizing: border-box;
+}
+
+.fgb-toy-band-head {
+  margin-bottom: 0.75rem;
 }
 
 .fgb-toy-scoreboards-head {

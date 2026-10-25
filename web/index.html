@@ -3,84 +3,92 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#060a09">
+<meta name="theme-color" content="#fff8f0">
 <title>家庭游戏盒</title>
 <link rel="stylesheet" href="/css/fgb-theme.css">
 </head>
-<body class="fgb-console">
-<div class="fgb-console-bezel" aria-hidden="true"></div>
-<main class="fgb-shell fgb-console-shell">
-  <header id="fgb-topbar" class="fgb-console-topbar"></header>
+<body class="fgb-lobby-toy">
+<main class="fgb-shell fgb-lobby-toy-shell">
+  <header id="fgb-topbar" class="fgb-lobby-topbar"></header>
 
-  <section class="fgb-console-hero" aria-label="客厅游戏盒">
-    <div class="fgb-console-hero-copy">
-      <p class="fgb-console-eyebrow">客厅 · 家庭游戏盒</p>
-      <h1 class="fgb-console-title">一起开玩</h1>
-      <p class="fgb-console-tagline">每日挑战冲榜，自由训练练手 — 大屏也好点，孩子也好找。</p>
+  <div class="fgb-toy-page">
+    <div class="fgb-toy-masthead" aria-label="客厅游戏盒">
+      <div class="fgb-toy-welcome">
+        <p class="fgb-toy-eyebrow">客厅 · 家庭游戏盒</p>
+        <h1 class="fgb-toy-title">一起开玩</h1>
+        <p class="fgb-toy-tagline">每日挑战冲榜，自由训练练手 — 大屏也好点，孩子也好找。</p>
+      </div>
+      <div class="fgb-toy-clock-card" aria-label="状态">
+        <span class="fgb-toy-clock-dot" title="在线"></span>
+        <time class="fgb-toy-clock" id="console-clock" aria-live="polite">--:--</time>
+      </div>
     </div>
-    <div class="fgb-console-status" aria-label="状态">
-      <span class="fgb-console-led" title="在线"></span>
-      <time class="fgb-console-clock" id="console-clock" aria-live="polite">--:--</time>
-    </div>
-  </section>
 
-  <section class="fgb-console-hud" id="stat-strip" aria-label="我的战绩">
-    <div class="fgb-hud-tile">
-      <span class="fgb-hud-label">专注力名次</span>
-      <span class="fgb-hud-value" id="stat-rank">—</span>
+    <div class="fgb-toy-stats-ribbon" id="stat-strip" aria-label="我的战绩">
+      <div class="fgb-toy-stat">
+        <span class="fgb-toy-stat-label">专注力名次</span>
+        <span class="fgb-toy-stat-value" id="stat-rank">—</span>
+      </div>
+      <div class="fgb-toy-stat fgb-toy-stat-yuwen">
+        <span class="fgb-toy-stat-label">语文名次</span>
+        <span class="fgb-toy-stat-value" id="stat-yuwen">—</span>
+      </div>
+      <div class="fgb-toy-stat fgb-toy-stat-wide">
+        <span class="fgb-toy-stat-label">最近一局</span>
+        <span class="fgb-toy-stat-value fgb-toy-stat-recent" id="stat-recent">—</span>
+      </div>
     </div>
-    <div class="fgb-hud-tile">
-      <span class="fgb-hud-label">语文名次</span>
-      <span class="fgb-hud-value" id="stat-yuwen">—</span>
-    </div>
-    <div class="fgb-hud-tile">
-      <span class="fgb-hud-label">最近一局</span>
-      <span class="fgb-hud-value fgb-hud-value-sm" id="stat-recent">—</span>
-    </div>
-  </section>
 
-  <section class="fgb-console-spotlight" aria-label="今日挑战">
-    <header class="fgb-shelf-head">
-      <h2 class="fgb-shelf-title">今日挑战</h2>
-      <p class="fgb-shelf-sub">每天一局，全家一起冲榜</p>
-    </header>
-    <div class="fgb-spotlight-row">
-      <a class="fgb-spotlight fgb-spotlight-daily" href="/daily" id="daily-card">
-        <span class="fgb-spotlight-badge">专注力</span>
-        <h3>每日专注力挑战</h3>
-        <p id="daily-progress">加载中…</p>
-        <span class="fgb-spotlight-cta" id="daily-cta">开始挑战</span>
-      </a>
-      <aside class="fgb-spotlight-side fgb-panel fgb-panel-pad">
-        <h3 class="fgb-shelf-mini-title">专注力挑战榜</h3>
-        <ol class="fgb-podium-list" id="podium-list"></ol>
-        <a class="fgb-nav-link fgb-shelf-link" href="/daily/leaderboard">完整榜 →</a>
+    <div class="fgb-toy-layout">
+      <section class="fgb-toy-games-zone" aria-label="游戏库">
+        <header class="fgb-toy-zone-head">
+          <h2 class="fgb-toy-zone-title">游戏库</h2>
+          <p class="fgb-toy-zone-sub">点封面即开玩 · 方向键可切换焦点</p>
+        </header>
+        <div class="fgb-toy-shelf-stage">
+          <div class="fgb-toy-shelf-plank" aria-hidden="true"></div>
+          <div id="game-list" class="fgb-toy-shelf-grid" role="list"></div>
+        </div>
+      </section>
+
+      <aside class="fgb-toy-challenge-rail" aria-label="今日挑战">
+        <header class="fgb-toy-rail-head">
+          <h2 class="fgb-toy-zone-title">今日挑战</h2>
+          <p class="fgb-toy-zone-sub">每天一局，全家一起冲榜</p>
+        </header>
+
+        <article class="fgb-toy-challenge-pack">
+          <a class="fgb-toy-challenge-card fgb-toy-challenge-daily" href="/daily" id="daily-card">
+            <span class="fgb-toy-challenge-badge">专注力</span>
+            <h3>每日专注力挑战</h3>
+            <p class="fgb-toy-challenge-progress" id="daily-progress">加载中…</p>
+            <span class="fgb-toy-challenge-cta" id="daily-cta">开始挑战</span>
+          </a>
+          <div class="fgb-toy-podium-card">
+            <h3 class="fgb-toy-podium-title">专注力挑战榜</h3>
+            <ol class="fgb-podium-list fgb-toy-podium-list" id="podium-list"></ol>
+            <a class="fgb-toy-board-link" href="/daily/leaderboard">完整榜 →</a>
+          </div>
+        </article>
+
+        <article class="fgb-toy-challenge-pack">
+          <a class="fgb-toy-challenge-card fgb-toy-challenge-yuwen" href="/yuwen-daily" id="yuwen-daily-card">
+            <span class="fgb-toy-challenge-badge">语文</span>
+            <h3>每日语文挑战</h3>
+            <p class="fgb-toy-challenge-progress" id="yuwen-progress">加载中…</p>
+            <span class="fgb-toy-challenge-cta" id="yuwen-cta">开始挑战</span>
+          </a>
+          <div class="fgb-toy-podium-card">
+            <h3 class="fgb-toy-podium-title">语文挑战榜</h3>
+            <ol class="fgb-podium-list fgb-toy-podium-list" id="yuwen-podium"></ol>
+            <a class="fgb-toy-board-link" href="/yuwen-daily/leaderboard">完整榜 →</a>
+          </div>
+        </article>
       </aside>
     </div>
-    <div class="fgb-spotlight-row">
-      <a class="fgb-spotlight fgb-spotlight-yuwen" href="/yuwen-daily" id="yuwen-daily-card">
-        <span class="fgb-spotlight-badge">语文</span>
-        <h3>每日语文挑战</h3>
-        <p id="yuwen-progress">加载中…</p>
-        <span class="fgb-spotlight-cta" id="yuwen-cta">开始挑战</span>
-      </a>
-      <aside class="fgb-spotlight-side fgb-panel fgb-panel-pad">
-        <h3 class="fgb-shelf-mini-title">语文挑战榜</h3>
-        <ol class="fgb-podium-list" id="yuwen-podium"></ol>
-        <a class="fgb-nav-link fgb-shelf-link" href="/yuwen-daily/leaderboard">完整榜 →</a>
-      </aside>
-    </div>
-  </section>
 
-  <section class="fgb-console-shelf" aria-label="游戏库">
-    <header class="fgb-shelf-head">
-      <h2 class="fgb-shelf-title">游戏库</h2>
-      <p class="fgb-shelf-sub">全部游戏一览 · 点封面即开玩（方向键可切换焦点）</p>
-    </header>
-    <div id="game-list" class="fgb-shelf-row" role="list"></div>
-  </section>
-
-  <p class="fgb-footer-link"><a href="/admin">管理</a></p>
+    <p class="fgb-toy-admin"><a href="/admin">管理</a></p>
+  </div>
 </main>
 <script src="/js/fgb-client.js"></script>
 <script src="/js/fgb-ui.js"></script>
@@ -93,7 +101,8 @@
   FGBShell.mountTopbar(document.getElementById("fgb-topbar"), {
     title: "主页",
     showUser: true,
-    console: true,
+    console: false,
+    toyLobby: true,
   });
 
   if (window.FGBHome && FGBHome.mountClock) {
@@ -108,7 +117,7 @@
       { href: "/leaderboard", label: "排行榜" },
     ].forEach(function (item) {
       var a = document.createElement("a");
-      a.className = "fgb-nav-link fgb-nav-pill";
+      a.className = "fgb-nav-link fgb-nav-pill fgb-nav-pill-toy";
       a.href = FGB.url(item.href);
       a.textContent = item.label;
       topNav.appendChild(a);
@@ -156,7 +165,7 @@
     ol.innerHTML = "";
     var podium = s.podium || [];
     if (!podium.length) {
-      ol.innerHTML = "<li style=\"color:var(--muted)\">还没有成绩，去做每日专注力挑战吧</li>";
+      ol.innerHTML = "<li class=\"fgb-toy-empty\">还没有成绩，去做每日专注力挑战吧</li>";
     } else {
       podium.forEach(function (p) {
         var li = document.createElement("li");
@@ -176,7 +185,7 @@
     yc.textContent = ycta === "view" ? "查看成绩" : (ycta === "continue" ? "继续挑战" : "开始挑战");
     var ypodium = s.yuwenPodium || [];
     if (!ypodium.length) {
-      yol.innerHTML = "<li style=\"color:var(--muted)\">还没有成绩，去做每日语文挑战吧</li>";
+      yol.innerHTML = "<li class=\"fgb-toy-empty\">还没有成绩，去做每日语文挑战吧</li>";
       return;
     }
     ypodium.forEach(function (p) {

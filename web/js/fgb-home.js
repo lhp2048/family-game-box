@@ -36,6 +36,15 @@
     return path;
   }
 
+  function isToyLobby() {
+    try {
+      var body = global.document && global.document.body;
+      return !!(body && body.classList.contains("fgb-lobby-toy"));
+    } catch (e) {
+      return false;
+    }
+  }
+
   /**
    * Render console-style cover tiles into listEl.
    * @param {HTMLElement} listEl
@@ -54,6 +63,7 @@
       var a = document.createElement("a");
       a.className =
         "fgb-cover" +
+        (isToyLobby() ? " fgb-cover-toy" : "") +
         (isRef ? " is-ref" : "") +
         (g.extra && g.extra.kind === "reference" ? " is-muted" : "");
       a.setAttribute("data-game-id", g.id);

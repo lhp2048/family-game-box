@@ -12,8 +12,9 @@
  *
  * Public API: window.FGBShell
    *   - mountTopbar(rootEl, options)
-   *       options: { title?, showBack?, backHref?, showUser?, console? }
+   *       options: { title?, showBack?, backHref?, showUser?, console?, toyLobby? }
    *       console defaults true on lobby shell pages (main.fgb-shell, no data-game-skin body).
+   *       toyLobby: bright home lobby — skips dark console bezel (index only).
  *   - safeNext(defaultPath)  — open-redirect-safe ?next= (same-origin relative only)
  *   - requireUserOrRedirect() — authMe; if not logged in, redirect to /login?next=…
  */
@@ -289,11 +290,27 @@
     }
   }
 
+  function isToyLobbyBody() {
+    try {
+      var body = global.document && global.document.body;
+      return !!(body && body.classList.contains("fgb-lobby-toy"));
+    } catch (e) {
+      return false;
+    }
+  }
+
   function resolveConsoleShell(opts, rootEl) {
+    if (opts && opts.toyLobby) return false;
+    if (isToyLobbyBody()) return false;
     if (opts && opts.console != null) return !!opts.console;
     if (!isLobbyShellPage()) return false;
     if (rootEl && rootEl.closest && rootEl.closest("main.fgb-shell")) return true;
     return !!global.document.querySelector("main.fgb-shell");
+  }
+
+  function resolveToyLobby(opts) {
+    if (opts && opts.toyLobby) return true;
+    return isToyLobbyBody();
   }
 
   function mountTopbar(rootEl, options) {
@@ -303,6 +320,7 @@
     var showBack = !!opts.showBack;
     var backHref = opts.backHref != null && opts.backHref !== "" ? opts.backHref : "/";
     var showUser = !!opts.showUser;
+    var toyLobby = resolveToyLobby(opts);
     var consoleShell = resolveConsoleShell(opts, rootEl);
     if (consoleShell) {
       applyConsoleDocument(
@@ -317,7 +335,9 @@
         ? rootEl.className + " "
         : "") + "fgb-topbar";
     }
-    if (consoleShell && rootEl.className.indexOf("fgb-topbar-console") === -1) {
+    if (toyLobby && rootEl.className.indexOf("fgb-topbar-toy") === -1) {
+      rootEl.className += " fgb-topbar-toy";
+    } else if (consoleShell && rootEl.className.indexOf("fgb-topbar-console") === -1) {
       rootEl.className += " fgb-topbar-console";
     }
 
@@ -327,11 +347,13 @@
     var brandHtml =
       '<div class="fgb-brand-block">' +
       '<a class="fgb-brand' +
-      (consoleShell ? " fgb-brand-console" : "") +
+      (toyLobby ? " fgb-brand-toy" : consoleShell ? " fgb-brand-console" : "") +
       '" href="' +
       fgbUrl("/") +
       '">' +
-      (consoleShell
+      (toyLobby
+        ? '<span class="fgb-brand-toy-mark" aria-hidden="true"><span></span><span></span><span></span></span><span class="fgb-brand-text">家庭<em>游戏盒</em></span>'
+        : consoleShell
         ? '<span class="fgb-brand-mark" aria-hidden="true"></span><span class="fgb-brand-text">家庭<em>游戏盒</em></span>'
         : "家庭<em>游戏盒</em>") +
       "</a>" +

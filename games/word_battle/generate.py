@@ -610,10 +610,6 @@ SCRIPT = r"""
       }
       if (myGen !== introGen) return;
       renderSpell(item.w, 0, true, -1);
-      await delay(PAUSE_BEFORE_WHOLE_WORD_MS);
-      if (myGen !== introGen) return;
-      await speakText(item.w, 0.84, false);
-      if (myGen !== introGen) return;
       accepting = true;
       hintEl.textContent = "请拼写单词（键盘或屏幕键）";
       hintEl.classList.remove("is-wait");

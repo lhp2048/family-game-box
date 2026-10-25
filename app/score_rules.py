@@ -20,7 +20,7 @@ def accuracy_time_key(metrics: Dict[str, Any]) -> tuple:
 
 def rank_score(game_id: str, mode: str, _tier: str, metrics: Dict[str, Any]) -> int:
     """Higher score is always better for sorting."""
-    if game_id in ("24points", "schulte"):
+    if game_id in ("24points", "schulte", "mental-speed"):
         if mode == "challenge":
             done = _int(metrics, "done")
             time_ms = _int(metrics, "timeMs")
@@ -41,7 +41,7 @@ def rank_score(game_id: str, mode: str, _tier: str, metrics: Dict[str, Any]) -> 
 
 
 def format_display(game_id: str, mode: str, metrics: Dict[str, Any]) -> str:
-    if game_id in ("24points", "schulte"):
+    if game_id in ("24points", "schulte", "mental-speed"):
         if mode == "challenge":
             done = _int(metrics, "done")
             total = _int(metrics, "total")

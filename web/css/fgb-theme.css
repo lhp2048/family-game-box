@@ -1189,6 +1189,15 @@ body[data-game-skin="24points-library"] > #fgb-topbar {
   width: min(920px, calc(100% - 1.5rem));
 }
 
+body[data-game-skin="mental-speed"] {
+  --accent: #f472b6;
+  --accent-deep: #db2777;
+  background:
+    radial-gradient(900px 480px at 14% -8%, rgba(244, 114, 182, 0.18), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(62, 207, 142, 0.06), transparent 50%),
+    linear-gradient(165deg, #120a10 0%, #141018 45%, #1a1016 100%);
+}
+
 /* —— P3 touch + landscape polish (Task 11) —— */
 /* Audit: shared chrome controls should be ≥44px; game board .actions stay compact in landscape */
 

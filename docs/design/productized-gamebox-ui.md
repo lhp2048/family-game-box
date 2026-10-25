@@ -16,6 +16,10 @@ Turn the Family Game Box home from a generic “competitive hall” grid into a 
 - **Components**: `FGBShell.mountTopbar({ console: true })`, `web/js/fgb-home.js` for covers + arrow-key focus.
 - Other shell pages keep existing theme; no API changes.
 
+## 心算快答（独立小游戏 `mental-speed`）
+
+`/games/mental-speed/`：即时出题、10 题竞速、数字键盘 + 物理键、罚时 +3s；`fgbSubmitScore` 记总用时。不进每日挑战模板。
+
 ## 24 点局内（方案 A）
 
 `games/24points/generate_play.py` → `play.html`：四叶草改为 **2×2 大卡 + 合并后居中排布**；横屏左牌右运算；键盘 `1–4` / `+-*/` / `Z` / `R` / `Esc`；可选「分数中间值」开关。

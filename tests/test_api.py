@@ -30,6 +30,7 @@ GAME_IDS = [
     "spot-diff",
     "maze",
     "sudoku",
+    "mental-speed",
     "yuwen",
     "24points-library",
 ]
@@ -220,6 +221,19 @@ def test_yuwen_and_24points_chrome():
     theme = (root / "web/css/fgb-theme.css").read_text(encoding="utf-8")
     for skin in ("yuwen", "24points", "24points-library"):
         assert 'data-game-skin="%s"' % skin in theme, skin
+
+
+def test_mental_speed_page():
+    login_as(client, "mental_spd")
+    r = client.get(p("/games/mental-speed/"))
+    assert r.status_code == 200
+    text = r.text
+    assert "心算" in text
+    assert 'data-game-skin="mental-speed"' in text
+    assert 'id="btn-start-classic"' in text
+    assert 'id="ms-numpad"' in text
+    assert "fgb-shell.js" in text
+    assert "FGBShell.mountTopbar" in text
 
 
 def test_24points_play_and_bank():

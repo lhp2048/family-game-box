@@ -129,6 +129,16 @@ BUILTIN_GAMES: List[Dict[str, Any]] = [
         "tiers": list(STANDARD_TIER_IDS),
     },
     {
+        "id": "mental-speed",
+        "title": "心算快答",
+        "subtitle": "看式子键入得数 · 10 题竞速",
+        "path": "/games/mental-speed/",
+        "entry": "index.html",
+        "supportsDaily": False,
+        "rankable": True,
+        "tiers": list(STANDARD_TIER_IDS),
+    },
+    {
         "id": "yuwen",
         "title": "语文大擂台",
         "subtitle": "易错题，一关一类",

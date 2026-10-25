@@ -218,23 +218,23 @@ BODY = r"""
       <p class="sub">听读音、看释义，按字母拼出英文单词。每局 10 词，错键不计入进度。</p>
     </div>
     <div class="card">
-      <p class="hint" style="margin-bottom:.65rem">选择词库难度（按该学段<strong>首现</strong>词表出题）</p>
+      <p class="hint" style="margin-bottom:.65rem">选择难度（四档<strong>首现</strong>词表，词量递增）</p>
       <div class="wb-tier-grid" id="tier-pick">
         <button type="button" class="wb-tier-btn active" data-tier="primary">
-          <strong>小学</strong>
-          <span>课标小学核心词 · 约 576 词可练</span>
+          <strong>入门</strong>
+          <span>首现词表 · 约 576 词</span>
         </button>
         <button type="button" class="wb-tier-btn" data-tier="junior">
-          <strong>初中</strong>
-          <span>初中新增词 · 约 1106 词</span>
+          <strong>初级</strong>
+          <span>首现新增 · 约 1106 词</span>
         </button>
         <button type="button" class="wb-tier-btn" data-tier="senior">
-          <strong>高中</strong>
-          <span>高中新增词 · 约 2026 词</span>
+          <strong>中级</strong>
+          <span>首现新增 · 约 2026 词</span>
         </button>
         <button type="button" class="wb-tier-btn" data-tier="ielts">
-          <strong>雅思</strong>
-          <span>雅思核心新增 · 约 2936 词</span>
+          <strong>高级</strong>
+          <span>首现新增 · 约 2936 词</span>
         </button>
       </div>
       <button type="button" class="primary" id="btn-start" style="width:100%">开始挑战</button>
@@ -267,7 +267,7 @@ BODY = r"""
     <p class="sub" id="wb-result-sub">10 词拼写完成</p>
     <div class="card">
       <ul class="stats-list">
-        <li><span>词库</span><strong id="st-tier">小学</strong></li>
+        <li><span>难度</span><strong id="st-tier">入门</strong></li>
         <li><span>用时</span><strong id="st-time">—</strong></li>
         <li><span>完成词数</span><strong id="st-words">10 / 10</strong></li>
         <li><span>错键次数</span><strong id="st-wrong">0</strong></li>
@@ -283,10 +283,10 @@ SCRIPT = r"""
 (function () {
   var TOTAL = 10;
   var TIER_LABEL = {
-    primary: "小学",
-    junior: "初中",
-    senior: "高中",
-    ielts: "雅思",
+    primary: "入门",
+    junior: "初级",
+    senior: "中级",
+    ielts: "高级",
   };
   var ROWS = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];
   var LETTER_CLIP_IDS = "abcdefghijklmnopqrstuvwxyz".split("");
@@ -781,13 +781,16 @@ def sync_audio(web_index: Path) -> None:
     targets = [web_index.parent / "audio"]
     build_index = Path(__file__).resolve().parent / "build" / "index.html"
     targets.append(build_index.parent / "audio")
-    readme = AUDIO_SRC / "README.md"
+    for name in ("README.md", "ATTRIBUTION.md"):
+        extra = AUDIO_SRC / name
+        for dst in targets:
+            dst.mkdir(parents=True, exist_ok=True)
+            if extra.is_file():
+                shutil.copy2(extra, dst / name)
     for dst in targets:
         dst.mkdir(parents=True, exist_ok=True)
         for src in mp3s:
             shutil.copy2(src, dst / src.name)
-        if readme.is_file():
-            shutil.copy2(readme, dst / "README.md")
         print("Synced %d letter clips → %s" % (len(mp3s), dst))
 
 

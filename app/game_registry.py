@@ -151,7 +151,7 @@ BUILTIN_GAMES: List[Dict[str, Any]] = [
     {
         "id": "word-battle",
         "title": "单词大作战",
-        "subtitle": "听音拼写 · 四档词库",
+        "subtitle": "听音拼写 · 入门到高级",
         "path": "/games/word-battle/",
         "entry": "index.html",
         "supportsDaily": False,

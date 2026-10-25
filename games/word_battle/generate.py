@@ -564,12 +564,13 @@ SCRIPT = r"""
     var item = currentWord();
     letterIdx += 1;
     renderSpell(item.w, letterIdx, true, -1);
-    playLetterClip(key);
     var slots = letterPositions(item.w);
-    if (letterIdx >= slots.length) {
-      accepting = false;
-      setTimeout(function () { finishWord(); }, 280);
-    }
+    var isLast = letterIdx >= slots.length;
+    if (isLast) accepting = false;
+    playLetterClip(key).then(function () {
+      if (!isLast) return;
+      finishWord();
+    });
   }
 
   function finishWord() {

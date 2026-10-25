@@ -55,10 +55,10 @@ TIER_LABELS: Dict[str, str] = {
     "gushi-extra": "古诗词补充",
     "yingyong": "应用文",
     "mingzhu": "名著阅读",
-    "primary": "小学",
-    "junior": "初中",
-    "senior": "高中",
-    "ielts": "雅思",
+    "primary": "入门",
+    "junior": "初级",
+    "senior": "中级",
+    "ielts": "高级",
 }
 
 GAME_TIERS: Dict[str, List[str]] = {

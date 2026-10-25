@@ -585,7 +585,12 @@ body.fgb-daily-playing .fgb-frame iframe {
 @media (max-width: 560px) {
   body[data-game-skin] .fgb-shell,
   body[data-game-skin] main.fgb-shell { width: calc(100% - 1.25rem); }
-  body:not([data-game-skin]) main.fgb-shell { width: 100%; padding-top: 1.25rem; }
+  body:not([data-game-skin]) main.fgb-shell,
+  body.fgb-lobby-toy main.fgb-shell.fgb-lobby-toy-shell {
+    width: 100%;
+    max-width: none;
+    padding-top: 1.25rem;
+  }
   .fgb-page-title { font-size: 1.75rem; }
 }
 
@@ -1379,15 +1384,18 @@ body.fgb-console::before {
     inset 0 0 80px rgba(0, 0, 0, 0.45);
 }
 
-/* Hall + shell subpages (leaderboard, auth, daily hub, …) — not in-game skins */
-body:not([data-game-skin]) main.fgb-shell {
+/* Hall + shell subpages (leaderboard, auth, daily hub, toy lobby) — not in-game skins */
+body:not([data-game-skin]) main.fgb-shell,
+body.fgb-lobby-toy main.fgb-shell.fgb-lobby-toy-shell {
   width: 100%;
   max-width: none;
+  box-sizing: border-box;
   padding-left: max(var(--console-gutter), env(safe-area-inset-left, 0px));
   padding-right: max(var(--console-gutter), env(safe-area-inset-right, 0px));
 }
 
-body.fgb-console main.fgb-shell.fgb-console-shell {
+body.fgb-console main.fgb-shell.fgb-console-shell,
+body.fgb-lobby-toy main.fgb-shell.fgb-lobby-toy-shell {
   padding-top: 1.35rem;
   padding-bottom: 4rem;
 }
@@ -1822,6 +1830,7 @@ body.fgb-console main.fgb-shell.fgb-console-shell {
 
 /* —— Lobby: 明亮童趣玩具店 (home only, body.fgb-lobby-toy) —— */
 body.fgb-lobby-toy {
+  overflow-x: clip;
   --toy-ink: #1a2b3c;
   --toy-muted: #5c6d7e;
   --toy-cream: #fff8f0;
@@ -1856,12 +1865,6 @@ body.fgb-lobby-toy a {
 
 body.fgb-lobby-toy a:hover {
   color: #e85a9a;
-}
-
-body.fgb-lobby-toy main.fgb-shell.fgb-lobby-toy-shell {
-  width: min(1280px, calc(100% - clamp(1rem, 4vw, 2.5rem)));
-  padding-top: 1rem;
-  padding-bottom: 3rem;
 }
 
 body.fgb-lobby-toy .fgb-topbar {
@@ -2022,6 +2025,15 @@ body.fgb-lobby-toy .fgb-topbar-toy [data-fgb-auth-links] .fgb-nav-link:hover {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+body.fgb-lobby-toy .fgb-topbar-toy,
+body.fgb-lobby-toy .fgb-lobby-topbar {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .fgb-toy-masthead {
@@ -2145,9 +2157,20 @@ body.fgb-lobby-toy .fgb-topbar-toy [data-fgb-auth-links] .fgb-nav-link:hover {
 
 .fgb-toy-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.95fr);
+  grid-template-columns: minmax(0, 1.55fr) minmax(min(260px, 100%), 0.95fr);
   gap: clamp(1rem, 2.5vw, 1.75rem);
   align-items: start;
+  width: 100%;
+  min-width: 0;
+}
+
+body.fgb-lobby-toy .fgb-toy-scoreboards,
+body.fgb-lobby-toy .fgb-toy-games-zone,
+body.fgb-lobby-toy .fgb-toy-challenge-rail {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  box-sizing: border-box;
 }
 
 .fgb-toy-zone-head,
@@ -2200,7 +2223,9 @@ body.fgb-lobby-toy .fgb-topbar-toy [data-fgb-auth-links] .fgb-nav-link:hover {
   z-index: 1;
   display: grid;
   gap: clamp(0.45rem, 1.2vw, 0.65rem);
-  grid-template-columns: repeat(auto-fill, minmax(clamp(5.5rem, 14vw, 7.25rem), 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(5.25rem, 100%), 1fr));
+  width: 100%;
+  min-width: 0;
   padding-bottom: 1.25rem;
 }
 

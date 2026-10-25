@@ -78,6 +78,7 @@ RANKABLE_GAMES = [
     {"id": "spot-diff", "title": "找不同"},
     {"id": "maze", "title": "迷宫追踪"},
     {"id": "sudoku", "title": "数独"},
+    {"id": "mental-speed", "title": "心算快答"},
 ]
 
 

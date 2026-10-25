@@ -104,6 +104,9 @@
   var stageIndex = 0;
   var startedAt = 0;
   var stageEnteredAt = 0;
+  var totalPausedMs = 0;
+  var totalPauseAt = 0;
+  var stageWaitingReady = false;
   var timerId = null;
   var finishing = false;
   var exitSentRunId = "";
@@ -203,10 +206,24 @@
     });
   }
 
-  function tick() {
+  function activePauseMs(now) {
+    return totalPauseAt ? Math.max(0, now - totalPauseAt) : 0;
+  }
+
+  function totalMs() {
+    if (!startedAt) return 0;
     var now = Date.now();
-    document.getElementById("t-total").textContent = fmt(now - startedAt);
-    document.getElementById("t-stage").textContent = fmt(now - stageEnteredAt);
+    return Math.max(0, now - startedAt - totalPausedMs - activePauseMs(now));
+  }
+
+  function stageMs() {
+    if (!stageEnteredAt || stageWaitingReady) return 0;
+    return Math.max(0, Date.now() - stageEnteredAt);
+  }
+
+  function tick() {
+    document.getElementById("t-total").textContent = fmt(totalMs());
+    document.getElementById("t-stage").textContent = fmt(stageMs());
   }
 
   function stopTimer() {
@@ -279,7 +296,9 @@
     var st = stages[idx];
     document.getElementById("stage-label").textContent = "第 " + (idx + 1) + " / " + stages.length + " 关";
     document.getElementById("stage-name").textContent = st.title + " · " + (st.tierLabel || st.tier);
-    stageEnteredAt = Date.now();
+    stageWaitingReady = true;
+    stageEnteredAt = 0;
+    if (startedAt && !totalPauseAt) totalPauseAt = Date.now();
     var url = gameUrl(st, idx, run.runId);
     if (!url) {
       document.getElementById("prep-err").textContent = "游戏不可用或已下架：" + (st.gameId || "");
@@ -291,8 +310,15 @@
     setTimeout(layoutPlayFrame, 200);
   }
 
-  function totalMs() { return Date.now() - startedAt; }
-  function stageMs() { return Date.now() - stageEnteredAt; }
+  function onStageReady() {
+    if (totalPauseAt) {
+      totalPausedMs += Date.now() - totalPauseAt;
+      totalPauseAt = 0;
+    }
+    stageWaitingReady = false;
+    stageEnteredAt = Date.now();
+    tick();
+  }
 
   function patch(body) {
     return api("/api/v1/daily/runs/" + run.runId, { method: "PATCH", body: body });
@@ -450,7 +476,8 @@
 
   window.addEventListener("message", function (ev) {
     var data = ev.data || {};
-    if (data.type === "fgb-daily-stage-done") onStageDone(data.timeMs | 0);
+    if (data.type === "fgb-daily-stage-ready") onStageReady();
+    else if (data.type === "fgb-daily-stage-done") onStageDone(data.timeMs | 0);
     else if (data.type === "fgb-daily-abort") doExit();
   });
 

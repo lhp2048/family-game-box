@@ -462,9 +462,10 @@ SCRIPT = r"""
     document.getElementById("steps").textContent = String(steps);
   }
 
-  function loadLevel(size) {
+  function loadLevel(size, optLevelStart) {
     stopMoveAnim();
-    levelStart = Date.now();
+    if (optLevelStart != null) levelStart = optLevelStart;
+    else if (mode !== "challenge" || levelIndex > 0) levelStart = Date.now();
     maze = generateMaze(size);
     maze.shortest = bfsShortest(maze);
     player = maze.start.slice();
@@ -632,7 +633,10 @@ SCRIPT = r"""
       document.getElementById("play-progress").textContent = "";
       document.getElementById("timer-text").textContent = "—";
       showView(views, "play");
-      loadLevel(mazeSize);
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadLevel(mazeSize); }, function (t) { levelStart = t; });
     });
   }
 
@@ -644,12 +648,17 @@ SCRIPT = r"""
       levelsDone = 0;
       totalSteps = 0;
       effSum = 0;
-      startedAt = Date.now();
       document.getElementById("play-label").textContent = modeLabel();
       showView(views, "play");
-      startTimer();
       document.getElementById("play-progress").textContent = "1 / " + challengeTotal;
-      loadLevel(mazeSize);
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadLevel(mazeSize); }, function (t) {
+        startedAt = t;
+        levelStart = t;
+        startTimer();
+      });
     });
   }
 

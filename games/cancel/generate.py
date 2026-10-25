@@ -405,7 +405,6 @@ SCRIPT_MID = r""";
   }
 
   function loadRound() {
-    roundStart = Date.now();
     puzzle = genPuzzle(puzzleType);
     renderGrid();
   }
@@ -419,7 +418,10 @@ SCRIPT_MID = r""";
       document.getElementById("timer-text").textContent = "—";
       document.getElementById("casual-extra").classList.remove("hidden");
       showView(views, "play");
-      loadRound();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadRound(); }, function (t) { roundStart = t; });
     });
   }
 
@@ -430,12 +432,16 @@ SCRIPT_MID = r""";
       roundsDone = 0;
       totalWrong = 0;
       totalMiss = 0;
-      startedAt = Date.now();
       document.getElementById("play-label").textContent = modeLabel();
       document.getElementById("casual-extra").classList.add("hidden");
       showView(views, "play");
-      startTimer();
-      loadRound();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadRound(); }, function (t) {
+        startedAt = t;
+        startTimer();
+      });
     });
   }
 

@@ -483,9 +483,12 @@ SCRIPT = r"""
       updateChrome();
       document.getElementById("timer-text").textContent = "—";
       showView(views, "play");
-      Promise.resolve(preloadClips()).then(function () {
-        showTrial();
-      });
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { Promise.resolve(prep()).then(function () { done(Date.now()); }); };
+      run(function () {
+        return Promise.resolve(preloadClips()).then(function () { showTrial(); });
+      }, function () {});
     });
   }
 
@@ -495,18 +498,21 @@ SCRIPT = r"""
       applyDiff();
       unlockAudio();
       resetStats();
-      startedAt = Date.now();
-      if (timeLimitMs > 0) {
-        deadline = startedAt + timeLimitMs;
-      } else {
-        deadline = startedAt + 86400000;
-        document.getElementById("timer-text").textContent = "00:00";
-      }
       updateChrome();
       showView(views, "play");
-      startTimer();
-      Promise.resolve(preloadClips()).then(function () {
-        showTrial();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { Promise.resolve(prep()).then(function () { done(Date.now()); }); };
+      run(function () {
+        return Promise.resolve(preloadClips()).then(function () { showTrial(); });
+      }, function (t) {
+        startedAt = t;
+        if (timeLimitMs > 0) deadline = startedAt + timeLimitMs;
+        else {
+          deadline = startedAt + 86400000;
+          document.getElementById("timer-text").textContent = "00:00";
+        }
+        startTimer();
       });
     });
   }

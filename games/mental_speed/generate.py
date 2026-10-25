@@ -405,8 +405,8 @@ SCRIPT = r"""
     timerEl.textContent = formatSec(elapsedMs());
   }
 
-  function startClock() {
-    clockStart = performance.now();
+  function startClock(anchorPerf) {
+    clockStart = anchorPerf != null ? anchorPerf : performance.now();
     stopClock();
     timerId = setInterval(updateTimer, 100);
     updateTimer();
@@ -448,8 +448,12 @@ SCRIPT = r"""
     penaltyMs = 0;
     clockStart = 0;
     show("play");
-    startClock();
-    showQuestion();
+    var runPlay = window.FGBUI && FGBUI.runWhenPlayable
+      ? FGBUI.runWhenPlayable.bind(FGBUI)
+      : function (prep, done) { prep(); done(Date.now()); };
+    runPlay(function () { showQuestion(); }, function () {
+      startClock(performance.now());
+    });
   }
 
   function finishRun() {
@@ -467,7 +471,7 @@ SCRIPT = r"""
         gameId: "mental-speed",
         mode: "challenge",
         tier: tier,
-        tierLabel: "初阶",
+        tierLabel: TIER_LABELS[tier] || tier,
         metrics: {
           timeMs: Math.round(total),
           done: TOTAL,
@@ -548,13 +552,28 @@ SCRIPT = r"""
     show("home");
   });
   document.getElementById("btn-quit").addEventListener("click", function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
+      return;
+    }
     askConfirm("确定退出本局？进度不会保存。", function () {
       stopClock();
       show("home");
     });
   });
 
-  show("home");
+  var TIER_LABELS = {
+    intro: "初阶", simple: "简单", normal: "普通", hard: "困难", master: "大师", god: "大神"
+  };
+
+  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+    var dq = window.__FGB_DAILY_Q__ || {};
+    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+    if (dq.tier) tier = dq.tier;
+    beginRun();
+  } else {
+    show("home");
+  }
 })();
 """
 

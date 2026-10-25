@@ -488,8 +488,8 @@ h1 {
     stopTimer();
     if (!fromChallengeGlobal) {
       startedAt = Date.now();
+      roundStartedAt = startedAt;
     }
-    roundStartedAt = Date.now();
     timerId = window.setInterval(function () {
       const base = mode === "challenge" ? startedAt : roundStartedAt;
       document.getElementById("timer-text").textContent = fmtTime(Date.now() - base);
@@ -602,12 +602,22 @@ h1 {
     roundStartedAt = Date.now();
   }
 
+  function runPlayable(prep, onPlayable) {
+    var run = window.FGBUI && FGBUI.runWhenPlayable
+      ? FGBUI.runWhenPlayable.bind(FGBUI)
+      : function (p, d) { p(); d(Date.now()); };
+    run(prep, onPlayable);
+  }
+
   function startCasual() {
     ensureDifficulty(function () {
       mode = "casual";
       show("play");
-      startTimer(false);
-      startRound();
+      runPlayable(function () { buildBoard(); }, function (t) {
+        startedAt = t;
+        roundStartedAt = t;
+        startTimer(true);
+      });
     });
   }
 
@@ -620,8 +630,11 @@ h1 {
       for (let i = 0; i < challengeCount; i++) remaining.push(i);
       challengeTotal = remaining.length;
       show("play");
-      startTimer(false);
-      startRound();
+      runPlayable(function () { buildBoard(); }, function (t) {
+        startedAt = t;
+        roundStartedAt = t;
+        startTimer(true);
+      });
     });
   }
 

@@ -30,7 +30,7 @@ def test_setup_login_and_status():
 
 def test_template_default_and_put():
     t = da.get_template()
-    assert len(t["stages"]) == 8
+    assert len(t["stages"]) == 9
     assert t["stages"][0]["tier"] == "normal"
     da.put_template([{"gameId": "schulte", "tier": "hard"}, {"gameId": "sudoku", "tier": "simple"}])
     assert da.get_template()["stages"][0]["gameId"] == "schulte"

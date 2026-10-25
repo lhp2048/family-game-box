@@ -741,7 +741,7 @@ DAILY_BOOT_JS = r"""
     a.addEventListener("click", abortDaily);
   });
   // 游戏内退出按钮：每日模式禁止 show(home)，须通知父页结束挑战
-  ["btn-exit", "btn-exit-casual", "btn-exit-challenge"].forEach(function (id) {
+  ["btn-exit", "btn-exit-casual", "btn-exit-challenge", "btn-quit"].forEach(function (id) {
     var el = document.getElementById(id);
     if (!el) return;
     el.addEventListener("click", abortDaily, true);

@@ -134,7 +134,7 @@ BUILTIN_GAMES: List[Dict[str, Any]] = [
         "subtitle": "看式子键入得数 · 10 题竞速",
         "path": "/games/mental-speed/",
         "entry": "index.html",
-        "supportsDaily": False,
+        "supportsDaily": True,
         "rankable": True,
         "tiers": list(STANDARD_TIER_IDS),
     },

@@ -629,7 +629,7 @@ SCRIPT = r"""
   var puzzleStart = 0;
 
   function loadPuzzle() {
-    puzzleStart = Date.now();
+    if (mode === "casual") puzzleStart = Date.now();
     var p = generatePuzzle(size);
     solution = p.solution;
     givens = p.givens;
@@ -792,7 +792,10 @@ SCRIPT = r"""
       document.getElementById("timer-text").textContent = "—";
       document.getElementById("btn-next").style.display = "";
       showView(views, "play");
-      loadPuzzle();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadPuzzle(); }, function (t) { puzzleStart = t; });
     });
   }
 
@@ -803,13 +806,17 @@ SCRIPT = r"""
       puzzleIndex = 0;
       puzzlesDone = 0;
       totalHints = 0;
-      startedAt = Date.now();
       document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
       document.getElementById("btn-next").style.display = "none";
       showView(views, "play");
-      startTimer();
       document.getElementById("play-progress").textContent = "1 / " + challengeTotal;
-      loadPuzzle();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadPuzzle(); }, function (t) {
+        startedAt = t;
+        startTimer();
+      });
     });
   }
 

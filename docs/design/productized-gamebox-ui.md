@@ -18,7 +18,7 @@ Turn the Family Game Box home from a generic “competitive hall” grid into a 
 
 ## 心算快答（独立小游戏 `mental-speed`）
 
-`/games/mental-speed/`：即时出题、**每题 3～4 个运算符**（4～5 个数）、连乘积≤100（白名单大数乘例外）、10 题竞速；`fgbSubmitScore` 记总用时。不进每日挑战模板。
+`/games/mental-speed/`：即时出题、**每题 3～4 个运算符**（4～5 个数）、连乘积≤100（白名单大数乘例外）、10 题竞速；`fgbSubmitScore` 记总用时。已接入**专注力每日挑战**（`supportsDaily` + `RANKABLE_GAMES`）；单机入口 `/games/mental-speed/` 保留。
 
 ## 24 点局内（方案 A）
 

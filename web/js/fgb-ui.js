@@ -178,6 +178,48 @@
     } catch (e) { /* ignore */ }
   }
 
+  /**
+   * Run prepare (build board, preload), wait for paint, then onPlayable(playableAt).
+   * playableAt is Date.now() — use as challenge startedAt / roundStart.
+   * In daily iframe, posts fgb-daily-stage-ready unless opts.signalReady === false.
+   */
+  function runWhenPlayable(prepare, onPlayable, opts) {
+    opts = opts || {};
+    function signalReady() {
+      if (opts.signalReady === false) return;
+      if (global.FGBDaily && FGBDaily.notifyStageReady) FGBDaily.notifyStageReady();
+      else if (global.parent && global.parent !== global) {
+        global.parent.postMessage({ type: "fgb-daily-stage-ready" }, "*");
+      }
+    }
+    function afterLoad() {
+      Promise.resolve()
+        .then(function () {
+          return typeof prepare === "function" ? prepare() : undefined;
+        })
+        .then(function () {
+          return new Promise(function (resolve) {
+            requestAnimationFrame(function () {
+              requestAnimationFrame(resolve);
+            });
+          });
+        })
+        .then(function () {
+          var t = Date.now();
+          signalReady();
+          if (typeof onPlayable === "function") onPlayable(t);
+        })
+        .catch(function (err) {
+          console.error(err);
+          var t = Date.now();
+          signalReady();
+          if (typeof onPlayable === "function") onPlayable(t);
+        });
+    }
+    if (document.readyState === "complete") afterLoad();
+    else global.addEventListener("load", afterLoad, { once: true });
+  }
+
   patchNativeDialogs();
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () { ensureDom(); });
@@ -189,6 +231,7 @@
     askConfirm: askConfirm,
     askPrompt: askPrompt,
     toast: toast,
+    runWhenPlayable: runWhenPlayable,
     patchNativeDialogs: patchNativeDialogs,
   };
 })(window);

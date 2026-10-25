@@ -236,6 +236,14 @@ def test_mental_speed_page():
     assert 'id="ms-numpad"' in text
     assert "fgb-shell.js" in text
     assert "FGBShell.mountTopbar" in text
+    assert "fgb-daily.js" in text
+    assert "__FGB_IS_DAILY__" in text or "daily=1" in text
+
+
+def test_mental_speed_daily_candidate():
+    from app.game_registry import daily_candidate_games
+
+    assert "mental-speed" in [g["id"] for g in daily_candidate_games()]
 
 
 def test_24points_play_and_bank():

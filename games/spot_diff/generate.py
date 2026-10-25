@@ -334,7 +334,6 @@ SCRIPT_MID = r""";
   }
 
   function loadRound() {
-    roundStart = Date.now();
     found = {};
     hintsLeft = mode === "challenge" ? 1 : 2;
     puzzle = genPuzzle();
@@ -352,7 +351,10 @@ SCRIPT_MID = r""";
       document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
       document.getElementById("timer-text").textContent = "—";
       showView(views, "play");
-      loadRound();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadRound(); }, function (t) { roundStart = t; });
     });
   }
 
@@ -363,11 +365,15 @@ SCRIPT_MID = r""";
       roundsDone = 0;
       totalWrong = 0;
       totalHints = 0;
-      startedAt = Date.now();
       document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
       showView(views, "play");
-      startTimer();
-      loadRound();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadRound(); }, function (t) {
+        startedAt = t;
+        startTimer();
+      });
     });
   }
 

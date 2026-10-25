@@ -570,15 +570,20 @@ SCRIPT = r"""
       useTts = true;
       unlockAudio();
       showView(views, "play");
-      Promise.resolve(preloadClips()).then(function () {
-        trialIndex = 0;
-        correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
-        document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
-        document.getElementById("btn-next").style.display = "none";
-        setTtsNote("");
-        updateRuleBar();
-        nextTrial();
-      });
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { Promise.resolve(prep()).then(function () { done(Date.now()); }); };
+      run(function () {
+        return Promise.resolve(preloadClips()).then(function () {
+          trialIndex = 0;
+          correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
+          document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
+          document.getElementById("btn-next").style.display = "none";
+          setTtsNote("");
+          updateRuleBar();
+          nextTrial();
+        });
+      }, function () {});
     });
   }
 

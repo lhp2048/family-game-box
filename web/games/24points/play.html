@@ -1245,9 +1245,9 @@ html.fgb-daily-mode .board {
     resetRound(remaining[0]);
   }
 
-  function startTimer() {
+  function startTimer(anchorMs) {
     stopTimer();
-    startedAt = Date.now();
+    startedAt = anchorMs != null ? anchorMs : Date.now();
     timerId = window.setInterval(() => {
       document.getElementById("timer-text").textContent = fmtTime(Date.now() - startedAt);
     }, 250);
@@ -1284,7 +1284,10 @@ html.fgb-daily-mode .board {
       mode = "casual";
       show("play");
       updatePlayChrome();
-      resetRound(puzzle);
+      const run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : (prep, done) => { prep(); done(Date.now()); };
+      run(() => { resetRound(puzzle); }, () => {});
     });
   }
 
@@ -1308,8 +1311,10 @@ html.fgb-daily-mode .board {
       challengeTotal = remaining.length;
       show("play");
       updatePlayChrome();
-      startTimer();
-      resetRound(remaining[0]);
+      const run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : (prep, done) => { prep(); done(Date.now()); };
+      run(() => { resetRound(remaining[0]); }, (t) => { startTimer(t); });
     });
   }
 

@@ -50,6 +50,17 @@ html.fgb-daily-mode .clover {
 }
 html.fgb-daily-mode .clover-wrap { margin: 0.1rem 0 0.3rem; }
 html.fgb-daily-mode .leaf { font-size: calc(var(--fgb-board) * 0.11) !important; }
+html.fgb-daily-mode .card-board-wrap {
+  max-width: var(--fgb-board) !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+html.fgb-daily-mode .num-card .val {
+  font-size: calc(var(--fgb-board) * 0.14) !important;
+}
+html.fgb-daily-mode .num-card .expr {
+  font-size: calc(var(--fgb-board) * 0.045) !important;
+}
 html.fgb-daily-mode .sudoku-wrap { width: min(100%, var(--fgb-board)) !important; }
 html.fgb-daily-mode .sudoku { max-height: var(--fgb-board) !important; }
 html.fgb-daily-mode .maze-wrap { max-height: var(--fgb-board) !important; }
@@ -785,7 +796,7 @@ function celebrateThen(message, callback, delayMs) {
     a.addEventListener("click", abortDaily);
   });
   // 游戏内退出按钮：每日模式禁止 show(home)，须通知父页结束挑战
-  ["btn-exit", "btn-exit-casual", "btn-exit-challenge"].forEach(function (id) {
+  ["btn-exit", "btn-exit-casual", "btn-exit-challenge", "btn-quit"].forEach(function (id) {
     var el = document.getElementById(id);
     if (!el) return;
     el.addEventListener("click", abortDaily, true);
@@ -1100,9 +1111,12 @@ function celebrateThen(message, callback, delayMs) {
       updateChrome();
       document.getElementById("timer-text").textContent = "—";
       showView(views, "play");
-      Promise.resolve(preloadClips()).then(function () {
-        showTrial();
-      });
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { Promise.resolve(prep()).then(function () { done(Date.now()); }); };
+      run(function () {
+        return Promise.resolve(preloadClips()).then(function () { showTrial(); });
+      }, function () {});
     });
   }
 
@@ -1112,18 +1126,21 @@ function celebrateThen(message, callback, delayMs) {
       applyDiff();
       unlockAudio();
       resetStats();
-      startedAt = Date.now();
-      if (timeLimitMs > 0) {
-        deadline = startedAt + timeLimitMs;
-      } else {
-        deadline = startedAt + 86400000;
-        document.getElementById("timer-text").textContent = "00:00";
-      }
       updateChrome();
       showView(views, "play");
-      startTimer();
-      Promise.resolve(preloadClips()).then(function () {
-        showTrial();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { Promise.resolve(prep()).then(function () { done(Date.now()); }); };
+      run(function () {
+        return Promise.resolve(preloadClips()).then(function () { showTrial(); });
+      }, function (t) {
+        startedAt = t;
+        if (timeLimitMs > 0) deadline = startedAt + timeLimitMs;
+        else {
+          deadline = startedAt + 86400000;
+          document.getElementById("timer-text").textContent = "00:00";
+        }
+        startTimer();
       });
     });
   }

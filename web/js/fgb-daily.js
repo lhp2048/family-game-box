@@ -37,6 +37,13 @@
     }
   }
 
+  /** Tell daily hub the iframe stage is interactive (loading / layout excluded from timers). */
+  function notifyStageReady() {
+    if (global.parent && global.parent !== global) {
+      global.parent.postMessage({ type: "fgb-daily-stage-ready" }, "*");
+    }
+  }
+
   function notifyAbort() {
     if (global.parent && global.parent !== global) {
       global.parent.postMessage({ type: "fgb-daily-abort" }, "*");
@@ -178,6 +185,7 @@
     makeRng: makeRng,
     installMathRandom: installMathRandom,
     notifyStageDone: notifyStageDone,
+    notifyStageReady: notifyStageReady,
     notifyAbort: notifyAbort,
     fitPlay: fitPlay,
     scheduleFitPlay: scheduleFitPlay,

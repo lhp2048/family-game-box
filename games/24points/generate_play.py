@@ -1208,9 +1208,9 @@ h1 em { font-style: italic; color: var(--accent); }
     resetRound(remaining[0]);
   }
 
-  function startTimer() {
+  function startTimer(anchorMs) {
     stopTimer();
-    startedAt = Date.now();
+    startedAt = anchorMs != null ? anchorMs : Date.now();
     timerId = window.setInterval(() => {
       document.getElementById("timer-text").textContent = fmtTime(Date.now() - startedAt);
     }, 250);
@@ -1247,7 +1247,10 @@ h1 em { font-style: italic; color: var(--accent); }
       mode = "casual";
       show("play");
       updatePlayChrome();
-      resetRound(puzzle);
+      const run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : (prep, done) => { prep(); done(Date.now()); };
+      run(() => { resetRound(puzzle); }, () => {});
     });
   }
 
@@ -1271,8 +1274,10 @@ h1 em { font-style: italic; color: var(--accent); }
       challengeTotal = remaining.length;
       show("play");
       updatePlayChrome();
-      startTimer();
-      resetRound(remaining[0]);
+      const run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : (prep, done) => { prep(); done(Date.now()); };
+      run(() => { resetRound(remaining[0]); }, (t) => { startTimer(t); });
     });
   }
 

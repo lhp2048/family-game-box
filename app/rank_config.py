@@ -55,6 +55,10 @@ TIER_LABELS: Dict[str, str] = {
     "gushi-extra": "古诗词补充",
     "yingyong": "应用文",
     "mingzhu": "名著阅读",
+    "primary": "小学",
+    "junior": "初中",
+    "senior": "高中",
+    "ielts": "雅思",
 }
 
 GAME_TIERS: Dict[str, List[str]] = {
@@ -68,6 +72,7 @@ GAME_TIERS: Dict[str, List[str]] = {
     "sudoku": STANDARD_TIER_IDS[:],
     "mental-speed": STANDARD_TIER_IDS[:],
     "number-slide": ["intro", "normal", "hard"],
+    "word-battle": ["primary", "junior", "senior", "ielts"],
 }
 
 RANKABLE_GAMES = [

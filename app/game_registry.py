@@ -149,6 +149,16 @@ BUILTIN_GAMES: List[Dict[str, Any]] = [
         "tiers": ["intro", "normal", "hard"],
     },
     {
+        "id": "word-battle",
+        "title": "单词大作战",
+        "subtitle": "听音拼写 · 四档词库",
+        "path": "/games/word-battle/",
+        "entry": "index.html",
+        "supportsDaily": False,
+        "rankable": True,
+        "tiers": ["primary", "junior", "senior", "ielts"],
+    },
+    {
         "id": "yuwen",
         "title": "语文大擂台",
         "subtitle": "易错题，一关一类",

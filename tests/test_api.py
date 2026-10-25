@@ -32,6 +32,7 @@ GAME_IDS = [
     "sudoku",
     "mental-speed",
     "number-slide",
+    "word-battle",
     "yuwen",
     "24points-library",
 ]
@@ -263,6 +264,28 @@ def test_number_slide_daily_candidate():
     from app.game_registry import daily_candidate_games
 
     assert "number-slide" in [g["id"] for g in daily_candidate_games()]
+
+
+def test_word_battle_page():
+    login_as(client, "word_battle")
+    r = client.get(p("/games/word-battle/"))
+    assert r.status_code == 200
+    text = r.text
+    assert "单词" in text
+    assert 'data-game-skin="word-battle"' in text
+    assert 'id="wb-spell"' in text
+    assert "words.json" in text
+    bank = client.get(p("/games/word-battle/words.json"))
+    assert bank.status_code == 200
+    data = bank.json()
+    assert data.get("version") == 1
+    assert len(data.get("words") or []) > 6000
+
+
+def test_word_battle_not_daily_candidate():
+    from app.game_registry import daily_candidate_games
+
+    assert "word-battle" not in [g["id"] for g in daily_candidate_games()]
 
 
 def test_24points_play_and_bank():

@@ -16,6 +16,7 @@
     sudoku: { glyph: "数", accent: "#fbbf24", accent2: "#d97706" },
     "mental-speed": { glyph: "算", accent: "#f472b6", accent2: "#db2777" },
     "number-slide": { glyph: "滑", accent: "#60a5fa", accent2: "#2563eb" },
+    "word-battle": { glyph: "词", accent: "#fbbf24", accent2: "#d97706" },
     yuwen: { glyph: "文", accent: "#f0c14a", accent2: "#c4922a" },
     "24points-library": { glyph: "库", accent: "#8fa399", accent2: "#5c6b63" },
   };

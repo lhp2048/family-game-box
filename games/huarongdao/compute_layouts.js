@@ -24,9 +24,12 @@ function macroCount(moves) {
   return macro;
 }
 
+const V_GENERAL_LABELS = ["张", "赵", "马", "黄"];
+
 function blocksToPieces(blocks) {
   const pieces = [];
   let v = 0;
+  let hBar = 0;
   blocks.forEach((b, i) => {
     const h = b.shape[0];
     const w = b.shape[1];
@@ -39,10 +42,16 @@ function blocksToPieces(blocks) {
     } else if (w === 1 && h === 2) {
       v += 1;
       type = "v";
-      label = ["张", "马", "关", "黄", "赵", "将"][Math.min(v - 1, 5)];
+      label = V_GENERAL_LABELS[(v - 1) % V_GENERAL_LABELS.length];
     } else if (w === 2 && h === 1) {
-      type = "guan";
-      label = "关";
+      hBar += 1;
+      if (hBar === 1) {
+        type = "guan";
+        label = "关";
+      } else {
+        type = "h";
+        label = "横";
+      }
     }
     pieces.push({
       id: type === "cao" ? "cao" : type + i,

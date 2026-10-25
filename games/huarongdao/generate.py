@@ -85,23 +85,20 @@ EXTRA_CSS = r"""
   margin: 0.25rem 0 0.65rem;
 }
 .hrg-board {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(5, 1fr);
-  gap: clamp(3px, 0.8vw, 6px);
+  position: relative;
   width: min(92vw, 360px);
   aspect-ratio: 4 / 5;
-  padding: clamp(6px, 1.2vw, 10px);
   border-radius: 18px;
   border: 2px solid rgba(255, 159, 67, 0.35);
   background: linear-gradient(165deg, #fff8f0 0%, #ffe8d4 45%, #fff5eb 100%);
   box-shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
-  position: relative;
+  overflow: hidden;
   touch-action: none;
+  box-sizing: border-box;
 }
 .hrg-exit {
-  grid-row: 5;
-  grid-column: 2 / span 2;
+  position: absolute;
+  box-sizing: border-box;
   border: 2px dashed rgba(46, 204, 113, 0.55);
   border-radius: 12px;
   display: flex;
@@ -115,12 +112,16 @@ EXTRA_CSS = r"""
   z-index: 0;
 }
 .hrg-piece {
+  position: absolute;
+  box-sizing: border-box;
   z-index: 1;
   border: 2px solid rgba(26, 43, 60, 0.1);
   border-radius: 14px;
   margin: 0;
   padding: 0;
   cursor: grab;
+  min-width: 0;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -145,6 +146,10 @@ EXTRA_CSS = r"""
 }
 .hrg-guan {
   background: linear-gradient(180deg, #fff8eb 0%, #ffe4b8 100%);
+}
+.hrg-h {
+  background: linear-gradient(180deg, #f3f0ff 0%, #e4dcff 100%);
+  font-size: clamp(0.82rem, 3.2vw, 1rem);
 }
 .hrg-s {
   background: linear-gradient(180deg, #e8fff4 0%, #c8f5e0 100%);

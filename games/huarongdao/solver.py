@@ -53,7 +53,7 @@ def blocks_to_pieces(blocks: List[Block]) -> List[dict]:
             kind, lab = "cao", "曹"
         elif b.w == 1 and b.h == 2:
             v_n += 1
-            kind, lab = "v", ["张", "马", "关", "黄", "赵", "将"][min(v_n - 1, 5)]
+            kind, lab = "v", ["张", "赵", "马", "黄"][min(v_n - 1, 3)]
         elif b.w == 2 and b.h == 1:
             kind, lab = "guan", "关"
         else:

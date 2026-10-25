@@ -4,6 +4,8 @@
 
   var ROWS = 5;
   var COLS = 4;
+  var BOARD_PAD = 3;
+  var BOARD_GAP = 0.55;
   var ESC = (HRD_LAYOUTS && HRD_LAYOUTS.escape) || { row: 3, col: 1 };
   var LEVELS = (HRD_LAYOUTS && HRD_LAYOUTS.layouts) || [];
 
@@ -165,6 +167,73 @@
     return macro;
   }
 
+  function boardRect(r, c, w, h) {
+    var innerW = 100 - 2 * BOARD_PAD - BOARD_GAP * (COLS - 1);
+    var innerH = 100 - 2 * BOARD_PAD - BOARD_GAP * (ROWS - 1);
+    var cellW = innerW / COLS;
+    var cellH = innerH / ROWS;
+    return {
+      left: BOARD_PAD + c * (cellW + BOARD_GAP),
+      top: BOARD_PAD + r * (cellH + BOARD_GAP),
+      width: w * cellW + (w - 1) * BOARD_GAP,
+      height: h * cellH + (h - 1) * BOARD_GAP,
+    };
+  }
+
+  function applyBoardRect(el, rect) {
+    el.style.left = rect.left + "%";
+    el.style.top = rect.top + "%";
+    el.style.width = rect.width + "%";
+    el.style.height = rect.height + "%";
+  }
+
+  function normalizePieceLabels(src) {
+    var vLabels = ["张", "赵", "马", "黄"];
+    var v = 0;
+    var hBar = 0;
+    var sorted = src.slice().sort(function (a, b) {
+      if (a.r !== b.r) return a.r - b.r;
+      return a.c - b.c;
+    });
+    var horizOrder = {};
+    sorted.forEach(function (p) {
+      if (p.w === 2 && p.h === 1) horizOrder[p.id] = Object.keys(horizOrder).length;
+    });
+    return src.map(function (p) {
+      var next = {
+        id: p.id,
+        type: p.type,
+        label: p.label,
+        r: p.r,
+        c: p.c,
+        w: p.w,
+        h: p.h,
+      };
+      if (p.w === 2 && p.h === 2) {
+        next.type = "cao";
+        next.label = "曹";
+      } else if (p.w === 1 && p.h === 1) {
+        next.type = "s";
+        next.label = "兵";
+      } else if (p.w === 1 && p.h === 2) {
+        next.type = "v";
+        next.label = vLabels[v % vLabels.length];
+        v += 1;
+      } else if (p.w === 2 && p.h === 1) {
+        var ho = horizOrder[p.id];
+        if (ho === 0) {
+          next.type = "guan";
+          next.label = "关";
+        } else {
+          next.type = "h";
+          next.label = "横";
+          hBar += 1;
+        }
+      }
+      return next;
+    });
+  }
+
   function renderBoard() {
     var board = document.getElementById("hrg-board");
     if (!board) return;
@@ -173,6 +242,7 @@
     exit.className = "hrg-exit";
     exit.setAttribute("aria-hidden", "true");
     exit.textContent = "出口";
+    applyBoardRect(exit, boardRect(4, 1, 2, 1));
     board.appendChild(exit);
 
     pieces.forEach(function (p) {
@@ -183,8 +253,7 @@
         p.type +
         (p.id === selectedId ? " is-selected" : "");
       el.dataset.id = p.id;
-      el.style.gridRow = p.r + 1 + " / span " + p.h;
-      el.style.gridColumn = p.c + 1 + " / span " + p.w;
+      applyBoardRect(el, boardRect(p.r, p.c, p.w, p.h));
       el.innerHTML =
         '<span class="hrg-piece-label">' + (p.label || "") + "</span>";
       board.appendChild(el);
@@ -260,7 +329,7 @@
     levelMeta = findLevel(id);
     if (!levelMeta) return;
     levelId = id;
-    pieces = clonePieces(levelMeta.pieces);
+    pieces = normalizePieceLabels(clonePieces(levelMeta.pieces));
     steps = 0;
     undoStack = [];
     selectedId = null;

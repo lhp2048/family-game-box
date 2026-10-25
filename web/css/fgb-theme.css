@@ -1322,6 +1322,7 @@ body[data-game-skin="word-battle"] .wb-spell {
 body[data-game-skin="mental-speed"] {
   --accent: #f472b6;
   --accent-deep: #db2777;
+  --fgb-play-max: 620px;
 }
 
 /* —— P3 touch + landscape polish (Task 11) —— */

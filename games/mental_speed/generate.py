@@ -49,52 +49,99 @@ EXTRA_CSS = r"""
   font-variant-numeric: tabular-nums;
   color: var(--accent);
 }
-.ms-expr-wrap {
+.ms-play-grid {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: min(620px, 100%);
+  margin: 0 auto;
+  align-items: stretch;
+}
+@media (min-width: 520px) {
+  .ms-play-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 252px);
+    gap: 0.65rem 0.85rem;
+  }
+}
+.ms-play-expr-col,
+.ms-play-input-col {
   display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ms-play-input-col {
+  gap: 0.45rem;
+  justify-content: center;
+}
+.ms-expr-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 5.5rem;
-  margin: 0.5rem 0 0.85rem;
-  padding: 1rem 0.75rem;
+  min-height: 11.5rem;
+  margin: 0;
+  padding: 1rem 0.85rem;
   border-radius: 20px;
   border: 2px solid rgba(244, 114, 182, 0.35);
   background: linear-gradient(165deg, #fff5f9 0%, #ffe8f4 55%, #f0f9ff 100%);
   box-shadow: 0 8px 24px rgba(45, 62, 90, 0.08);
 }
+@media (min-width: 520px) {
+  .ms-expr-wrap {
+    min-height: 100%;
+  }
+}
 .ms-expr {
   font-family: var(--display);
-  font-size: clamp(1.85rem, 7vw, 2.75rem);
+  font-size: clamp(1.35rem, 4.8vw, 2.35rem);
   font-weight: 700;
-  letter-spacing: 0.02em;
-  line-height: 1.2;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
   text-align: center;
-  word-break: break-word;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.ms-expr-note {
+  margin: 0.55rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.35;
 }
 .ms-answer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  display: block;
+  margin: 0;
 }
 .ms-answer label {
-  font-size: 0.82rem;
-  color: var(--muted);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 .ms-answer-display {
-  min-width: 5.5rem;
-  min-height: 3rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 3.1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 16px;
   border: 2px solid rgba(244, 114, 182, 0.35);
   background: linear-gradient(180deg, #fff 0%, #fff8fc 100%);
   box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
   font-family: var(--display);
-  font-size: 1.85rem;
+  font-size: clamp(1.55rem, 5vw, 2rem);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   text-align: center;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.12em;
 }
 .ms-answer-display.is-err {
   border-color: var(--danger);
@@ -108,9 +155,9 @@ EXTRA_CSS = r"""
 .ms-numpad {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  max-width: 320px;
-  margin: 0 auto 0.65rem;
+  gap: 0.45rem;
+  width: 100%;
+  margin: 0;
 }
 .ms-numpad button {
   min-height: 52px;
@@ -134,10 +181,10 @@ EXTRA_CSS = r"""
 }
 .ms-hint {
   text-align: center;
-  min-height: 1.35em;
-  font-size: 0.88rem;
+  min-height: 1.25em;
+  font-size: 0.86rem;
   color: var(--muted);
-  margin-bottom: 0.5rem;
+  margin: 0.45rem 0 0;
 }
 .ms-hint.err { color: var(--danger); }
 .ms-hint.ok { color: var(--accent); font-weight: 600; }
@@ -149,13 +196,10 @@ EXTRA_CSS = r"""
   margin-bottom: 0.35rem;
   min-height: 1.1em;
 }
-@media (orientation: landscape) and (min-width: 640px) {
-  .ms-play-grid {
-    display: grid;
-    grid-template-columns: 1fr min(300px, 42vw);
-    gap: 1rem;
-    align-items: start;
-  }
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .ms-expr-wrap { min-height: 8.5rem; padding: 0.65rem 0.55rem; }
+  .ms-expr { font-size: clamp(1.2rem, 4.2vw, 1.85rem); }
+  .ms-numpad button { min-height: 46px; font-size: 1.15rem; }
 }
 """
 
@@ -183,13 +227,14 @@ BODY = r"""
       </div>
       <p class="ms-penalty" id="ms-penalty"></p>
       <div class="ms-play-grid" data-fgb-board>
-        <div>
+        <div class="ms-play-expr-col">
           <div class="ms-expr-wrap">
             <p class="ms-expr" id="ms-expr">—</p>
+            <p class="ms-expr-note">从左到右计算 · 输入得数</p>
           </div>
-          <p class="ms-hint" id="ms-hint">输入答案后点确认</p>
+          <p class="ms-hint" id="ms-hint" aria-live="polite"></p>
         </div>
-        <div>
+        <div class="ms-play-input-col">
           <div class="ms-answer">
             <label for="ms-answer">答案</label>
             <div class="ms-answer-display" id="ms-answer" role="textbox" aria-label="答案" tabindex="0">—</div>
@@ -439,7 +484,7 @@ SCRIPT = r"""
     qnEl.textContent = String(qIndex + 1);
     setInput("");
     hintEl.className = "ms-hint";
-    hintEl.textContent = "从左到右计算 · 输入得数";
+    hintEl.textContent = "";
     penaltyEl.textContent = penaltyMs > 0 ? ("罚时累计 +" + (penaltyMs / 1000).toFixed(0) + "s") : "";
   }
 

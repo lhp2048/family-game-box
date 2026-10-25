@@ -2591,6 +2591,37 @@ body.fgb-lobby-toy .fgb-toy-podium-list li:last-child {
   text-decoration: none;
 }
 
+.fgb-toy-scoreboards-foot {
+  margin: 0.85rem 0 0;
+  padding-top: 0.75rem;
+  border-top: 2px dashed rgba(26, 43, 60, 0.12);
+  text-align: center;
+}
+
+.fgb-toy-board-link-all {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 0;
+  padding: 0.55rem 1.15rem;
+  min-height: 44px;
+  border-radius: 14px;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--toy-ink);
+  background: linear-gradient(180deg, #f3e8ff 0%, #e0c3ff 100%);
+  border: 2px solid rgba(166, 107, 255, 0.45);
+  box-shadow: 0 4px 0 rgba(120, 70, 200, 0.18);
+  text-decoration: none;
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.fgb-toy-board-link-all:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 rgba(120, 70, 200, 0.22);
+  color: var(--toy-ink);
+}
+
 .fgb-toy-admin {
   text-align: center;
   margin: 0.5rem 0 0;

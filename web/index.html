@@ -49,6 +49,9 @@
           <a class="fgb-toy-board-link fgb-toy-board-link-btn" href="/yuwen-daily/leaderboard">完整榜 →</a>
         </div>
       </div>
+      <p class="fgb-toy-scoreboards-foot">
+        <a class="fgb-toy-board-link fgb-toy-board-link-all" href="/leaderboard">总排行榜（全部游戏）→</a>
+      </p>
     </section>
 
     <div class="fgb-toy-layout">
@@ -105,21 +108,6 @@
     console: false,
     toyLobby: true,
   });
-
-  var topNav = document.querySelector("#fgb-topbar .fgb-nav");
-  if (topNav) {
-    [
-      { href: "/daily/leaderboard", label: "专注力榜" },
-      { href: "/yuwen-daily/leaderboard", label: "语文榜" },
-      { href: "/leaderboard", label: "排行榜" },
-    ].forEach(function (item) {
-      var a = document.createElement("a");
-      a.className = "fgb-nav-link fgb-nav-pill fgb-nav-pill-toy";
-      a.href = FGB.url(item.href);
-      a.textContent = item.label;
-      topNav.appendChild(a);
-    });
-  }
 
   function renderGames(games) {
     if (window.FGBHome && FGBHome.renderGameShelf) {

@@ -26,7 +26,7 @@
   --console-edge: rgba(62, 207, 142, 0.22);
   --console-glow: rgba(62, 207, 142, 0.35);
   --console-focus: 0 0 0 3px rgba(62, 207, 142, 0.55), 0 0 28px rgba(62, 207, 142, 0.25);
-  --console-max: 1240px;
+  --console-gutter: clamp(1rem, 3vw, 2.25rem);
   --motion-fast: 0.16s ease;
   --motion-med: 0.28s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -1344,10 +1344,13 @@ body.fgb-console::before {
     inset 0 0 80px rgba(0, 0, 0, 0.45);
 }
 
-.fgb-console-shell {
-  width: min(var(--console-max), calc(100% - 2.5rem));
+body.fgb-console main.fgb-shell.fgb-console-shell {
+  width: 100%;
+  max-width: none;
   padding-top: 1.35rem;
   padding-bottom: 4rem;
+  padding-left: max(var(--console-gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--console-gutter), env(safe-area-inset-right, 0px));
 }
 
 .fgb-topbar-console {
@@ -1663,28 +1666,10 @@ body.fgb-console::before {
 
 .fgb-shelf-row {
   display: grid;
-  gap: 0.85rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(0.65rem, 1.5vw, 1rem);
+  grid-template-columns: repeat(auto-fill, minmax(clamp(9.25rem, 20vw, 11.75rem), 1fr));
   padding: 0.35rem 0 1.25rem;
   overflow: visible;
-}
-
-@media (min-width: 520px) {
-  .fgb-shelf-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 720px) {
-  .fgb-shelf-row {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1024px) {
-  .fgb-shelf-row {
-    grid-template-columns: repeat(auto-fill, minmax(152px, 1fr));
-  }
 }
 
 .fgb-cover {
@@ -1786,7 +1771,6 @@ body.fgb-console::before {
   .fgb-console-hud,
   .fgb-stat-strip { grid-template-columns: 1fr; }
   .fgb-spotlight-row { grid-template-columns: 1fr; }
-  .fgb-console-shell { width: calc(100% - 1.5rem); }
 }
 
 @media (prefers-reduced-motion: reduce) {

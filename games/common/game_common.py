@@ -145,16 +145,16 @@ def tier_choice_row(
 
 COMMON_CSS = r"""
 :root {
-  --ink: #e8f2ec;
-  --muted: #8fa399;
-  --line: rgba(232, 242, 236, 0.12);
-  --paper: #0c1411;
-  --panel: rgba(18, 32, 28, 0.88);
-  --accent: #3ecf8e;
+  --ink: #1a2b3c;
+  --muted: #5c6d7e;
+  --line: rgba(26, 43, 60, 0.12);
+  --paper: #fff8f0;
+  --panel: #ffffff;
+  --accent: #2ecc71;
   --accent-deep: #1a9f68;
   --warn: #e8a04a;
   --danger: #e07060;
-  --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  --shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
   --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
   --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
 }
@@ -163,18 +163,10 @@ html, body { margin: 0; min-height: 100%; }
 body {
   font-family: var(--sans);
   color: var(--ink);
-  background:
-    radial-gradient(900px 480px at 12% -8%, rgba(62, 207, 142, 0.14), transparent 55%),
-    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.06), transparent 50%),
-    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
+  background: transparent;
 }
 body::before {
-  content: "";
-  position: fixed; inset: 0; pointer-events: none; opacity: .2;
-  background-image:
-    linear-gradient(rgba(232,242,236,.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(232,242,236,.03) 1px, transparent 1px);
-  background-size: 28px 28px;
+  content: none;
 }
 .wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
 .wrap.wide { width: min(720px, calc(100% - 1.5rem)); }
@@ -214,13 +206,14 @@ h1 em { font-style: italic; color: var(--accent); }
 .mode-grid { display: grid; gap: .75rem; }
 .mode-btn {
   text-align: left;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 16px;
   padding: 1rem 1.05rem;
-  background: rgba(255,255,255,.04);
+  background: #fff;
   cursor: pointer;
   font: inherit;
   color: inherit;
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.05);
   transition: transform .15s ease, border-color .15s ease;
 }
 .mode-btn:hover { transform: translateY(-1px); border-color: rgba(62,207,142,.4); }
@@ -233,14 +226,15 @@ h1 em { font-style: italic; color: var(--accent); }
   .choice-row.six { grid-template-columns: repeat(6, 1fr); }
 }
 .choice-row button {
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 14px;
   padding: .9rem .4rem;
   font: inherit;
   font-weight: 700;
-  background: rgba(255,255,255,.04);
+  background: #fff;
   color: var(--ink);
   cursor: pointer;
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.05);
 }
 .choice-row button.active {
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));

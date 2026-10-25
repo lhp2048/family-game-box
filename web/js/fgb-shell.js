@@ -275,12 +275,7 @@
     if (!doc.body.classList.contains("fgb-console")) {
       doc.body.classList.add("fgb-console");
     }
-    if (!doc.querySelector(".fgb-console-bezel")) {
-      var bezel = doc.createElement("div");
-      bezel.className = "fgb-console-bezel";
-      bezel.setAttribute("aria-hidden", "true");
-      doc.body.insertBefore(bezel, doc.body.firstChild);
-    }
+    /* Dark bezel removed — product uses light toy chrome (CSS). */
     var main = mainEl;
     if (!main || !main.classList || main.classList.contains("fgb-shell") === false) {
       main = doc.querySelector("main.fgb-shell");
@@ -308,9 +303,19 @@
     return !!global.document.querySelector("main.fgb-shell");
   }
 
-  function resolveToyLobby(opts) {
+  function useProductToyChrome(opts) {
+    if (opts && opts.toyLobby === false) return false;
     if (opts && opts.toyLobby) return true;
-    return isToyLobbyBody();
+    if (isToyLobbyBody()) return true;
+    try {
+      var body = global.document && global.document.body;
+      if (!body) return false;
+      return (
+        body.classList.contains("fgb-console") || body.hasAttribute("data-game-skin")
+      );
+    } catch (e) {
+      return false;
+    }
   }
 
   function mountTopbar(rootEl, options) {
@@ -320,7 +325,7 @@
     var showBack = !!opts.showBack;
     var backHref = opts.backHref != null && opts.backHref !== "" ? opts.backHref : "/";
     var showUser = !!opts.showUser;
-    var toyLobby = resolveToyLobby(opts);
+    var toyLobby = useProductToyChrome(opts);
     var consoleShell = resolveConsoleShell(opts, rootEl);
     if (consoleShell) {
       applyConsoleDocument(

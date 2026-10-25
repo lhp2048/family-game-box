@@ -1360,19 +1360,7 @@ body.fgb-daily-playing main.fgb-shell {
   }
 }
 
-/* —— Console product shell (home / library) —— */
-body.fgb-console {
-  background:
-    radial-gradient(1200px 620px at 8% -12%, rgba(62, 207, 142, 0.2), transparent 58%),
-    radial-gradient(900px 520px at 92% 4%, rgba(232, 160, 74, 0.08), transparent 52%),
-    radial-gradient(ellipse 140% 80% at 50% 120%, rgba(0, 0, 0, 0.55), transparent 55%),
-    linear-gradient(180deg, #050807 0%, #0a1210 38%, #0c1411 100%);
-}
-
-body.fgb-console::before {
-  opacity: 0.14;
-  background-size: 40px 40px;
-}
+/* —— Console product shell: see global toy chrome at end of file —— */
 
 .fgb-console-bezel {
   pointer-events: none;
@@ -2677,4 +2665,266 @@ body.fgb-lobby-toy .fgb-toy-podium-list li:last-child {
   body.fgb-lobby-toy .fgb-cover-toy,
   .fgb-toy-challenge-card,
   body.fgb-lobby-toy .fgb-nav-pill-toy { transition: none; }
+}
+
+/* === MX游戏盒子 — global toy product chrome (hall + games) === */
+body.fgb-console,
+body.fgb-lobby-toy,
+body[data-game-skin] {
+  --ink: #1a2b3c;
+  --muted: #5c6d7e;
+  --accent: #2ecc71;
+  --accent-deep: #1a9f68;
+  --panel: #ffffff;
+  --panel-solid: #fffef9;
+  --line: rgba(26, 43, 60, 0.12);
+  --paper: #fff8f0;
+  --shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
+  --console-ink: #1a2b3c;
+  --console-muted: #5c6d7e;
+  --console-surface: #ffffff;
+  --console-edge: rgba(255, 159, 67, 0.28);
+  --console-glow: rgba(255, 159, 67, 0.25);
+  --console-focus: 0 0 0 3px rgba(255, 107, 157, 0.45);
+  color: var(--ink);
+  overflow-x: clip;
+  background:
+    radial-gradient(ellipse 90% 60% at 10% -5%, rgba(255, 159, 67, 0.35), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 95% 8%, rgba(78, 205, 196, 0.35), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(166, 107, 255, 0.12), transparent 55%),
+    linear-gradient(180deg, #fff8f0 0%, #fef3e8 42%, #f5f9ff 100%) !important;
+}
+
+body.fgb-console::before,
+body.fgb-lobby-toy::before,
+body[data-game-skin]::before {
+  opacity: 0.55;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255, 107, 157, 0.14) 1px, transparent 0);
+  background-size: 22px 22px;
+}
+
+body.fgb-console .fgb-console-bezel,
+body.fgb-lobby-toy .fgb-console-bezel {
+  display: none !important;
+}
+
+body.fgb-console a,
+body.fgb-lobby-toy a,
+body[data-game-skin] a {
+  color: #c43d7a;
+}
+
+body.fgb-console a:hover,
+body.fgb-lobby-toy a:hover,
+body[data-game-skin] a:hover {
+  color: #e85a9a;
+}
+
+body.fgb-console .fgb-topbar,
+body.fgb-lobby-toy .fgb-topbar,
+body[data-game-skin] > #fgb-topbar {
+  border-bottom-color: transparent;
+}
+
+body.fgb-console .fgb-topbar-console,
+body.fgb-lobby-toy .fgb-topbar-toy,
+body.fgb-lobby-toy .fgb-lobby-topbar,
+body[data-game-skin] > #fgb-topbar.fgb-topbar-toy,
+body[data-game-skin] > #fgb-topbar.fgb-topbar {
+  align-items: center;
+  padding: 0.55rem 1rem 0.65rem;
+  border-radius: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  background: linear-gradient(165deg, #ffffff 0%, #fff5eb 100%);
+  box-shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
+  margin-bottom: 0.75rem;
+}
+
+body.fgb-console .fgb-panel,
+body.fgb-lobby-toy .fgb-panel,
+body[data-game-skin] .fgb-panel {
+  background: linear-gradient(180deg, #fff 0%, #fffaf5 100%);
+  border: 2px solid rgba(255, 159, 67, 0.22);
+  box-shadow: 0 12px 32px rgba(45, 62, 90, 0.1);
+}
+
+body.fgb-console .fgb-page-title,
+body.fgb-lobby-toy .fgb-page-title,
+body[data-game-skin] .fgb-page-title,
+body.fgb-console h1.fgb-page-title,
+body[data-game-skin] h1 {
+  color: var(--ink);
+}
+
+body.fgb-console .fgb-lead,
+body.fgb-console .fgb-page-kicker,
+body[data-game-skin] .sub {
+  color: var(--muted);
+}
+
+body.fgb-console .fgb-input,
+body.fgb-lobby-toy .fgb-input,
+body[data-game-skin] .fgb-input {
+  background: #fff;
+  border: 2px solid rgba(26, 43, 60, 0.12);
+  color: var(--ink);
+  border-radius: 12px;
+}
+
+body.fgb-console .fgb-input:focus,
+body[data-game-skin] .fgb-input:focus {
+  border-color: rgba(255, 107, 157, 0.45);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.2);
+}
+
+body.fgb-console .fgb-btn-ghost,
+body.fgb-console .fgb-nav-link:not(.fgb-nav-pill-toy),
+body[data-game-skin] .fgb-btn-ghost {
+  background: #fff;
+  color: var(--ink);
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
+}
+
+body.fgb-console .fgb-btn-ghost:hover,
+body.fgb-console .fgb-nav-link:not(.fgb-nav-pill-toy):hover,
+body[data-game-skin] .fgb-btn-ghost:hover {
+  border-color: rgba(255, 107, 157, 0.35);
+  background: #fffaf5;
+  color: var(--ink);
+}
+
+body.fgb-console .fgb-table th,
+body.fgb-lobby-toy .fgb-table th {
+  background: rgba(255, 243, 232, 0.85);
+  color: var(--muted);
+}
+
+body.fgb-console .fgb-tab,
+body[data-game-skin] .fgb-tab {
+  background: #fff;
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  color: var(--ink);
+}
+
+body.fgb-console .fgb-result-box,
+body[data-game-skin] .fgb-result-box {
+  background: linear-gradient(180deg, #fff 0%, #fff5f8 100%);
+  border: 2px solid rgba(255, 107, 157, 0.25);
+  color: var(--ink);
+  box-shadow: 0 20px 48px rgba(45, 62, 90, 0.16);
+}
+
+body.fgb-console .fgb-result-title,
+body[data-game-skin] .fgb-result-title {
+  color: var(--ink);
+}
+
+body.fgb-console .fgb-chip-toy,
+body.fgb-console .fgb-topbar-toy .fgb-chip,
+body.fgb-lobby-toy .fgb-chip-toy,
+body.fgb-lobby-toy .fgb-topbar-toy .fgb-chip,
+body[data-game-skin] > #fgb-topbar .fgb-chip-toy,
+body[data-game-skin] > #fgb-topbar .fgb-chip {
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  padding: 0.4rem 0.55rem 0.4rem 0.85rem;
+  color: var(--muted);
+  background: linear-gradient(165deg, #fffef9 0%, #fff0f5 55%, #f0f9ff 100%);
+  border: 2px solid rgba(255, 107, 157, 0.22);
+  box-shadow: 0 4px 0 rgba(255, 107, 157, 0.1);
+}
+
+body.fgb-console .fgb-chip-toy strong,
+body.fgb-console .fgb-topbar-toy .fgb-chip strong,
+body.fgb-lobby-toy .fgb-chip-toy strong,
+body.fgb-lobby-toy .fgb-topbar-toy .fgb-chip strong,
+body[data-game-skin] > #fgb-topbar .fgb-chip strong {
+  color: #c43d7a;
+  font-weight: 800;
+}
+
+body.fgb-console .fgb-chip:not(.fgb-chip-toy),
+body[data-game-skin] > #fgb-topbar .fgb-chip:not(.fgb-chip-toy) {
+  background: linear-gradient(165deg, #fffef9 0%, #fff0f5 55%, #f0f9ff 100%);
+  border: 2px solid rgba(255, 107, 157, 0.22);
+  color: var(--muted);
+  box-shadow: 0 4px 0 rgba(255, 107, 157, 0.1);
+}
+
+body.fgb-console .fgb-chip:not(.fgb-chip-toy) strong,
+body[data-game-skin] > #fgb-topbar .fgb-chip:not(.fgb-chip-toy) strong {
+  color: #c43d7a;
+}
+
+body.fgb-console .fgb-toy-user-btn,
+body.fgb-lobby-toy .fgb-toy-user-btn,
+body[data-game-skin] .fgb-toy-user-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0.35rem 0.7rem;
+  border-radius: 10px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  text-decoration: none;
+  color: #1a5c45;
+  background: linear-gradient(180deg, #d4fce8 0%, #a8f0c8 100%);
+  border: 2px solid rgba(46, 204, 113, 0.35);
+  box-shadow: 0 3px 0 rgba(46, 140, 90, 0.18);
+}
+
+body.fgb-console .fgb-toy-user-btn-out,
+body.fgb-lobby-toy .fgb-toy-user-btn-out,
+body[data-game-skin] .fgb-toy-user-btn-out {
+  color: #6b3d10;
+  background: linear-gradient(180deg, #fff5e6 0%, #ffd9a8 100%);
+  border-color: rgba(255, 159, 67, 0.45);
+  box-shadow: 0 3px 0 rgba(200, 120, 40, 0.2);
+}
+
+body.fgb-console .fgb-brand-console .fgb-brand-text em,
+body[data-game-skin] .fgb-brand-text em {
+  font-style: normal;
+  color: #ff6b9d;
+}
+
+body.fgb-console .fgb-brand-mark,
+body[data-game-skin] .fgb-brand-mark {
+  background: linear-gradient(145deg, #ffe066, #ff9f43);
+  box-shadow: 0 0 0 2px rgba(255, 159, 67, 0.25);
+}
+
+body.fgb-console .fgb-spotlight-daily,
+body.fgb-console .fgb-spotlight-yuwen {
+  color: var(--ink);
+}
+
+body.fgb-console .fgb-hud-tile,
+body.fgb-console .fgb-cover {
+  background: var(--console-surface);
+  border-color: rgba(26, 43, 60, 0.1);
+}
+
+body.fgb-console .fgb-spotlight p {
+  color: var(--muted);
+}
+
+body[data-game-skin] .card,
+body[data-game-skin] .mode-btn,
+body[data-game-skin] .choice-row button {
+  background: #fff;
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  color: var(--ink);
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.05);
+}
+
+body[data-game-skin] .mode-btn span {
+  color: var(--muted);
+}
+
+body[data-game-skin] .choice-row button.active {
+  color: #062016;
 }

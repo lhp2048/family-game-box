@@ -124,6 +124,7 @@ def test_page_declares_min_three_operators():
     assert "operatorCountForQuestion" in html
     assert "passesNonNegative" in html
     assert "operandCountForQuestion" not in html
+    assert "ms-countdown" not in html
 
 
 def test_monte_carlo_generated_batch():

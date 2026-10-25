@@ -139,24 +139,6 @@ EXTRA_CSS = r"""
 }
 .ms-hint.err { color: var(--danger); }
 .ms-hint.ok { color: var(--accent); font-weight: 600; }
-.ms-countdown {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(4, 10, 8, 0.82);
-  backdrop-filter: blur(4px);
-}
-.ms-countdown.hidden { display: none !important; }
-.ms-countdown-num {
-  font-family: var(--display);
-  font-size: clamp(4rem, 18vw, 7rem);
-  font-weight: 700;
-  color: var(--accent);
-  text-shadow: 0 0 40px rgba(62, 207, 142, 0.45);
-}
 .ms-penalty {
   font-size: 0.8rem;
   color: var(--warn);
@@ -247,9 +229,6 @@ BODY = r"""
     </div>
   </section>
 
-  <div class="ms-countdown hidden" id="ms-countdown" aria-hidden="true">
-    <span class="ms-countdown-num" id="ms-countdown-num">3</span>
-  </div>
 """
 
 SCRIPT = r"""
@@ -413,9 +392,6 @@ SCRIPT = r"""
   var penaltyEl = document.getElementById("ms-penalty");
   var timerEl = document.getElementById("ms-timer");
   var qnEl = document.getElementById("ms-q-n");
-  var countdownEl = document.getElementById("ms-countdown");
-  var countdownNum = document.getElementById("ms-countdown-num");
-
   function formatSec(ms) {
     return (ms / 1000).toFixed(1) + "s";
   }
@@ -466,32 +442,14 @@ SCRIPT = r"""
     penaltyEl.textContent = penaltyMs > 0 ? ("罚时累计 +" + (penaltyMs / 1000).toFixed(0) + "s") : "";
   }
 
-  function runCountdown(done) {
-    countdownEl.classList.remove("hidden");
-    var left = 3;
-    countdownNum.textContent = String(left);
-    var tick = setInterval(function () {
-      left -= 1;
-      if (left <= 0) {
-        clearInterval(tick);
-        countdownEl.classList.add("hidden");
-        done();
-        return;
-      }
-      countdownNum.textContent = String(left);
-    }, 700);
-  }
-
   function beginRun() {
     qIndex = 0;
     wrongCount = 0;
     penaltyMs = 0;
     clockStart = 0;
     show("play");
-    runCountdown(function () {
-      startClock();
-      showQuestion();
-    });
+    startClock();
+    showQuestion();
   }
 
   function finishRun() {

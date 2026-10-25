@@ -139,6 +139,16 @@ BUILTIN_GAMES: List[Dict[str, Any]] = [
         "tiers": list(STANDARD_TIER_IDS),
     },
     {
+        "id": "number-slide",
+        "title": "数字华容道",
+        "subtitle": "滑动拼图 · 步数与用时",
+        "path": "/games/number-slide/",
+        "entry": "index.html",
+        "supportsDaily": True,
+        "rankable": True,
+        "tiers": ["intro", "normal", "hard"],
+    },
+    {
         "id": "yuwen",
         "title": "语文大擂台",
         "subtitle": "易错题，一关一类",

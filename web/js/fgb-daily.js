@@ -51,7 +51,7 @@
   }
 
   var BOARD_SEL =
-    "[data-fgb-board], .clover, .sudoku-wrap, .maze-wrap, .grid-wrap, .diff-panels, .board";
+    "[data-fgb-board], .clover, .sudoku-wrap, .maze-wrap, .grid-wrap, .diff-panels, .board, .ns-board";
 
   function isVisible(el) {
     if (!el) return false;

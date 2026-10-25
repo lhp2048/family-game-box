@@ -1191,6 +1191,24 @@ body[data-game-skin="24points-library"] > #fgb-topbar {
   width: min(920px, calc(100% - 1.5rem));
 }
 
+body[data-game-skin="number-slide"] {
+  --accent: #60a5fa;
+  --accent-deep: #2563eb;
+  --skin-glow: rgba(96, 165, 250, 0.2);
+  background:
+    radial-gradient(900px 480px at 12% -8%, rgba(96, 165, 250, 0.18), transparent 55%),
+    radial-gradient(700px 400px at 100% 0%, rgba(62, 207, 142, 0.06), transparent 50%),
+    linear-gradient(165deg, #0a1018 0%, #0c1411 45%, #101820 100%);
+}
+body[data-game-skin="number-slide"] .ns-board {
+  box-shadow:
+    inset 0 0 0 1px rgba(96, 165, 250, 0.22),
+    0 14px 36px rgba(0, 0, 0, 0.32);
+}
+body[data-game-skin="number-slide"] .ns-tier-btn:hover {
+  border-color: rgba(96, 165, 250, 0.5);
+}
+
 body[data-game-skin="mental-speed"] {
   --accent: #f472b6;
   --accent-deep: #db2777;

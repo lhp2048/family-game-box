@@ -31,6 +31,7 @@ GAME_IDS = [
     "maze",
     "sudoku",
     "mental-speed",
+    "number-slide",
     "yuwen",
     "24points-library",
 ]
@@ -244,6 +245,24 @@ def test_mental_speed_daily_candidate():
     from app.game_registry import daily_candidate_games
 
     assert "mental-speed" in [g["id"] for g in daily_candidate_games()]
+
+
+def test_number_slide_page():
+    login_as(client, "num_slide")
+    r = client.get(p("/games/number-slide/"))
+    assert r.status_code == 200
+    text = r.text
+    assert "华容道" in text
+    assert 'data-game-skin="number-slide"' in text
+    assert 'id="ns-board"' in text
+    assert "fgb-daily.js" in text
+    assert "runWhenPlayable" in text or "FGBUI" in text
+
+
+def test_number_slide_daily_candidate():
+    from app.game_registry import daily_candidate_games
+
+    assert "number-slide" in [g["id"] for g in daily_candidate_games()]
 
 
 def test_24points_play_and_bank():

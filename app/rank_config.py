@@ -67,6 +67,7 @@ GAME_TIERS: Dict[str, List[str]] = {
     "maze": STANDARD_TIER_IDS[:],
     "sudoku": STANDARD_TIER_IDS[:],
     "mental-speed": STANDARD_TIER_IDS[:],
+    "number-slide": ["intro", "normal", "hard"],
 }
 
 RANKABLE_GAMES = [

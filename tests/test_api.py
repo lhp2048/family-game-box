@@ -247,6 +247,15 @@ def test_stroop_challenge_stops_after_finish():
     assert "if (mode === \"challenge\" && challengeDone) return" in html
 
 
+def test_spot_diff_found_and_remain_ui():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/spot-diff/index.html").read_text(encoding="utf-8")
+    assert 'id="remain-n"' in html
+    assert "applyFoundVisual" in html
+    assert "updateCounts" in html
+    assert "button.found::after" in html or "button.found::after" in html
+
+
 def test_cancel_board_fits_viewport():
     root = Path(__file__).resolve().parents[1]
     html = (root / "web/games/cancel/index.html").read_text(encoding="utf-8")

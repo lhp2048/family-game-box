@@ -247,6 +247,14 @@ def test_stroop_challenge_stops_after_finish():
     assert "if (mode === \"challenge\" && challengeDone) return" in html
 
 
+def test_daily_mode_hides_hint_buttons():
+    root = Path(__file__).resolve().parents[1]
+    theme = (root / "web/css/fgb-theme.css").read_text(encoding="utf-8")
+    assert "html.fgb-daily-mode #btn-hint" in theme
+    common = (root / "games/common/game_common.py").read_text(encoding="utf-8")
+    assert "html.fgb-daily-mode #btn-hint" in common
+
+
 def test_sudoku_numpad_touch_targets():
     root = Path(__file__).resolve().parents[1]
     html = (root / "web/games/sudoku/index.html").read_text(encoding="utf-8")

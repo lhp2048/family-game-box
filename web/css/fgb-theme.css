@@ -3126,3 +3126,9 @@ body[data-game-skin="24points-library"] .wrap {
   position: relative;
   z-index: 1;
 }
+
+/* Daily / 专注挑战: hide hint & solution controls (free play unchanged) */
+html.fgb-daily-mode #btn-hint,
+html.fgb-daily-mode [data-fgb-hint-control] {
+  display: none !important;
+}

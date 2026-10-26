@@ -24,7 +24,9 @@ html.fgb-daily-mode .mode-btn,
 html.fgb-daily-mode #casual-extra,
 html.fgb-daily-mode #btn-next,
 html.fgb-daily-mode #btn-restart,
-html.fgb-daily-mode #btn-new { display: none !important; }
+html.fgb-daily-mode #btn-new,
+html.fgb-daily-mode #btn-hint,
+html.fgb-daily-mode [data-fgb-hint-control] { display: none !important; }
 /* 闯关 iframe 内：收掉重复顶栏/长说明；棋盘边长由 --fgb-board 动态计算 */
 html.fgb-daily-mode {
   --fgb-board: 280px;
@@ -1172,15 +1174,8 @@ function celebrateThen(message, callback, delayMs) {
     }
   }
 
-  function scheduleMazeFit() {
-    if (!window.FGBDaily) return;
-    if (FGBDaily.scheduleFitPlay) FGBDaily.scheduleFitPlay({ min: 180, max: 720, pad: 12 });
-    else if (FGBDaily.fitPlay) FGBDaily.fitPlay({ min: 180, max: 720, pad: 12 });
-  }
-
   function renderMaze() {
     syncMazeStageLayout();
-    scheduleMazeFit();
     var el = document.getElementById("maze");
     var wrap = document.querySelector(".maze-wrap");
     var pad = 12;

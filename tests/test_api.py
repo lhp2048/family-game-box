@@ -239,6 +239,14 @@ def test_yuwen_and_24points_chrome():
         assert 'data-game-skin="%s"' % skin in theme, skin
 
 
+def test_stroop_challenge_stops_after_finish():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/stroop/index.html").read_text(encoding="utf-8")
+    assert "var challengeDone = false" in html
+    assert "if (challengeDone) return" in html
+    assert "if (mode === \"challenge\" && challengeDone) return" in html
+
+
 def test_mental_speed_page():
     login_as(client, "mental_spd")
     r = client.get(p("/games/mental-speed/"))

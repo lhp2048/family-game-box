@@ -258,6 +258,7 @@ SCRIPT = r"""
   var penaltyTimer = null;
   var startedAt = 0;
   var trialStart = 0;
+  var challengeDone = false;
   var waiting = false;
   var currentTrial = null;
 
@@ -359,7 +360,7 @@ SCRIPT = r"""
   function updateTimer() {
     var left = Math.max(0, deadline - Date.now());
     document.getElementById("timer-text").textContent = fmtTime(left);
-    if (left <= 0 && mode === "challenge" && timeLimitMs > 0) finishChallenge();
+    if (left <= 0 && mode === "challenge" && timeLimitMs > 0 && !challengeDone) finishChallenge();
   }
 
   function startTimer() {
@@ -369,6 +370,7 @@ SCRIPT = r"""
   }
 
   function resetStats() {
+    challengeDone = false;
     total = 0; correct = 0; streak = 0; maxStreak = 0;
     rts = []; rtsCong = []; rtsIncong = [];
     document.getElementById("streak").textContent = "0";
@@ -404,6 +406,7 @@ SCRIPT = r"""
   }
 
   function showTrial() {
+    if (mode === "challenge" && challengeDone) return;
     clearPenalty();
     waiting = true;
     currentTrial = buildTrial();
@@ -426,6 +429,7 @@ SCRIPT = r"""
 
   function onAnswer(choiceId) {
     if (waiting || !currentTrial) return;
+    if (mode === "challenge" && challengeDone) return;
     waiting = true;
     stopSpeak();
     renderChoices(currentTrial.choices, true);
@@ -457,6 +461,10 @@ SCRIPT = r"""
       progressEl.textContent = trialLimit > 0 ? (total + " / " + trialLimit) : ("试次 " + total);
       if (trialLimit > 0 && total >= trialLimit) {
         setTimeout(finishChallenge, ok ? 700 : 2000);
+        return;
+      }
+      if (timeLimitMs > 0 && Date.now() >= deadline) {
+        setTimeout(finishChallenge, ok ? 500 : 2000);
         return;
       }
     }
@@ -519,6 +527,8 @@ SCRIPT = r"""
   }
 
   function finishChallenge() {
+    if (challengeDone) return;
+    challengeDone = true;
     clearPenalty();
     stopTimer();
     stopSpeak();

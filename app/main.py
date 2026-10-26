@@ -178,7 +178,10 @@ def create_app() -> FastAPI:
     app.include_router(router, prefix=prefix)
 
     _mount_static(app, prefix)
+    from app.cache_headers import CacheHeadersMiddleware
+
     app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(CacheHeadersMiddleware)
 
     @app.middleware("http")
     async def play_gate_middleware(request: Request, call_next):

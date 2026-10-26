@@ -28,10 +28,18 @@ def _tmp_data(tmp_path, monkeypatch):
 def test_security_headers_on_lobby():
     r = client.get(url("/"))
     assert r.status_code == 200
-    assert r.headers.get("x-frame-options") == "DENY"
+    assert r.headers.get("x-frame-options") == "SAMEORIGIN"
     assert r.headers.get("x-content-type-options") == "nosniff"
     assert "content-security-policy" in r.headers
-    assert "frame-ancestors 'none'" in r.headers.get("content-security-policy", "")
+    assert "frame-ancestors 'self'" in r.headers.get("content-security-policy", "")
+
+
+def test_game_page_allows_same_origin_framing_for_daily():
+    r = client.get(url("/games/schulte/"))
+    assert r.status_code == 200
+    assert r.headers.get("x-frame-options") == "SAMEORIGIN"
+    csp = r.headers.get("content-security-policy", "")
+    assert "frame-ancestors 'self'" in csp
 
 
 def test_admin_setup_requires_bootstrap_when_env_set(monkeypatch):

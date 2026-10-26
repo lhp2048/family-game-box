@@ -9,7 +9,7 @@ CONTENT_SECURITY_POLICY = (
     "default-src 'self'; "
     "base-uri 'self'; "
     "form-action 'self'; "
-    "frame-ancestors 'none'; "
+    "frame-ancestors 'self'; "
     "object-src 'none'; "
     "script-src 'self' 'unsafe-inline'; "
     "style-src 'self' 'unsafe-inline'; "
@@ -35,7 +35,7 @@ class SecurityHeadersMiddleware:
                 headers = list(message.get("headers") or [])
                 names = {k.decode("latin-1").lower() for k, _ in headers}
                 extra = [
-                    (b"x-frame-options", b"DENY"),
+                    (b"x-frame-options", b"SAMEORIGIN"),
                     (b"x-content-type-options", b"nosniff"),
                     (b"referrer-policy", b"strict-origin-when-cross-origin"),
                     (b"content-security-policy", CONTENT_SECURITY_POLICY.encode("latin-1")),

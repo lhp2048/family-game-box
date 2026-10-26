@@ -737,6 +737,7 @@ SCRIPT = r"""
     renderMaze();
   });
   document.getElementById("btn-new").addEventListener("click", function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) return;
     loadLevel(mazeSize);
   });
   document.getElementById("btn-again").addEventListener("click", function () { stopMoveAnim(); showView(views, "setup"); });

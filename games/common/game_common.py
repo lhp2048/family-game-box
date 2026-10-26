@@ -669,7 +669,8 @@ html.fgb-daily-mode #view-casual-done { display: none !important; }
 html.fgb-daily-mode .mode-btn,
 html.fgb-daily-mode #casual-extra,
 html.fgb-daily-mode #btn-next,
-html.fgb-daily-mode #btn-restart { display: none !important; }
+html.fgb-daily-mode #btn-restart,
+html.fgb-daily-mode #btn-new { display: none !important; }
 /* 闯关 iframe 内：收掉重复顶栏/长说明；棋盘边长由 --fgb-board 动态计算 */
 html.fgb-daily-mode {
   --fgb-board: 280px;

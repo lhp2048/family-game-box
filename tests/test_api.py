@@ -134,6 +134,12 @@ def test_lobby_html():
     assert "FGBHome.renderGameShelf" in text
 
 
+def test_maze_daily_hides_new_maze_button():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/maze/index.html").read_text(encoding="utf-8")
+    assert "fgb-daily-mode #btn-new" in html
+
+
 def test_leaderboard_page():
     r = client.get(p("/leaderboard"))
     assert r.status_code == 200

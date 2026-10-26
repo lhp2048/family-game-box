@@ -49,6 +49,17 @@ EXTRA_CSS = r"""
   font-size: 1.6rem;
   color: var(--accent);
 }
+.target-bar .target-remain {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.target-bar .target-remain strong {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  color: var(--ink);
+}
 /* Play view: square board contained in viewport (shrink cells, no crop / scroll-off). */
 body[data-game-skin="cancel"] #view-play .grid-wrap {
   overflow: hidden;
@@ -186,7 +197,10 @@ BODY = r"""
       <span>已找 <strong id="found-n">0</strong> / <strong id="total-n">0</strong></span>
       <span id="play-timer"><strong id="timer-text">00:00</strong></span>
     </div>
-    <div class="target-bar">请找出所有的：<strong id="target-display">7</strong></div>
+    <div class="target-bar">
+      请找出所有的：<strong id="target-display">7</strong>
+      <span class="target-remain">剩余个数：<strong id="remain-n">0</strong></span>
+    </div>
     <p class="hint" id="play-hint">点击目标格进行划销</p>
     <div class="card">
       <div class="grid-wrap" data-fgb-board>
@@ -371,6 +385,7 @@ SCRIPT_MID = r""";
     document.getElementById("target-display").textContent = puzzle.target;
     document.getElementById("found-n").textContent = "0";
     document.getElementById("total-n").textContent = String(puzzle.targetCount);
+    updateRemainCount();
     document.getElementById("play-hint").className = "hint";
     document.getElementById("play-hint").textContent = "点击目标格进行划销";
     scheduleCancelBoardFit();
@@ -386,6 +401,12 @@ SCRIPT_MID = r""";
     return n;
   }
 
+  function updateRemainCount() {
+    if (!puzzle) return;
+    var rem = puzzle.targetCount - foundCount();
+    document.getElementById("remain-n").textContent = String(rem > 0 ? rem : 0);
+  }
+
   function onCellClick(i, el) {
     if (Date.now() < frozenUntil || marked[i]) return;
     if (isTarget(i)) {
@@ -393,6 +414,7 @@ SCRIPT_MID = r""";
       el.classList.add("marked");
       var fc = foundCount();
       document.getElementById("found-n").textContent = String(fc);
+      updateRemainCount();
       if (fc >= puzzle.targetCount) onRoundComplete(false);
     } else {
       totalWrong++;

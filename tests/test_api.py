@@ -254,6 +254,8 @@ def test_cancel_board_fits_viewport():
     assert "scheduleCancelBoardFit" in html
     assert "overflow: hidden" in html
     assert "max-height: var(--cancel-side)" in html
+    assert 'id="remain-n"' in html
+    assert "updateRemainCount" in html
 
 
 def test_mental_speed_page():

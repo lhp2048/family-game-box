@@ -247,6 +247,15 @@ def test_stroop_challenge_stops_after_finish():
     assert "if (mode === \"challenge\" && challengeDone) return" in html
 
 
+def test_cancel_board_fits_viewport():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/cancel/index.html").read_text(encoding="utf-8")
+    assert "var(--fgb-board" in html
+    assert "scheduleCancelBoardFit" in html
+    assert "overflow: hidden" in html
+    assert "max-height: var(--cancel-side)" in html
+
+
 def test_mental_speed_page():
     login_as(client, "mental_spd")
     r = client.get(p("/games/mental-speed/"))

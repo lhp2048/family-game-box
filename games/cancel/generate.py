@@ -49,32 +49,38 @@ EXTRA_CSS = r"""
   font-size: 1.6rem;
   color: var(--accent);
 }
-/* Play view: scale whole N×N board to fit viewport (avoid row overlap from clipped aspect-ratio). */
+/* Play view: square board contained in viewport (shrink cells, no crop / scroll-off). */
 body[data-game-skin="cancel"] #view-play .grid-wrap {
-  overflow: auto;
+  overflow: hidden;
   max-height: none;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  -webkit-overflow-scrolling: touch;
+  align-items: center;
   margin: 0 -.15rem;
   padding: .15rem 0;
+}
+html.fgb-daily-mode body[data-game-skin="cancel"] #view-play .grid-wrap {
+  max-height: none !important;
+  overflow: hidden;
 }
 .grid-cells.dense {
   --cancel-side: min(
     100%,
+    var(--fgb-board, 100vmax),
     calc(100dvh - var(--cancel-chrome, 13.5rem)),
     calc(100svh - var(--cancel-chrome, 13.5rem)),
     var(--fgb-play-max, 560px)
   );
   width: var(--cancel-side);
   max-width: 100%;
+  max-height: var(--cancel-side);
   aspect-ratio: 1;
   height: auto;
   margin: 0 auto;
   gap: clamp(1px, 0.28vw, 3px);
   grid-auto-rows: 1fr;
   align-content: stretch;
+  flex-shrink: 0;
 }
 .grid-cells.dense button {
   width: 100%;
@@ -107,6 +113,11 @@ body[data-game-skin="cancel"] #view-play .grid-wrap {
 @media (max-width: 420px) {
   body[data-game-skin="cancel"] {
     --cancel-chrome: 14.5rem;
+  }
+}
+@media (min-width: 600px) and (max-width: 1100px) {
+  body[data-game-skin="cancel"] {
+    --cancel-chrome: 18rem;
   }
 }
 """
@@ -324,6 +335,20 @@ SCRIPT_MID = r""";
       + " · " + diffLabel(diffKey);
   }
 
+  var cancelFitInstalled = false;
+  var CANCEL_FIT_OPTS = { force: true, min: 140, max: 720, pad: 12 };
+  function scheduleCancelBoardFit() {
+    if (!window.FGBDaily) return;
+    if (!cancelFitInstalled && FGBDaily.installFitPlay) {
+      cancelFitInstalled = true;
+      FGBDaily.installFitPlay(CANCEL_FIT_OPTS);
+    } else if (FGBDaily.scheduleFitPlay) {
+      FGBDaily.scheduleFitPlay(CANCEL_FIT_OPTS);
+    } else if (FGBDaily.fitPlay) {
+      FGBDaily.fitPlay(CANCEL_FIT_OPTS);
+    }
+  }
+
   function renderGrid() {
     var grid = document.getElementById("grid");
     var n = puzzle.n;
@@ -348,6 +373,7 @@ SCRIPT_MID = r""";
     document.getElementById("total-n").textContent = String(puzzle.targetCount);
     document.getElementById("play-hint").className = "hint";
     document.getElementById("play-hint").textContent = "点击目标格进行划销";
+    scheduleCancelBoardFit();
   }
 
   function isTarget(i) {

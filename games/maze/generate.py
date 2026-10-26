@@ -28,15 +28,27 @@ MAZE_TIER_SUB = {
 }
 
 EXTRA_CSS = r"""
+body[data-game-skin="maze"] #view-play .card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
 .maze-wrap {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: .5rem 0;
-  overflow: auto;
-  max-height: min(90vmin, 920px);
-  min-height: min(62vmin, 560px);
+  margin: .5rem auto;
+  overflow: hidden;
   width: 100%;
+  max-width: min(var(--fgb-play-max, 720px), 100%);
+  box-sizing: border-box;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0;
+}
+html.fgb-daily-mode body[data-game-skin="maze"] #view-play .maze-wrap {
+  min-height: var(--fgb-board, 280px);
+  max-height: var(--fgb-board, 90vmin);
 }
 .maze {
   display: grid;
@@ -101,11 +113,7 @@ EXTRA_CSS = r"""
   opacity: .85;
 }
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
-  .maze-wrap {
-    max-height: min(88vmin, 860px);
-    min-height: min(48vmin, 400px);
-    margin: .3rem 0;
-  }
+  .maze-wrap { margin: .3rem auto; }
   .stat-pills { margin-bottom: .3rem; gap: .65rem; font-size: .82rem; }
 }
 """
@@ -481,25 +489,43 @@ SCRIPT = r"""
     renderMaze();
   }
 
+  function readFgbBoardPx() {
+    var root = document.documentElement;
+    var raw = root.style.getPropertyValue("--fgb-board") || window.getComputedStyle(root).getPropertyValue("--fgb-board");
+    var n = parseFloat(raw);
+    return n > 0 ? Math.floor(n) : 0;
+  }
+
+  function syncMazeStageLayout() {
+    var wrap = document.querySelector("#view-play .maze-wrap");
+    var play = document.getElementById("view-play");
+    if (!wrap || !play || play.classList.contains("hidden")) return;
+    var stage = readFgbBoardPx();
+    if (!stage) {
+      var vh = window.innerHeight || document.documentElement.clientHeight || 700;
+      var top = wrap.getBoundingClientRect().top;
+      var actions = play.querySelector(".actions");
+      var bottom = 16;
+      if (actions) bottom += actions.getBoundingClientRect().height;
+      stage = Math.max(200, Math.floor(vh - top - bottom));
+    }
+    wrap.style.minHeight = stage + "px";
+    if (document.documentElement.classList.contains("fgb-daily-mode")) {
+      wrap.style.maxHeight = stage + "px";
+    }
+  }
+
   function renderMaze() {
+    syncMazeStageLayout();
     var el = document.getElementById("maze");
     var wrap = document.querySelector(".maze-wrap");
     var pad = 12;
     var availW = (wrap && wrap.clientWidth) ? wrap.clientWidth - pad : 640;
-    // 用视口剩余高度，避免按当前小迷宫高度回算导致一直偏小
-    var vh = window.innerHeight || 700;
-    var wrapTop = wrap ? wrap.getBoundingClientRect().top : 120;
-    var actions = document.querySelector("#view-play .actions");
-    var bottom = 72;
-    if (actions) {
-      var ar = actions.getBoundingClientRect();
-      bottom = Math.max(56, Math.ceil(vh - ar.top) + 8);
-    }
-    var cssMax = Math.floor(Math.min(vh, window.innerWidth || vh) * 0.9);
-    var availH = Math.max(220, Math.min(cssMax, Math.floor(vh - wrapTop - bottom)));
-    if (wrap) {
-      var mh = parseFloat(window.getComputedStyle(wrap).maxHeight);
-      if (mh > 0) availH = Math.min(availH, Math.floor(mh) - pad);
+    var availH = (wrap && wrap.clientHeight) ? wrap.clientHeight - pad : 480;
+    var boardCap = readFgbBoardPx();
+    if (boardCap > 0) {
+      availW = Math.min(availW, boardCap - pad);
+      availH = Math.min(availH, boardCap - pad);
     }
     var side = Math.min(availW, availH);
     // 原上限 32px 在 Mac 大屏上会把迷宫锁得很小；按可用空间缩放，软顶 56

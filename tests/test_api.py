@@ -247,6 +247,14 @@ def test_stroop_challenge_stops_after_finish():
     assert "if (mode === \"challenge\" && challengeDone) return" in html
 
 
+def test_maze_board_centered_in_stage():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/maze/index.html").read_text(encoding="utf-8")
+    assert "syncMazeStageLayout" in html
+    assert "align-items: center" in html
+    assert "justify-content: center" in html
+
+
 def test_spot_diff_found_and_remain_ui():
     root = Path(__file__).resolve().parents[1]
     html = (root / "web/games/spot-diff/index.html").read_text(encoding="utf-8")

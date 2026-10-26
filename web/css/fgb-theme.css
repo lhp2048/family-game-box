@@ -1217,7 +1217,10 @@ body[data-game-skin="maze"] {
   --accent-deep: #059669;
   --skin-glow: rgba(52, 211, 153, 0.18);
 }
-body[data-game-skin="maze"] .maze-wrap,
+body[data-game-skin="maze"] .maze-wrap {
+  background: transparent;
+  box-shadow: none;
+}
 body[data-game-skin="maze"] .maze {
   background: linear-gradient(165deg, #e8fff4 0%, #f0f9ff 100%);
   box-shadow:

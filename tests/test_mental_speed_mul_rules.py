@@ -1,4 +1,4 @@
-"""Mirror mental-speed multiplication constraints (left-to-right eval)."""
+"""Mirror mental-speed rules (standard ×÷ before +− precedence)."""
 
 from __future__ import annotations
 
@@ -40,36 +40,28 @@ def apply_op(a: int, b: int, op: str) -> int | None:
     return None
 
 
-def passes_mul_rules(nums: list[int], ops: list[str]) -> bool:
-    v = nums[0]
-    for i, op in enumerate(ops):
-        b = nums[i + 1]
-        if op != "*":
-            v = apply_op(v, b, op)
-            if v is None:
-                return False
+def eval_with_precedence(nums: list[int], ops: list[str]) -> int | None:
+    values = list(nums)
+    operators = list(ops)
+    i = 0
+    while i < len(operators):
+        op = operators[i]
+        if op not in ("*", "/"):
+            i += 1
             continue
-        prod = v * b
-        if prod > 100:
-            if not is_mul_whitelisted(v, b):
-                return False
-            if i + 1 < len(ops) and ops[i + 1] == "*":
-                return False
-            v = prod
-            continue
-        v = prod
-    return True
-
-
-def passes_non_negative(nums: list[int], ops: list[str]) -> bool:
-    v = nums[0]
-    if v < 0:
-        return False
-    for i, op in enumerate(ops):
-        v = apply_op(v, nums[i + 1], op)
-        if v is None or v < 0:
-            return False
-    return True
+        r = apply_op(values[i], values[i + 1], op)
+        if r is None:
+            return None
+        values[i : i + 2] = [r]
+        operators.pop(i)
+    if not values:
+        return None
+    v = values[0]
+    for j, op in enumerate(operators):
+        v = apply_op(v, values[j + 1], op)
+        if v is None:
+            return None
+    return v
 
 
 def eval_left(nums: list[int], ops: list[str]) -> int | None:
@@ -79,6 +71,36 @@ def eval_left(nums: list[int], ops: list[str]) -> int | None:
         if v is None:
             return None
     return v
+
+
+def passes_mul_rules(nums: list[int], ops: list[str]) -> bool:
+    values = list(nums)
+    operators = list(ops)
+    i = 0
+    while i < len(operators):
+        op = operators[i]
+        if op not in ("*", "/"):
+            i += 1
+            continue
+        a, b = values[i], values[i + 1]
+        if op == "*":
+            prod = a * b
+            if prod > 100:
+                if not is_mul_whitelisted(a, b):
+                    return False
+                if i + 1 < len(operators) and operators[i + 1] == "*":
+                    return False
+        r = apply_op(a, b, op)
+        if r is None:
+            return False
+        values[i : i + 2] = [r]
+        operators.pop(i)
+    return True
+
+
+def passes_non_negative(nums: list[int], ops: list[str]) -> bool:
+    ans = eval_with_precedence(nums, ops)
+    return ans is not None and ans >= 0
 
 
 def _extract_mul_whitelist_from_html() -> set[tuple[int, int]]:
@@ -96,6 +118,27 @@ def _extract_mul_whitelist_from_html() -> set[tuple[int, int]]:
 
 def test_whitelist_synced_with_page():
     assert _extract_mul_whitelist_from_html() == MUL_WHITELIST
+
+
+def test_standard_precedence_not_left_to_right():
+    nums = [2, 3, 4]
+    ops = ["+", "*"]
+    assert eval_left(nums, ops) == 20
+    assert eval_with_precedence(nums, ops) == 14
+
+
+def test_standard_precedence_mixed_ops():
+    assert eval_with_precedence([2, 3, 4, 1], ["+", "*", "-"]) == 13
+    assert eval_with_precedence([10, 6, 2], ["-", "/"]) == 7
+
+
+def test_page_uses_precedence_eval():
+    html = (Path(__file__).resolve().parents[1] / "web/games/mental-speed/index.html").read_text(
+        encoding="utf-8"
+    )
+    assert "evalWithPrecedence" in html
+    assert "evalLeft" not in html
+    assert "先乘除后加减" in html
 
 
 def test_rejects_hard_consecutive_mul():
@@ -130,7 +173,6 @@ def test_page_declares_min_three_operators():
 def test_monte_carlo_generated_batch():
     """Simulate generator constraints on random expressions."""
     random.seed(42)
-    violations = 0
     for _ in range(2000):
         op_count = random.choice([3, 4])
         n = op_count + 1
@@ -138,18 +180,5 @@ def test_monte_carlo_generated_batch():
         ops = [random.choice(["+", "-", "*", "/"]) for _ in range(op_count)]
         if not passes_mul_rules(nums, ops) or not passes_non_negative(nums, ops):
             continue
-        ans = eval_left(nums, ops)
-        if ans is None or ans < 0 or ans > 999:
-            continue
-        v = nums[0]
-        for i, op in enumerate(ops):
-            if op == "*":
-                prod = v * nums[i + 1]
-                if prod > 100 and not is_mul_whitelisted(v, nums[i + 1]):
-                    violations += 1
-                if i + 1 < len(ops) and ops[i + 1] == "*" and prod > 100:
-                    violations += 1
-            v = apply_op(v, nums[i + 1], op)
-            if v is None:
-                break
-    assert violations == 0
+        ans = eval_with_precedence(nums, ops)
+        assert ans is not None and 0 <= ans <= 999

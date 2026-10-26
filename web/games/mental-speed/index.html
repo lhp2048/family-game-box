@@ -675,7 +675,7 @@ h1 em { font-style: italic; color: var(--accent); }
         <div class="ms-play-expr-col">
           <div class="ms-expr-wrap">
             <p class="ms-expr" id="ms-expr">—</p>
-            <p class="ms-expr-note">从左到右计算 · 输入得数</p>
+            <p class="ms-expr-note">先乘除后加减 · 输入得数</p>
           </div>
           <p class="ms-hint" id="ms-hint" aria-live="polite"></p>
         </div>
@@ -974,10 +974,26 @@ function celebrateThen(message, callback, delayMs) {
     return null;
   }
 
-  function evalLeft(nums, ops) {
-    var v = nums[0];
-    for (var i = 0; i < ops.length; i++) {
-      v = applyOp(v, nums[i + 1], ops[i]);
+  /** 先乘除后加减（无括号） */
+  function evalWithPrecedence(nums, ops) {
+    var values = nums.slice();
+    var operators = ops.slice();
+    var i = 0;
+    while (i < operators.length) {
+      var op = operators[i];
+      if (op !== "*" && op !== "/") {
+        i++;
+        continue;
+      }
+      var r = applyOp(values[i], values[i + 1], op);
+      if (r === null) return null;
+      values.splice(i, 2, r);
+      operators.splice(i, 1);
+    }
+    if (!values.length) return null;
+    var v = values[0];
+    for (var j = 0; j < operators.length; j++) {
+      v = applyOp(v, values[j + 1], operators[j]);
       if (v === null) return null;
     }
     return v;
@@ -999,38 +1015,38 @@ function celebrateThen(message, callback, delayMs) {
     return !!MUL_WHITELIST[mulPairKey(a, b)];
   }
 
-  /** 单次 × 与连乘中间/最终积：≤100，或白名单大数乘（且白名单后不可再连 ×） */
+  /** 乘除阶段：单次 × 积 ≤100 或白名单；白名单大数乘后不可再连 × */
   function passesMulRules(nums, ops) {
-    var v = nums[0];
-    for (var i = 0; i < ops.length; i++) {
-      var op = ops[i];
-      var b = nums[i + 1];
-      if (op !== "*") {
-        v = applyOp(v, b, op);
-        if (v === null) return false;
+    var values = nums.slice();
+    var operators = ops.slice();
+    var i = 0;
+    while (i < operators.length) {
+      var op = operators[i];
+      if (op !== "*" && op !== "/") {
+        i++;
         continue;
       }
-      var prod = v * b;
-      if (prod > 100) {
-        if (!isMulWhitelisted(v, b)) return false;
-        if (i + 1 < ops.length && ops[i + 1] === "*") return false;
-        v = prod;
-        continue;
+      var a = values[i];
+      var b = values[i + 1];
+      if (op === "*") {
+        var prod = a * b;
+        if (prod > 100) {
+          if (!isMulWhitelisted(a, b)) return false;
+          if (i + 1 < operators.length && operators[i + 1] === "*") return false;
+        }
       }
-      v = prod;
+      var r = applyOp(a, b, op);
+      if (r === null) return false;
+      values.splice(i, 2, r);
+      operators.splice(i, 1);
     }
     return true;
   }
 
-  /** 左到右每一步中间结果与最终值均 ≥ 0 */
+  /** 标准优先级求值结果存在且 ≥ 0 */
   function passesNonNegative(nums, ops) {
-    var v = nums[0];
-    if (v < 0) return false;
-    for (var i = 0; i < ops.length; i++) {
-      v = applyOp(v, nums[i + 1], ops[i]);
-      if (v === null || v < 0) return false;
-    }
-    return true;
+    var ans = evalWithPrecedence(nums, ops);
+    return ans !== null && ans >= 0;
   }
 
   function formatExpr(nums, ops) {
@@ -1068,7 +1084,7 @@ function celebrateThen(message, callback, delayMs) {
       if (!hasMulDiv) continue;
       if (!passesMulRules(nums, ops)) continue;
       if (!passesNonNegative(nums, ops)) continue;
-      var ans = evalLeft(nums, ops);
+      var ans = evalWithPrecedence(nums, ops);
       if (ans === null || ans < 0 || ans > 999) continue;
       return { text: formatExpr(nums, ops), answer: ans };
     }

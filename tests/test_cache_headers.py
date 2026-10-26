@@ -3,9 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.cache_headers import CACHE_HTML, CACHE_LONG, cache_control_for_path
-from fastapi.testclient import TestClient
-
-from tests.test_api import client, p
+from tests.test_api import client, login_as, p
 
 
 def test_cache_control_policy_paths():
@@ -18,7 +16,6 @@ def test_cache_control_policy_paths():
 
 
 def test_static_css_response_has_long_cache():
-    login_as = __import__("tests.test_api", fromlist=["login_as"]).login_as
     login_as(client, "cache_hdr")
     r = client.get(p("/css/fgb-theme.css"))
     assert r.status_code == 200
@@ -28,7 +25,6 @@ def test_static_css_response_has_long_cache():
 
 
 def test_game_html_has_no_cache():
-    login_as = __import__("tests.test_api", fromlist=["login_as"]).login_as
     login_as(client, "cache_hdr_html")
     r = client.get(p("/games/cancel/"))
     assert r.status_code == 200
@@ -39,10 +35,16 @@ def test_game_html_has_no_cache():
 def test_vercel_json_declares_asset_headers():
     root = Path(__file__).resolve().parents[1]
     import json
+    import re
 
     config = json.loads((root / "vercel.json").read_text(encoding="utf-8"))
     headers = config.get("headers") or []
-    sources = {h["source"] for h in headers}
-    assert "/css/(.*)" in sources
-    assert "/js/(.*)" in sources
-    assert any("html" in s for s in sources)
+    sources = [h["source"] for h in headers]
+    assert "/css/:path*" in sources
+    assert "/js/:path*" in sources
+    assert "/games/:path*.css" in sources
+    assert "/:path*.html" in sources
+    # Vercel path-to-regexp: no alternation groups like (a|b)
+    for src in sources:
+        assert "|" not in src, src
+        assert not re.search(r"\([^)]*\|", src), src

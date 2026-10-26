@@ -293,12 +293,22 @@ def test_spot_diff_found_and_remain_ui():
 def test_cancel_board_fits_viewport():
     root = Path(__file__).resolve().parents[1]
     html = (root / "web/games/cancel/index.html").read_text(encoding="utf-8")
-    assert "var(--fgb-board" in html
+    assert "fitCancelBoard" in html
+    assert "installCancelBoardFit" in html
     assert "scheduleCancelBoardFit" in html
-    assert "overflow: hidden" in html
-    assert "max-height: var(--cancel-side)" in html
+    assert "Math.min(availW, availH" in html
+    assert "align-items: center" in html
     assert 'id="remain-n"' in html
     assert "updateRemainCount" in html
+
+
+def test_cancel_board_fit_landscape_tablet():
+    """Side must shrink when height < width (landscape tablet)."""
+    avail_w, avail_h = 820, 340
+    max_b = min(720, int(min(1024, 768) * 0.88))
+    side = min(avail_w, avail_h, max_b)
+    assert side == avail_h
+    assert side < avail_w
 
 
 def test_mental_speed_page():

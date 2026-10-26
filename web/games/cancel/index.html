@@ -483,38 +483,40 @@ h1 em { font-style: italic; color: var(--accent); }
   font-size: 1.35rem;
   color: var(--ink);
 }
-/* Play view: square board contained in viewport (shrink cells, no crop / scroll-off). */
+/* Play view: square board sized by JS --cancel-side (min width/height), centered, no crop. */
+body[data-game-skin="cancel"] #view-play > .card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
 body[data-game-skin="cancel"] #view-play .grid-wrap {
   overflow: hidden;
-  max-height: none;
+  max-height: none !important;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   margin: 0 -.15rem;
   padding: .15rem 0;
+  box-sizing: border-box;
 }
 html.fgb-daily-mode body[data-game-skin="cancel"] #view-play .grid-wrap {
-  max-height: none !important;
   overflow: hidden;
 }
 .grid-cells.dense {
-  --cancel-side: min(
-    100%,
-    var(--fgb-board, 100vmax),
-    calc(100dvh - var(--cancel-chrome, 13.5rem)),
-    calc(100svh - var(--cancel-chrome, 13.5rem)),
-    var(--fgb-play-max, 560px)
-  );
+  --cancel-side: 280px;
   width: var(--cancel-side);
+  height: var(--cancel-side);
   max-width: 100%;
-  max-height: var(--cancel-side);
+  max-height: 100%;
   aspect-ratio: 1;
-  height: auto;
   margin: 0 auto;
   gap: clamp(1px, 0.28vw, 3px);
   grid-auto-rows: 1fr;
   align-content: stretch;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 .grid-cells.dense button {
   width: 100%;
@@ -538,21 +540,11 @@ html.fgb-daily-mode body[data-game-skin="cancel"] #view-play .grid-wrap {
   pointer-events: none;
 }
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
-  body[data-game-skin="cancel"] {
-    --cancel-chrome: 11rem;
-  }
   .target-bar { margin-bottom: .35rem; font-size: 1rem; }
   .target-bar strong { font-size: 1.25rem; }
 }
 @media (max-width: 420px) {
-  body[data-game-skin="cancel"] {
-    --cancel-chrome: 14.5rem;
-  }
-}
-@media (min-width: 600px) and (max-width: 1100px) {
-  body[data-game-skin="cancel"] {
-    --cancel-chrome: 18rem;
-  }
+  .target-bar .target-remain { font-size: 0.88rem; }
 }
 
 </style>
@@ -1001,16 +993,61 @@ function celebrateThen(message, callback, delayMs) {
   }
 
   var cancelFitInstalled = false;
-  var CANCEL_FIT_OPTS = { force: true, min: 140, max: 720, pad: 12 };
+
+  function fitCancelBoard() {
+    var play = document.getElementById("view-play");
+    var wrap = play && play.querySelector(".grid-wrap");
+    var grid = document.getElementById("grid");
+    if (!play || !wrap || !grid || play.classList.contains("hidden")) return;
+
+    var vh = window.innerHeight || document.documentElement.clientHeight || 600;
+    var vw = window.innerWidth || document.documentElement.clientWidth || 800;
+    var pad = 6;
+    var top = wrap.getBoundingClientRect().top;
+    var actions = play.querySelector(".actions");
+    var bottomEdge = vh - pad;
+    if (actions) bottomEdge = actions.getBoundingClientRect().top - pad;
+    else {
+      var card = wrap.closest(".card");
+      if (card) bottomEdge = card.getBoundingClientRect().bottom - pad;
+    }
+    var availH = Math.max(100, Math.floor(bottomEdge - top));
+    var availW = Math.floor(wrap.clientWidth || wrap.getBoundingClientRect().width);
+    if (availW < 1) availW = Math.floor(vw * 0.92);
+
+    var maxB = Math.min(720, Math.floor(Math.min(vw, vh) * 0.88));
+    var side = Math.min(availW, availH, maxB);
+    if (side < 80) side = Math.min(availW, availH);
+
+    wrap.style.minHeight = availH + "px";
+    wrap.style.maxHeight = availH + "px";
+    grid.style.setProperty("--cancel-side", side + "px");
+    document.documentElement.style.setProperty("--fgb-board", side + "px");
+  }
+
   function scheduleCancelBoardFit() {
-    if (!window.FGBDaily) return;
-    if (!cancelFitInstalled && FGBDaily.installFitPlay) {
-      cancelFitInstalled = true;
-      FGBDaily.installFitPlay(CANCEL_FIT_OPTS);
-    } else if (FGBDaily.scheduleFitPlay) {
-      FGBDaily.scheduleFitPlay(CANCEL_FIT_OPTS);
-    } else if (FGBDaily.fitPlay) {
-      FGBDaily.fitPlay(CANCEL_FIT_OPTS);
+    if (window.requestAnimationFrame) {
+      requestAnimationFrame(function () { fitCancelBoard(); });
+    } else {
+      fitCancelBoard();
+    }
+  }
+
+  function installCancelBoardFit() {
+    if (cancelFitInstalled) return;
+    cancelFitInstalled = true;
+    function run() { scheduleCancelBoardFit(); }
+    run();
+    window.addEventListener("resize", run);
+    window.addEventListener("orientationchange", function () {
+      setTimeout(run, 80);
+      setTimeout(run, 350);
+    });
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", run);
+    if (window.FGBDaily && FGBDaily.installFitPlay) {
+      FGBDaily.installFitPlay({
+        force: true, min: 120, max: 720, pad: 10, boardSelector: ".grid-wrap"
+      });
     }
   }
 
@@ -1039,6 +1076,7 @@ function celebrateThen(message, callback, delayMs) {
     updateRemainCount();
     document.getElementById("play-hint").className = "hint";
     document.getElementById("play-hint").textContent = "点击目标格进行划销";
+    installCancelBoardFit();
     scheduleCancelBoardFit();
   }
 

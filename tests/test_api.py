@@ -298,6 +298,10 @@ def test_cancel_board_fits_viewport():
     assert "scheduleCancelBoardFit" in html
     assert "Math.min(availW, availH" in html
     assert "align-items: center" in html
+    assert "justify-content: center" in html
+    assert "#grid.grid-cells.dense" in html
+    assert "width: var(--cancel-side) !important" in html
+    assert 'grid.style.width = side + "px"' in html
     assert 'id="remain-n"' in html
     assert "updateRemainCount" in html
 

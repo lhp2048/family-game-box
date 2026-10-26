@@ -577,7 +577,13 @@ h1 {
     if (isDaily) {
       stopTimer();
       playing = false;
-      if (window.FGBDaily) FGBDaily.notifyStageDone(elapsed);
+      celebrateThen(FGB_MSG.done, function () {
+        if (window.FGBDaily && FGBDaily.notifyStageDone) {
+          FGBDaily.notifyStageDone(elapsed);
+        } else if (window.parent && window.parent !== window) {
+          window.parent.postMessage({ type: "fgb-daily-stage-done", timeMs: elapsed }, "*");
+        }
+      }, 480);
       return;
     }
     if (mode === "casual") {

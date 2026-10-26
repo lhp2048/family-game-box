@@ -247,6 +247,17 @@ def test_stroop_challenge_stops_after_finish():
     assert "if (mode === \"challenge\" && challengeDone) return" in html
 
 
+def test_schulte_daily_shows_stage_done_on_finish():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/schulte/index.html").read_text(encoding="utf-8")
+    assert "celebrateThen(FGB_MSG.done" in html
+    assert "FGBDaily.notifyStageDone" in html
+    idx = html.index("if (isDaily)")
+    block = html[idx : idx + 650]
+    assert "celebrateThen" in block
+    assert block.index("celebrateThen") < block.index("notifyStageDone")
+
+
 def test_unified_stage_done_banner():
     root = Path(__file__).resolve().parents[1]
     ui = (root / "web/js/fgb-ui.js").read_text(encoding="utf-8")

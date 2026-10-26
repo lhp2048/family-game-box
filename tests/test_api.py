@@ -247,6 +247,13 @@ def test_stroop_challenge_stops_after_finish():
     assert "if (mode === \"challenge\" && challengeDone) return" in html
 
 
+def test_sudoku_numpad_touch_targets():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/sudoku/index.html").read_text(encoding="utf-8")
+    assert "min-height: 2.75rem" in html
+    assert "touch-action: manipulation" in html
+
+
 def test_maze_board_centered_in_stage():
     root = Path(__file__).resolve().parents[1]
     html = (root / "web/games/maze/index.html").read_text(encoding="utf-8")

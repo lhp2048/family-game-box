@@ -1545,7 +1545,7 @@ html.fgb-daily-mode .board {
 var FGB_MSG = {
   exitConfirm: "退出并查看统计？",
   done: "完成！",
-  sessionDone: "本局完成！"
+  sessionDone: "完成！"
 };
 
 var _confirmCb = null;
@@ -1588,6 +1588,10 @@ function _resolveConfirm(ok) {
 var _celebrateTimer = null;
 /** 轻量完成动效：不挡点击，约 0.5s 自动消失 */
 function celebrate(message) {
+  if (window.FGBUI && FGBUI.stageDone) {
+    FGBUI.stageDone(message || FGB_MSG.done, { duration: 520 });
+    return;
+  }
   var el = document.getElementById("celebrate");
   var text = document.getElementById("celebrate-text");
   if (!el || !text) return;

@@ -248,7 +248,7 @@
       "★".repeat(stars) + "☆".repeat(3 - stars);
     document.getElementById("res-time").textContent = fmtTime(elapsed);
     show("result");
-    celebrate("通关！");
+    celebrate(typeof FGB_MSG !== "undefined" ? FGB_MSG.done : "完成！");
     if (mode === "campaign") {
       var num = parseInt(levelId.replace("camp-", ""), 10);
       if (!isNaN(num) && num >= campaignUnlock) saveUnlock(num + 1);

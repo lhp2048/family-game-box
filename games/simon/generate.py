@@ -486,7 +486,8 @@ SCRIPT = r"""
     document.getElementById("streak").textContent = String(streak);
     if (mode === "challenge") {
       if (!ok) countPenalty(wrongText);
-      setTimeout(nextTrial, ok ? 900 : 2000);
+      if (ok) celebrateThen(FGB_MSG.done, nextTrial, 480);
+      else setTimeout(nextTrial, 2000);
     }
   }
 

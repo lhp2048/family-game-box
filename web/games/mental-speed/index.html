@@ -795,7 +795,7 @@ function pick(arr) { return arr[randInt(arr.length)]; }
 var FGB_MSG = {
   exitConfirm: "退出并查看统计？",
   done: "完成！",
-  sessionDone: "本局完成！"
+  sessionDone: "完成！"
 };
 
 var _confirmCb = null;
@@ -836,8 +836,12 @@ function _resolveConfirm(ok) {
 })();
 
 var _celebrateTimer = null;
-/** 轻量完成动效：不挡点击，约 0.5s 自动消失 */
+/** 统一关卡/回合完成横幅（优先 FGBUI.stageDone，与 daily 一致） */
 function celebrate(message) {
+  if (window.FGBUI && FGBUI.stageDone) {
+    FGBUI.stageDone(message || FGB_MSG.done, { duration: 520 });
+    return;
+  }
   var el = document.getElementById("celebrate");
   var text = document.getElementById("celebrate-text");
   if (!el || !text) return;
@@ -1210,16 +1214,13 @@ function celebrateThen(message, callback, delayMs) {
     var guess = parseInt(inputStr, 10);
     if (!isFinite(guess)) return;
     if (guess === current.answer) {
-      hintEl.className = "ms-hint ok";
-      hintEl.textContent = "正确！";
-      qIndex += 1;
-      if (qIndex >= TOTAL) {
-        setTimeout(finishRun, 320);
-        return;
-      }
-      setTimeout(function () {
-        showQuestion();
-      }, 280);
+      hintEl.className = "ms-hint";
+      hintEl.textContent = "";
+      celebrateThen(FGB_MSG.done, function () {
+        qIndex += 1;
+        if (qIndex >= TOTAL) finishRun();
+        else showQuestion();
+      }, 300);
       return;
     }
     wrongCount += 1;

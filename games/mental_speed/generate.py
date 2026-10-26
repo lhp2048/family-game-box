@@ -555,16 +555,13 @@ SCRIPT = r"""
     var guess = parseInt(inputStr, 10);
     if (!isFinite(guess)) return;
     if (guess === current.answer) {
-      hintEl.className = "ms-hint ok";
-      hintEl.textContent = "正确！";
-      qIndex += 1;
-      if (qIndex >= TOTAL) {
-        setTimeout(finishRun, 320);
-        return;
-      }
-      setTimeout(function () {
-        showQuestion();
-      }, 280);
+      hintEl.className = "ms-hint";
+      hintEl.textContent = "";
+      celebrateThen(FGB_MSG.done, function () {
+        qIndex += 1;
+        if (qIndex >= TOTAL) finishRun();
+        else showQuestion();
+      }, 300);
       return;
     }
     wrongCount += 1;

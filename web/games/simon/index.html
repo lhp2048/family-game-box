@@ -734,7 +734,7 @@ function pick(arr) { return arr[randInt(arr.length)]; }
 var FGB_MSG = {
   exitConfirm: "退出并查看统计？",
   done: "完成！",
-  sessionDone: "本局完成！"
+  sessionDone: "完成！"
 };
 
 var _confirmCb = null;
@@ -775,8 +775,12 @@ function _resolveConfirm(ok) {
 })();
 
 var _celebrateTimer = null;
-/** 轻量完成动效：不挡点击，约 0.5s 自动消失 */
+/** 统一关卡/回合完成横幅（优先 FGBUI.stageDone，与 daily 一致） */
 function celebrate(message) {
+  if (window.FGBUI && FGBUI.stageDone) {
+    FGBUI.stageDone(message || FGB_MSG.done, { duration: 520 });
+    return;
+  }
   var el = document.getElementById("celebrate");
   var text = document.getElementById("celebrate-text");
   if (!el || !text) return;
@@ -1145,7 +1149,8 @@ function celebrateThen(message, callback, delayMs) {
     document.getElementById("streak").textContent = String(streak);
     if (mode === "challenge") {
       if (!ok) countPenalty(wrongText);
-      setTimeout(nextTrial, ok ? 900 : 2000);
+      if (ok) celebrateThen(FGB_MSG.done, nextTrial, 480);
+      else setTimeout(nextTrial, 2000);
     }
   }
 

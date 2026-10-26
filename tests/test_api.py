@@ -247,6 +247,17 @@ def test_stroop_challenge_stops_after_finish():
     assert "if (mode === \"challenge\" && challengeDone) return" in html
 
 
+def test_unified_stage_done_banner():
+    root = Path(__file__).resolve().parents[1]
+    ui = (root / "web/js/fgb-ui.js").read_text(encoding="utf-8")
+    assert "function stageDone" in ui
+    assert "stageDone:" in ui
+    common = (root / "games/common/game_common.py").read_text(encoding="utf-8")
+    assert "FGBUI.stageDone" in common
+    theme = (root / "web/css/fgb-theme.css").read_text(encoding="utf-8")
+    assert ".fgb-stage-done" in theme
+
+
 def test_daily_mode_hides_hint_buttons():
     root = Path(__file__).resolve().parents[1]
     theme = (root / "web/css/fgb-theme.css").read_text(encoding="utf-8")

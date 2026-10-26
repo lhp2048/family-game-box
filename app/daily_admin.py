@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import os
 import secrets
 import time
 from datetime import datetime, timedelta, timezone
@@ -41,6 +42,35 @@ def default_template() -> Dict[str, Any]:
     return {"stages": [{"gameId": g["id"], "tier": "normal"} for g in RANKABLE_GAMES]}
 
 
+DAILY_TAIL_GAME_ID = "mental-speed"
+
+
+def _normalize_stage_row(s: Dict[str, Any]) -> Optional[Dict[str, str]]:
+    gid = str(s.get("gameId") or "").strip()
+    if not gid:
+        return None
+    tier = str(s.get("tier") or "normal").strip() or "normal"
+    return {"gameId": gid, "tier": tier}
+
+
+def _ensure_mental_speed_last(stages: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    """Persisted templates from before 心算快答 may omit the final daily stage."""
+    clean: List[Dict[str, str]] = []
+    for s in stages:
+        row = _normalize_stage_row(s)
+        if row:
+            clean.append(row)
+    if not clean:
+        return list(default_template()["stages"])
+    playable = set(_playable_ids())
+    if DAILY_TAIL_GAME_ID not in playable:
+        return clean
+    ids = [r["gameId"] for r in clean]
+    if DAILY_TAIL_GAME_ID not in ids:
+        clean.append({"gameId": DAILY_TAIL_GAME_ID, "tier": "normal"})
+    return clean
+
+
 def _play_fields(data: Dict[str, Any]) -> Dict[str, Any]:
     data.setdefault("playGateEnabled", False)
     data.setdefault("playPassphraseSalt", "")
@@ -61,6 +91,15 @@ def _load() -> Dict[str, Any]:
     data = load_json(STORE, _empty())
     if not isinstance(data.get("template"), dict):
         data["template"] = default_template()
+    else:
+        raw = data.get("template", {}).get("stages") or []
+        if not isinstance(raw, list):
+            raw = []
+        prev = [r for s in raw if (r := _normalize_stage_row(s))]
+        normed = _ensure_mental_speed_last(raw)
+        if normed != prev:
+            data["template"] = {"stages": normed}
+            _save(data)
     return _play_fields(data)
 
 
@@ -92,6 +131,20 @@ def _save(data: Dict[str, Any]) -> None:
 
 def _hash(salt: str, password: str) -> str:
     return hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
+
+
+def _password_ok(salt: str, password: str, stored_hash: str) -> bool:
+    expect = _hash(salt, password or "")
+    return hmac.compare_digest(expect, stored_hash or "")
+
+
+def _require_bootstrap(provided: Optional[str]) -> None:
+    expected = os.environ.get("ADMIN_BOOTSTRAP_SECRET", "").strip()
+    if not expected:
+        return
+    got = (provided or "").strip()
+    if not got or not hmac.compare_digest(expected, got):
+        raise PermissionError("bootstrap secret required")
 
 
 def _now() -> datetime:
@@ -129,7 +182,8 @@ def admin_status(token: Optional[str] = None) -> Dict[str, Any]:
     }
 
 
-def setup_password(password: str) -> Dict[str, str]:
+def setup_password(password: str, bootstrap_secret: Optional[str] = None) -> Dict[str, str]:
+    _require_bootstrap(bootstrap_secret)
     password = (password or "").strip()
     if len(password) < 4:
         raise ValueError("password too short")
@@ -146,7 +200,7 @@ def login(password: str) -> Dict[str, str]:
     data = _load()
     if not data.get("passwordHash"):
         raise ValueError("password not set")
-    if _hash(data.get("salt") or "", password or "") != data["passwordHash"]:
+    if not _password_ok(data.get("salt") or "", password, str(data.get("passwordHash") or "")):
         raise ValueError("invalid password")
     return _issue_session(data)
 
@@ -192,7 +246,11 @@ def issue_play_cookie(passphrase: str, now: Optional[int] = None) -> str:
     passphrase = (passphrase or "").strip()
     if not data.get("playPassphraseHash"):
         raise ValueError("口令不对")
-    if _hash(data.get("playPassphraseSalt") or "", passphrase or "") != data["playPassphraseHash"]:
+    if not _password_ok(
+        data.get("playPassphraseSalt") or "",
+        passphrase,
+        str(data.get("playPassphraseHash") or ""),
+    ):
         raise ValueError("口令不对")
     current = int(now if now is not None else time.time())
     exp = current + PLAY_TTL
@@ -231,7 +289,7 @@ def get_template() -> Dict[str, Any]:
     stages = data.get("template", {}).get("stages") or []
     if not stages:
         return default_template()
-    return {"stages": list(stages)}
+    return {"stages": _ensure_mental_speed_last(list(stages))}
 
 
 def put_template(stages: List[Dict[str, Any]]) -> Dict[str, Any]:

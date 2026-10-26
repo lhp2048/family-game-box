@@ -1,0 +1,664 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""生成「心算快答」独立小游戏页。"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+_GAMES = Path(__file__).resolve().parents[1]
+if str(_GAMES) not in sys.path:
+    sys.path.insert(0, str(_GAMES))
+
+from common.game_common import build_page, inject_lobby_link, run_generator
+from common.paths import game_page_paths
+
+SLUG = "mental-speed"
+
+EXTRA_CSS = r"""
+.ms-console { padding: 1rem 1.05rem; }
+.ms-hero {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.ms-hero h1 { margin-bottom: 0.35rem; }
+.ms-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+.ms-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.65rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.ms-progress strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.ms-timer {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+.ms-play-grid {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: min(620px, 100%);
+  margin: 0 auto;
+  align-items: stretch;
+}
+@media (min-width: 520px) {
+  .ms-play-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 252px);
+    gap: 0.65rem 0.85rem;
+  }
+}
+.ms-play-expr-col,
+.ms-play-input-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ms-play-input-col {
+  gap: 0.45rem;
+  justify-content: center;
+}
+.ms-expr-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 11.5rem;
+  margin: 0;
+  padding: 1rem 0.85rem;
+  border-radius: 20px;
+  border: 2px solid rgba(244, 114, 182, 0.35);
+  background: linear-gradient(165deg, #fff5f9 0%, #ffe8f4 55%, #f0f9ff 100%);
+  box-shadow: 0 8px 24px rgba(45, 62, 90, 0.08);
+}
+@media (min-width: 520px) {
+  .ms-expr-wrap {
+    min-height: 100%;
+  }
+}
+.ms-expr {
+  font-family: var(--display);
+  font-size: clamp(1.35rem, 4.8vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  text-align: center;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.ms-expr-note {
+  margin: 0.55rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.35;
+}
+.ms-answer {
+  display: block;
+  margin: 0;
+}
+.ms-answer label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+.ms-answer-display {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 3.1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 16px;
+  border: 2px solid rgba(244, 114, 182, 0.35);
+  background: linear-gradient(180deg, #fff 0%, #fff8fc 100%);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
+  font-family: var(--display);
+  font-size: clamp(1.55rem, 5vw, 2rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  letter-spacing: 0.12em;
+}
+.ms-answer-display.is-err {
+  border-color: var(--danger);
+  animation: msShake 0.35s ease;
+}
+@keyframes msShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+.ms-numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+  width: 100%;
+  margin: 0;
+}
+.ms-numpad button {
+  min-height: 52px;
+  border-radius: 16px;
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  background: linear-gradient(180deg, #fff 0%, #fff5f8 100%);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.ms-numpad button:active { transform: scale(0.97); }
+.ms-numpad button.wide { grid-column: span 2; }
+.ms-numpad button.accent {
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #062016;
+  border-color: transparent;
+}
+.ms-hint {
+  text-align: center;
+  min-height: 1.25em;
+  font-size: 0.86rem;
+  color: var(--muted);
+  margin: 0.45rem 0 0;
+}
+.ms-hint.err { color: var(--danger); }
+.ms-hint.ok { color: var(--accent); font-weight: 600; }
+.ms-penalty {
+  font-size: 0.8rem;
+  color: var(--warn);
+  text-align: center;
+  margin-top: -0.25rem;
+  margin-bottom: 0.35rem;
+  min-height: 1.1em;
+}
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .ms-expr-wrap { min-height: 8.5rem; padding: 0.65rem 0.55rem; }
+  .ms-expr { font-size: clamp(1.2rem, 4.2vw, 1.85rem); }
+  .ms-numpad button { min-height: 46px; font-size: 1.15rem; }
+}
+"""
+
+BODY = r"""
+  <section id="view-home">
+    <div class="ms-hero">
+      <p class="ms-tag">客厅速算</p>
+      <h1>心算<em>快答</em></h1>
+      <p class="sub">看算式、键入得数。每题 3～4 步运算（4～5 个数），连续 10 题竞速；答错 +3 秒罚时，可重试本题。</p>
+    </div>
+    <div class="card mode-grid">
+      <button type="button" class="mode-btn" id="btn-start-classic">
+        <strong>初阶 · 10 题</strong>
+        <span>加减乘除，即时出题，适合热身与亲子对战</span>
+      </button>
+    </div>
+    {lobby_back_link()}
+  </section>
+
+  <section id="view-play" class="hidden">
+    <div class="card ms-console">
+      <div class="ms-progress">
+        <span>第 <strong id="ms-q-n">1</strong> / 10 题</span>
+        <span class="ms-timer" id="ms-timer" aria-live="polite">0.0s</span>
+      </div>
+      <p class="ms-penalty" id="ms-penalty"></p>
+      <div class="ms-play-grid" data-fgb-board>
+        <div class="ms-play-expr-col">
+          <div class="ms-expr-wrap">
+            <p class="ms-expr" id="ms-expr">—</p>
+            <p class="ms-expr-note">先乘除后加减 · 输入得数</p>
+          </div>
+          <p class="ms-hint" id="ms-hint" aria-live="polite"></p>
+        </div>
+        <div class="ms-play-input-col">
+          <div class="ms-answer">
+            <label for="ms-answer">答案</label>
+            <div class="ms-answer-display" id="ms-answer" role="textbox" aria-label="答案" tabindex="0">—</div>
+          </div>
+          <div class="ms-numpad" id="ms-numpad">
+            <button type="button" data-key="1">1</button>
+            <button type="button" data-key="2">2</button>
+            <button type="button" data-key="3">3</button>
+            <button type="button" data-key="4">4</button>
+            <button type="button" data-key="5">5</button>
+            <button type="button" data-key="6">6</button>
+            <button type="button" data-key="7">7</button>
+            <button type="button" data-key="8">8</button>
+            <button type="button" data-key="9">9</button>
+            <button type="button" data-key="clear" class="wide">清除</button>
+            <button type="button" data-key="0">0</button>
+            <button type="button" data-key="back">⌫</button>
+            <button type="button" data-key="submit" class="wide accent">确认</button>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="ghost" id="btn-quit" style="width:100%;margin-top:.5rem">退出本局</button>
+    </div>
+  </section>
+
+  <section id="view-result" class="hidden">
+    <h1>结算</h1>
+    <p class="sub" id="ms-result-sub">本局结束</p>
+    <div class="card">
+      <ul class="stats-list">
+        <li><span>总用时（含罚时）</span><strong id="st-time">—</strong></li>
+        <li><span>答错次数</span><strong id="st-wrong">0</strong></li>
+        <li><span>罚时</span><strong id="st-penalty">+0s</strong></li>
+      </ul>
+      <button type="button" class="primary" id="btn-again">再来一局</button>
+      <div style="height:.65rem"></div>
+      <button type="button" class="ghost" id="btn-home" style="width:100%">回首页</button>
+    </div>
+  </section>
+
+"""
+
+SCRIPT = r"""
+(function () {
+  const TOTAL = 10;
+  const PENALTY_MS = 3000;
+  const MAX_DIGITS = 3;
+  const OPS = ["+", "-", "*", "/"];
+  const OP_SYM = { "+": "+", "-": "−", "*": "×", "/": "÷" };
+
+  const views = {
+    home: document.getElementById("view-home"),
+    play: document.getElementById("view-play"),
+    result: document.getElementById("view-result"),
+  };
+
+  function show(name) {
+    Object.keys(views).forEach(function (k) {
+      views[k].classList.toggle("hidden", k !== name);
+    });
+  }
+
+  function randInt(lo, hi) {
+    return lo + ((Math.random() * (hi - lo + 1)) | 0);
+  }
+
+  function pickOp(forceMulDiv) {
+    if (forceMulDiv && Math.random() < 0.55) {
+      return Math.random() < 0.5 ? "*" : "/";
+    }
+    return OPS[(Math.random() * OPS.length) | 0];
+  }
+
+  function applyOp(a, b, op) {
+    if (op === "+") return a + b;
+    if (op === "-") {
+      if (a < b) return null;
+      return a - b;
+    }
+    if (op === "*") return a * b;
+    if (op === "/") {
+      if (b === 0 || a % b !== 0) return null;
+      return (a / b) | 0;
+    }
+    return null;
+  }
+
+  /** 先乘除后加减（无括号） */
+  function evalWithPrecedence(nums, ops) {
+    var values = nums.slice();
+    var operators = ops.slice();
+    var i = 0;
+    while (i < operators.length) {
+      var op = operators[i];
+      if (op !== "*" && op !== "/") {
+        i++;
+        continue;
+      }
+      var r = applyOp(values[i], values[i + 1], op);
+      if (r === null) return null;
+      values.splice(i, 2, r);
+      operators.splice(i, 1);
+    }
+    if (!values.length) return null;
+    var v = values[0];
+    for (var j = 0; j < operators.length; j++) {
+      v = applyOp(v, values[j + 1], operators[j]);
+      if (v === null) return null;
+    }
+    return v;
+  }
+
+  /** 特殊大数乘：积可 >100；连乘中该步之后不能再接 × */
+  var MUL_WHITELIST = {
+    "4,25": true, "8,25": true,
+    "5,20": true, "2,50": true, "4,50": true, "5,25": true,
+  };
+
+  function mulPairKey(a, b) {
+    var x = a < b ? a : b;
+    var y = a < b ? b : a;
+    return x + "," + y;
+  }
+
+  function isMulWhitelisted(a, b) {
+    return !!MUL_WHITELIST[mulPairKey(a, b)];
+  }
+
+  /** 乘除阶段：单次 × 积 ≤100 或白名单；白名单大数乘后不可再连 × */
+  function passesMulRules(nums, ops) {
+    var values = nums.slice();
+    var operators = ops.slice();
+    var i = 0;
+    while (i < operators.length) {
+      var op = operators[i];
+      if (op !== "*" && op !== "/") {
+        i++;
+        continue;
+      }
+      var a = values[i];
+      var b = values[i + 1];
+      if (op === "*") {
+        var prod = a * b;
+        if (prod > 100) {
+          if (!isMulWhitelisted(a, b)) return false;
+          if (i + 1 < operators.length && operators[i + 1] === "*") return false;
+        }
+      }
+      var r = applyOp(a, b, op);
+      if (r === null) return false;
+      values.splice(i, 2, r);
+      operators.splice(i, 1);
+    }
+    return true;
+  }
+
+  /** 标准优先级求值结果存在且 ≥ 0 */
+  function passesNonNegative(nums, ops) {
+    var ans = evalWithPrecedence(nums, ops);
+    return ans !== null && ans >= 0;
+  }
+
+  function formatExpr(nums, ops) {
+    var parts = [String(nums[0])];
+    for (var i = 0; i < ops.length; i++) {
+      parts.push(OP_SYM[ops[i]] || ops[i]);
+      parts.push(String(nums[i + 1]));
+    }
+    return parts.join(" ");
+  }
+
+  /** 每题 3～4 个运算符（4～5 个操作数） */
+  function operatorCountForQuestion() {
+    return Math.random() < 0.45 ? 4 : 3;
+  }
+
+  function maxOperandForQuestion(qIndex) {
+    return qIndex < 5 ? 9 : 12;
+  }
+
+  function generateQuestion(qIndex) {
+    var opCount = operatorCountForQuestion();
+    var n = opCount + 1;
+    var maxNum = maxOperandForQuestion(qIndex);
+    for (var t = 0; t < 160; t++) {
+      var nums = [];
+      for (var i = 0; i < n; i++) nums.push(randInt(1, maxNum));
+      var ops = [];
+      var hasMulDiv = false;
+      for (var j = 0; j < opCount; j++) {
+        var op = pickOp(j === opCount - 1 && !hasMulDiv);
+        ops.push(op);
+        if (op === "*" || op === "/") hasMulDiv = true;
+      }
+      if (!hasMulDiv) continue;
+      if (!passesMulRules(nums, ops)) continue;
+      if (!passesNonNegative(nums, ops)) continue;
+      var ans = evalWithPrecedence(nums, ops);
+      if (ans === null || ans < 0 || ans > 999) continue;
+      return { text: formatExpr(nums, ops), answer: ans };
+    }
+    return { text: "2 + 3 × 4 − 1", answer: 13 };
+  }
+
+  var tier = "intro";
+  var qIndex = 0;
+  var wrongCount = 0;
+  var penaltyMs = 0;
+  var clockStart = 0;
+  var timerId = null;
+  var current = null;
+  var inputStr = "";
+
+  var exprEl = document.getElementById("ms-expr");
+  var answerEl = document.getElementById("ms-answer");
+  var hintEl = document.getElementById("ms-hint");
+  var penaltyEl = document.getElementById("ms-penalty");
+  var timerEl = document.getElementById("ms-timer");
+  var qnEl = document.getElementById("ms-q-n");
+  function formatSec(ms) {
+    return (ms / 1000).toFixed(1) + "s";
+  }
+
+  function elapsedMs() {
+    if (!clockStart) return penaltyMs;
+    return Math.max(0, performance.now() - clockStart) + penaltyMs;
+  }
+
+  function updateTimer() {
+    timerEl.textContent = formatSec(elapsedMs());
+  }
+
+  function startClock(anchorPerf) {
+    clockStart = anchorPerf != null ? anchorPerf : performance.now();
+    stopClock();
+    timerId = setInterval(updateTimer, 100);
+    updateTimer();
+  }
+
+  function stopClock() {
+    if (timerId) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+  }
+
+  function setInput(str) {
+    inputStr = str;
+    answerEl.textContent = str.length ? str : "—";
+    answerEl.classList.remove("is-err");
+  }
+
+  function appendDigit(d) {
+    if (inputStr.length >= MAX_DIGITS) return;
+    if (inputStr === "0") inputStr = String(d);
+    else inputStr += String(d);
+    setInput(inputStr);
+  }
+
+  function showQuestion() {
+    current = generateQuestion(qIndex);
+    exprEl.textContent = current.text;
+    qnEl.textContent = String(qIndex + 1);
+    setInput("");
+    hintEl.className = "ms-hint";
+    hintEl.textContent = "";
+    penaltyEl.textContent = penaltyMs > 0 ? ("罚时累计 +" + (penaltyMs / 1000).toFixed(0) + "s") : "";
+  }
+
+  function beginRun() {
+    qIndex = 0;
+    wrongCount = 0;
+    penaltyMs = 0;
+    clockStart = 0;
+    show("play");
+    var runPlay = window.FGBUI && FGBUI.runWhenPlayable
+      ? FGBUI.runWhenPlayable.bind(FGBUI)
+      : function (prep, done) { prep(); done(Date.now()); };
+    runPlay(function () { showQuestion(); }, function () {
+      startClock(performance.now());
+    });
+  }
+
+  function finishRun() {
+    stopClock();
+    var total = elapsedMs();
+    document.getElementById("st-time").textContent = formatSec(total);
+    document.getElementById("st-wrong").textContent = String(wrongCount);
+    document.getElementById("st-penalty").textContent = "+" + (penaltyMs / 1000).toFixed(0) + "s";
+    document.getElementById("ms-result-sub").textContent =
+      wrongCount === 0 ? "全部正确，真快！" : "完成 10 题，继续练习会更稳";
+    show("result");
+    celebrate(FGB_MSG.sessionDone);
+    if (typeof fgbSubmitScore === "function") {
+      fgbSubmitScore({
+        gameId: "mental-speed",
+        mode: "challenge",
+        tier: tier,
+        tierLabel: TIER_LABELS[tier] || tier,
+        metrics: {
+          timeMs: Math.round(total),
+          done: TOTAL,
+          correct: TOTAL,
+          total: TOTAL,
+          wrong: wrongCount,
+        },
+      });
+    }
+  }
+
+  function submitAnswer() {
+    if (!current || !clockStart) return;
+    if (!inputStr.length) {
+      hintEl.className = "ms-hint err";
+      hintEl.textContent = "请输入答案";
+      return;
+    }
+    var guess = parseInt(inputStr, 10);
+    if (!isFinite(guess)) return;
+    if (guess === current.answer) {
+      hintEl.className = "ms-hint ok";
+      hintEl.textContent = "正确！";
+      qIndex += 1;
+      if (qIndex >= TOTAL) {
+        setTimeout(finishRun, 320);
+        return;
+      }
+      setTimeout(function () {
+        showQuestion();
+      }, 280);
+      return;
+    }
+    wrongCount += 1;
+    penaltyMs += PENALTY_MS;
+    answerEl.classList.add("is-err");
+    hintEl.className = "ms-hint err";
+    hintEl.textContent = "不对，+3 秒罚时 · 再试一次";
+    penaltyEl.textContent = "罚时累计 +" + (penaltyMs / 1000).toFixed(0) + "s";
+    updateTimer();
+  }
+
+  function onKey(d) {
+    if (d === "clear") setInput("");
+    else if (d === "back") setInput(inputStr.slice(0, -1));
+    else if (d === "submit") submitAnswer();
+    else appendDigit(parseInt(d, 10));
+  }
+
+  document.getElementById("ms-numpad").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-key]");
+    if (!btn) return;
+    onKey(btn.getAttribute("data-key"));
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (views.play.classList.contains("hidden")) return;
+    if (e.key >= "0" && e.key <= "9") {
+      e.preventDefault();
+      appendDigit(parseInt(e.key, 10));
+      return;
+    }
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      onKey("back");
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitAnswer();
+    }
+  });
+
+  document.getElementById("btn-start-classic").addEventListener("click", beginRun);
+  document.getElementById("btn-again").addEventListener("click", beginRun);
+  document.getElementById("btn-home").addEventListener("click", function () {
+    stopClock();
+    show("home");
+  });
+  document.getElementById("btn-quit").addEventListener("click", function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
+      return;
+    }
+    askConfirm("确定退出本局？进度不会保存。", function () {
+      stopClock();
+      show("home");
+    });
+  });
+
+  var TIER_LABELS = {
+    intro: "初阶", simple: "简单", normal: "普通", hard: "困难", master: "大师", god: "大神"
+  };
+
+  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+    var dq = window.__FGB_DAILY_Q__ || {};
+    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+    if (dq.tier) tier = dq.tier;
+    beginRun();
+  } else {
+    show("home");
+  }
+})();
+"""
+
+
+def build_html() -> str:
+    return build_page(
+        "心算快答",
+        EXTRA_CSS,
+        inject_lobby_link(BODY),
+        SCRIPT,
+        game_skin="mental-speed",
+        game_title="心算快答",
+    )
+
+
+def main() -> None:
+    build, web, _dist = game_page_paths(SLUG)
+    parser = argparse.ArgumentParser(description="Generate 心算快答 HTML.")
+    parser.add_argument("--out", default=str(build))
+    parser.add_argument("--dist", default=str(web))
+    args = parser.parse_args()
+    run_generator(build_html, args.out, args.dist, SLUG)
+
+
+if __name__ == "__main__":
+    main()

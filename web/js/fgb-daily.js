@@ -37,6 +37,13 @@
     }
   }
 
+  /** Tell daily hub the iframe stage is interactive (loading / layout excluded from timers). */
+  function notifyStageReady() {
+    if (global.parent && global.parent !== global) {
+      global.parent.postMessage({ type: "fgb-daily-stage-ready" }, "*");
+    }
+  }
+
   function notifyAbort() {
     if (global.parent && global.parent !== global) {
       global.parent.postMessage({ type: "fgb-daily-abort" }, "*");
@@ -44,7 +51,7 @@
   }
 
   var BOARD_SEL =
-    "[data-fgb-board], .clover, .sudoku-wrap, .maze-wrap, .grid-wrap, .diff-panels, .board";
+    "[data-fgb-board], .clover, .sudoku-wrap, .maze-wrap, .grid-wrap, .diff-panels, .board, .ns-board";
 
   function isVisible(el) {
     if (!el) return false;
@@ -178,6 +185,7 @@
     makeRng: makeRng,
     installMathRandom: installMathRandom,
     notifyStageDone: notifyStageDone,
+    notifyStageReady: notifyStageReady,
     notifyAbort: notifyAbort,
     fitPlay: fitPlay,
     scheduleFitPlay: scheduleFitPlay,

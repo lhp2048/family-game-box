@@ -161,51 +161,51 @@ _PLAY_HTML = r'''<!DOCTYPE html>
 <link rel="stylesheet" href="/css/fgb-theme.css">
 <style>
 :root {
-  --ink: #e8f2ec;
-  --muted: #8fa399;
-  --line: rgba(232, 242, 236, 0.12);
-  --paper: #0c1411;
-  --panel: rgba(18, 32, 28, 0.88);
-  --accent: #3ecf8e;
+  --ink: #1a2b3c;
+  --muted: #5c6d7e;
+  --line: rgba(26, 43, 60, 0.12);
+  --paper: #fff8f0;
+  --panel: #ffffff;
+  --accent: #2ecc71;
   --accent-deep: #1a9f68;
-  --warn: #e8a04a;
-  --danger: #e07060;
-  --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  --warn: #e67e22;
+  --danger: #e74c3c;
+  --shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
   --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
   --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --tile-ring: rgba(255, 107, 157, 0.55);
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; min-height: 100%; }
+html, body { margin: 0; min-height: 100%; min-height: 100dvh; }
 body {
   font-family: var(--sans);
   color: var(--ink);
-  background:
-    radial-gradient(900px 480px at 12% -8%, rgba(62, 207, 142, 0.14), transparent 55%),
-    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.06), transparent 50%),
-    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
+  background: transparent;
 }
-body::before {
-  content: "";
-  position: fixed; inset: 0; pointer-events: none; opacity: .2;
-  background-image:
-    linear-gradient(rgba(232,242,236,.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(232,242,236,.03) 1px, transparent 1px);
-  background-size: 28px 28px;
+body::before { content: none; }
+.wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 1.6rem var(--play-gutter, var(--console-gutter, clamp(1rem, 3vw, 2.25rem))) 3rem;
+  min-width: 0;
 }
-.wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
 .hidden { display: none !important; }
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
-  .wrap { padding: .55rem 0 1rem; width: min(560px, calc(100% - 1rem)); }
+  .wrap { padding: .55rem var(--play-gutter, clamp(0.75rem, 3vw, 1.5rem)) 1rem; }
   h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); }
   .sub { margin: 0 0 .65rem; font-size: .88rem; }
   .card { padding: .75rem; border-radius: 14px; }
   .topbar { margin-bottom: .45rem; }
   .hint { margin: 0 0 .4rem; min-height: 1.1em; }
-  .clover-wrap { margin: .15rem 0 .35rem; }
-  .clover { width: min(340px, 78vw, 62vmin); height: min(340px, 78vw, 62vmin); }
-  .leaf { font-size: clamp(1.35rem, 5vw, 1.85rem); }
+  .card-board-wrap { margin: .15rem 0 .35rem; }
+  .num-card { min-height: 72px; }
+  .num-card .val { font-size: clamp(1.35rem, 5vw, 1.85rem); }
   .ops { gap: .3rem; margin-bottom: .3rem; }
-  .ops button { padding: .35rem 0; font-size: 1rem; }
+  .ops button { min-height: 44px; padding: .35rem 0; font-size: 1rem; }
   .actions { margin-top: .3rem; gap: .35rem; }
   .actions button { padding: .35rem .2rem; font-size: .82rem; border-radius: 10px; }
   .expr-board { margin: 0 0 .5rem; padding: .5rem .65rem; min-height: 2em; font-size: .85rem; }
@@ -221,36 +221,38 @@ h1 {
 h1 em { font-style: italic; color: var(--accent); }
 .sub { margin: 0 0 1.4rem; color: var(--muted); line-height: 1.5; }
 .card {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 20px;
+  background: linear-gradient(180deg, #fff 0%, #fffaf5 100%);
+  border: 2px solid rgba(255, 159, 67, 0.22);
+  border-radius: 22px;
   box-shadow: var(--shadow);
   padding: 1.15rem;
 }
 .mode-grid { display: grid; gap: .75rem; }
 .mode-btn {
   text-align: left;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 16px;
   padding: 1rem 1.05rem;
-  background: rgba(255,255,255,.04);
+  background: #fff;
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.05);
   cursor: pointer;
   font: inherit;
   color: inherit;
   transition: transform .15s ease, border-color .15s ease;
 }
-.mode-btn:hover { transform: translateY(-1px); border-color: rgba(62,207,142,.4); }
+.mode-btn:hover { transform: translateY(-1px); border-color: rgba(255, 107, 157, 0.35); }
 .mode-btn strong { display: block; font-size: 1.15rem; margin-bottom: .25rem; }
 .mode-btn span { color: var(--muted); font-size: .92rem; }
 .choice-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin: 1rem 0; }
 .choice-row.tier-row { margin: .75rem 0 .5rem; }
 .choice-row button {
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 14px;
   padding: .9rem .4rem;
   font: inherit;
   font-weight: 700;
-  background: rgba(255,255,255,.04);
+  background: #fff;
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.05);
   cursor: pointer;
 }
 .choice-row.tier-row button { padding: .75rem .35rem; font-size: .95rem; }
@@ -270,7 +272,8 @@ h1 em { font-style: italic; color: var(--accent); }
   margin: 0 0 1rem;
   padding: .75rem .85rem;
   border-radius: 12px;
-  background: rgba(62, 207, 142, 0.08);
+  background: linear-gradient(90deg, #f0fff8 0%, #fff8eb 100%);
+  border: 2px solid rgba(46, 204, 113, 0.25);
   color: var(--ink);
   font-size: .92rem;
   line-height: 1.55;
@@ -289,13 +292,14 @@ h1 em { font-style: italic; color: var(--accent); }
   cursor: pointer;
 }
 .ghost {
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 14px;
   padding: .7rem 1rem;
   font: inherit;
   font-weight: 600;
-  background: transparent;
+  background: #fff;
   color: var(--muted);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.05);
   cursor: pointer;
 }
 .topbar {
@@ -318,81 +322,124 @@ h1 em { font-style: italic; color: var(--accent); }
 .hint.err { color: var(--danger); }
 .hint.ok { color: var(--accent); font-weight: 600; }
 
-.clover-wrap {
+.play-console { padding: 1rem 1.05rem; }
+.play-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.card-board-wrap {
   display: flex;
   justify-content: center;
-  margin: .4rem 0 1.1rem;
+  margin: .25rem 0 .5rem;
+  width: 100%;
 }
-.clover {
+.card-board {
+  display: grid;
+  gap: .65rem;
+  width: min(100%, 420px);
+  margin: 0 auto;
+  justify-items: stretch;
+  align-items: stretch;
+}
+.card-board[data-count="4"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.card-board[data-count="3"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 340px;
+}
+.card-board[data-count="3"] .num-card:last-child {
+  grid-column: 1 / -1;
+  max-width: 52%;
+  margin: 0 auto;
+  width: 100%;
+}
+.card-board[data-count="2"] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 340px;
+}
+.card-board[data-count="1"] {
+  grid-template-columns: 1fr;
+  max-width: 200px;
+}
+
+.num-card {
   position: relative;
-  width: min(320px, 78vw, 72vmin);
-  height: min(320px, 78vw, 72vmin);
-}
-/* 每日模式边长由 FGBDaily.fitPlay → --fgb-board 控制，见 game_common DAILY_HEAD */
-.leaf {
-  position: absolute;
-  width: 42%;
-  height: 42%;
-  border: 1px solid var(--line);
-  border-radius: 34% 34% 18% 34%;
-  background:
-    radial-gradient(circle at 30% 28%, rgba(255,255,255,.55), transparent 45%),
-    linear-gradient(145deg, rgba(255,255,255,.06), rgba(62,207,142,.12));
-  box-shadow: var(--shadow);
+  min-height: 5.5rem;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: 24px;
+  background: linear-gradient(165deg, var(--tile-top, #fff5f8), var(--tile-bot, #ffe8f0));
+  box-shadow: 0 10px 0 rgba(45, 62, 90, 0.08), 0 14px 28px rgba(45, 62, 90, 0.1);
   font-family: var(--display);
-  font-size: clamp(1.8rem, 7vw, 2.4rem);
   color: var(--ink);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.15rem;
-  padding: 0.35rem;
-  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  gap: 0.2rem;
+  padding: 0.65rem 0.5rem;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.leaf .val { line-height: 1; }
-.leaf .expr {
+.card-board .num-card:nth-child(1) { --tile-top: #fff0f5; --tile-bot: #ffd6e8; }
+.card-board .num-card:nth-child(2) { --tile-top: #fff8eb; --tile-bot: #ffe4b8; }
+.card-board .num-card:nth-child(3) { --tile-top: #ecfff8; --tile-bot: #c8f5e4; }
+.card-board .num-card:nth-child(4) { --tile-top: #eef4ff; --tile-bot: #d4e4ff; }
+.num-card .val {
+  line-height: 1;
+  font-size: clamp(1.85rem, 7.5vw, 2.55rem);
+  font-variant-numeric: tabular-nums;
+}
+.num-card .expr {
   font-family: var(--sans);
-  font-size: 0.58rem;
+  font-size: clamp(0.62rem, 2.8vw, 0.78rem);
   font-weight: 600;
   color: var(--muted);
-  max-width: 90%;
+  max-width: 94%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.2;
 }
-.leaf:hover { transform: translateY(-2px) scale(1.02); }
-.leaf.selected {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(62,207,142,.22), var(--shadow);
-  transform: scale(1.04);
+.num-card .kbd-hint {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  font-family: var(--sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--muted);
+  opacity: 0.75;
+  letter-spacing: 0.02em;
 }
-.leaf.dim { opacity: .35; pointer-events: none; }
-.leaf.pulse { animation: pulse .45s ease; }
-@keyframes pulse {
+.num-card:hover { transform: translateY(-4px) rotate(-0.5deg); }
+.num-card.selected {
+  border-color: #fff;
+  box-shadow:
+    0 0 0 4px var(--tile-ring),
+    0 12px 0 rgba(255, 107, 157, 0.15),
+    0 18px 32px rgba(255, 107, 157, 0.22);
+  transform: translateY(-6px) scale(1.03);
+}
+.num-card.pulse { animation: cardPulse .45s ease; }
+@keyframes cardPulse {
   0% { transform: scale(1); }
-  40% { transform: scale(1.08); }
+  40% { transform: scale(1.05); }
   100% { transform: scale(1); }
 }
-/* 4 leaves — clover */
-.clover[data-count="4"] .leaf:nth-child(1) { left: 6%; top: 6%; }
-.clover[data-count="4"] .leaf:nth-child(2) { right: 6%; top: 6%; border-radius: 34% 34% 34% 18%; }
-.clover[data-count="4"] .leaf:nth-child(3) { left: 6%; bottom: 6%; border-radius: 34% 18% 34% 34%; }
-.clover[data-count="4"] .leaf:nth-child(4) { right: 6%; bottom: 6%; border-radius: 18% 34% 34% 34%; }
-/* 3 */
-.clover[data-count="3"] .leaf:nth-child(1) { left: 29%; top: 4%; }
-.clover[data-count="3"] .leaf:nth-child(2) { left: 4%; bottom: 8%; border-radius: 34% 18% 34% 34%; }
-.clover[data-count="3"] .leaf:nth-child(3) { right: 4%; bottom: 8%; border-radius: 18% 34% 34% 34%; }
-/* 2 */
-.clover[data-count="2"] .leaf:nth-child(1) { left: 4%; top: 29%; }
-.clover[data-count="2"] .leaf:nth-child(2) { right: 4%; top: 29%; border-radius: 34% 34% 34% 18%; }
-/* 1 */
-.clover[data-count="1"] .leaf:nth-child(1) {
-  left: 18%; top: 18%; width: 64%; height: 64%;
-  border-radius: 28%;
-  font-size: clamp(2.4rem, 10vw, 3.2rem);
+
+@media (orientation: landscape) and (min-width: 640px) {
+  .wrap { width: min(920px, calc(100% - 1.5rem)); }
+  .play-stage {
+    display: grid;
+    grid-template-columns: 1fr min(300px, 36vw);
+    gap: 1.1rem;
+    align-items: start;
+  }
+  .play-controls { position: sticky; top: 0.5rem; }
 }
 
 .ops {
@@ -402,28 +449,30 @@ h1 em { font-style: italic; color: var(--accent); }
   margin-bottom: .75rem;
 }
 .ops button {
-  border: 1px solid rgba(232, 242, 236, 0.28);
-  border-radius: 14px;
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  border-radius: 18px;
+  min-height: 48px;
   padding: .85rem 0;
   font-family: var(--display);
   font-size: 1.55rem;
   font-weight: 700;
   line-height: 1;
-  color: var(--ink);
-  background: rgba(232, 242, 236, 0.1);
+  color: #c43d7a;
+  background: linear-gradient(180deg, #fff 0%, #fff5f8 100%);
+  box-shadow: 0 5px 0 rgba(26, 43, 60, 0.06);
   cursor: pointer;
-  transition: border-color .12s ease, background .12s ease, color .12s ease;
+  transition: border-color .12s ease, background .12s ease, color .12s ease, transform .12s ease;
 }
 .ops button:hover {
-  border-color: rgba(62, 207, 142, 0.55);
-  background: rgba(62, 207, 142, 0.14);
-  color: var(--accent);
+  border-color: rgba(255, 107, 157, 0.4);
+  transform: translateY(-2px);
+  color: #a8326a;
 }
 .ops button.active {
-  background: rgba(62, 207, 142, 0.22);
-  border-color: var(--accent);
-  color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(62, 207, 142, 0.2);
+  background: linear-gradient(180deg, #ffe8f4 0%, #ffc8e0 100%);
+  border-color: rgba(255, 107, 157, 0.55);
+  color: #8b2252;
+  box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.25), 0 6px 0 rgba(200, 80, 140, 0.15);
 }
 .ops button:disabled { opacity: .4; cursor: not-allowed; }
 
@@ -434,14 +483,46 @@ h1 em { font-style: italic; color: var(--accent); }
   margin-bottom: .65rem;
 }
 .actions button {
-  border: 1px solid var(--line);
+  border: 2px solid rgba(26, 43, 60, 0.1);
   border-radius: 14px;
+  min-height: 48px;
   padding: .7rem .3rem;
   font: inherit;
-  font-weight: 600;
-  background: rgba(255,255,255,.04);
+  font-weight: 700;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
   cursor: pointer;
   color: var(--ink);
+}
+.frac-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.frac-toggle input { width: 1.1rem; height: 1.1rem; }
+.expr-details {
+  margin: 0 0 0.75rem;
+  border: 2px solid rgba(255, 159, 67, 0.25);
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fffef9 0%, #fff5eb 100%);
+  box-shadow: 0 6px 0 rgba(255, 159, 67, 0.1);
+}
+.expr-details summary {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.expr-details .expr-board {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 .actions button.warn { color: var(--warn); }
 .actions button.danger { color: var(--danger); }
@@ -462,10 +543,10 @@ h1 em { font-style: italic; color: var(--accent); }
 }
 .expr-board {
   margin: 0 0 .85rem;
-  padding: .7rem .85rem;
-  border-radius: 12px;
-  border: 1px solid rgba(62, 207, 142, 0.28);
-  background: rgba(18, 32, 28, 0.92);
+  padding: .75rem .9rem;
+  border-radius: 14px;
+  border: 2px dashed rgba(166, 107, 255, 0.35);
+  background: #fff;
   font-family: Consolas, "Sarasa Mono SC", monospace;
   font-size: .92rem;
   color: var(--ink);
@@ -473,15 +554,26 @@ h1 em { font-style: italic; color: var(--accent); }
   line-height: 1.45;
   word-break: break-all;
 }
-.expr-board strong { color: var(--accent); font-weight: 700; }
+.expr-board strong { color: #c43d7a; font-weight: 700; }
 .tip {
   margin: 0 0 .75rem;
-  padding: .55rem .7rem;
-  border-radius: 10px;
-  background: rgba(62,207,142,.07);
-  color: var(--accent);
-  font-size: .82rem;
+  padding: .6rem .85rem;
+  border-radius: 14px;
+  background: linear-gradient(90deg, #fff8e8 0%, #fff0f5 100%);
+  border: 2px solid rgba(255, 159, 67, 0.3);
+  color: #5c3d10;
+  font-size: .84rem;
+  font-weight: 600;
   line-height: 1.45;
+}
+.tip kbd {
+  display: inline-block;
+  padding: 0.1rem 0.35rem;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid rgba(26, 43, 60, 0.12);
+  font-size: 0.78rem;
+  font-family: inherit;
 }
 .stats-list { margin: .8rem 0 1.1rem; padding: 0; list-style: none; }
 .stats-list li {
@@ -569,27 +661,38 @@ h1 em { font-style: italic; color: var(--accent); }
       <span id="play-timer" class="hidden"><strong id="timer-text">00:00</strong></span>
     </div>
     <p class="hint" id="play-hint">点选一个数字</p>
-    <div class="card">
-      <p class="tip">任意两个当前数字都能运算。双括号解法：先合并一对 → 再合并另一对 → 最后合并两个中间结果。</p>
-      <div class="clover-wrap">
-        <div class="clover" id="clover" data-count="4"></div>
+    <div class="card play-console">
+      <p class="tip">点数字 → 选运算 → 再点数字合并。桌面：<kbd>1</kbd>–<kbd>4</kbd> 选牌，<kbd>+−*/</kbd> 运算，<kbd>Z</kbd> 撤销，<kbd>R</kbd> 重来，<kbd>Esc</kbd> 取消选中。</p>
+      <div class="play-stage">
+        <div class="card-board-wrap" data-fgb-board>
+          <div class="card-board" id="card-board" data-count="4" role="group" aria-label="数字牌"></div>
+        </div>
+        <div class="play-controls">
+          <label class="frac-toggle" id="frac-toggle-wrap">
+            <input type="checkbox" id="chk-fraction">
+            <span>允许分数中间值（整除仍推荐）</span>
+          </label>
+          <div class="ops" id="ops">
+            <button type="button" data-op="+">+</button>
+            <button type="button" data-op="-">−</button>
+            <button type="button" data-op="*">×</button>
+            <button type="button" data-op="/">÷</button>
+          </div>
+          <div class="actions">
+            <button type="button" class="danger" id="btn-exit">退出</button>
+            <button type="button" class="warn" id="btn-restart">重来</button>
+            <button type="button" id="btn-undo">上一步</button>
+          </div>
+          <div class="extra" id="casual-extra">
+            <button type="button" class="ghost" id="btn-hint">看参考解</button>
+            <button type="button" class="ghost" id="btn-next">下一题</button>
+          </div>
+        </div>
       </div>
-      <div class="expr-board" id="expr-board">当前式子：—</div>
-      <div class="ops" id="ops">
-        <button type="button" data-op="+">+</button>
-        <button type="button" data-op="-">−</button>
-        <button type="button" data-op="*">×</button>
-        <button type="button" data-op="/">÷</button>
-      </div>
-      <div class="actions">
-        <button type="button" class="danger" id="btn-exit">退出</button>
-        <button type="button" class="warn" id="btn-restart">重来</button>
-        <button type="button" id="btn-undo">上一步</button>
-      </div>
-      <div class="extra" id="casual-extra">
-        <button type="button" class="ghost" id="btn-hint">看参考解</button>
-        <button type="button" class="ghost" id="btn-next">下一题</button>
-      </div>
+      <details class="expr-details">
+        <summary>展开当前式子</summary>
+        <div class="expr-board" id="expr-board">—</div>
+      </details>
       <div class="ref hidden" id="ref-box"></div>
     </div>
   </section>
@@ -646,12 +749,30 @@ h1 em { font-style: italic; color: var(--accent); }
     return String(m).padStart(2, "0") + ":" + String(r).padStart(2, "0");
   }
 
+  let allowFractionMiddle = false;
+
+  function formatValue(v) {
+    if (typeof v !== "number" || !isFinite(v)) return "—";
+    if (Math.abs(v - Math.round(v)) < 1e-9) return String(Math.round(v));
+    var rounded = Math.round(v * 1000) / 1000;
+    return String(rounded);
+  }
+
+  function isTargetValue(v) {
+    return Math.abs(v - TARGET) < 1e-6;
+  }
+
   function applyOp(a, b, op) {
     if (op === "+") return a + b;
     if (op === "-") return a - b;
     if (op === "*") return a * b;
     if (op === "/") {
-      if (b === 0 || a % b !== 0) return null;
+      if (b === 0) return null;
+      if (allowFractionMiddle) {
+        var q = a / b;
+        return isFinite(q) ? q : null;
+      }
+      if (a % b !== 0) return null;
       return (a / b) | 0;
     }
     return null;
@@ -762,7 +883,7 @@ h1 em { font-style: italic; color: var(--accent); }
   let currentPuzzle = null;
   let solved = false;
 
-  const clover = document.getElementById("clover");
+  const cardBoard = document.getElementById("card-board");
   const hintEl = document.getElementById("play-hint");
   const refBox = document.getElementById("ref-box");
   const opsEl = document.getElementById("ops");
@@ -851,11 +972,11 @@ h1 em { font-style: italic; color: var(--accent); }
 
   function updateExprBoard() {
     if (!tiles.length) {
-      exprBoard.innerHTML = "当前式子：—";
+      exprBoard.textContent = "—";
       return;
     }
-    const parts = tiles.map(t => "<strong>" + escapeHtml(t.expr) + "</strong>");
-    exprBoard.innerHTML = "当前式子：" + parts.join("　|　");
+    const parts = tiles.map(t => escapeHtml(t.expr));
+    exprBoard.textContent = parts.join("  |  ");
   }
 
   function escapeHtml(s) {
@@ -898,19 +1019,25 @@ h1 em { font-style: italic; color: var(--accent); }
   }
 
   function renderTiles() {
-    clover.dataset.count = String(tiles.length);
-    clover.innerHTML = "";
-    tiles.forEach(t => {
+    cardBoard.dataset.count = String(tiles.length);
+    cardBoard.innerHTML = "";
+    tiles.forEach((t, idx) => {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "leaf";
+      btn.className = "num-card";
       btn.dataset.id = String(t.id);
       btn.title = t.expr;
+      if (idx < 4) {
+        const kbd = document.createElement("span");
+        kbd.className = "kbd-hint";
+        kbd.textContent = String(idx + 1);
+        btn.appendChild(kbd);
+      }
       const val = document.createElement("span");
       val.className = "val";
-      val.textContent = String(t.value);
+      val.textContent = formatValue(t.value);
       btn.appendChild(val);
-      if (t.expr !== String(t.value)) {
+      if (t.expr !== formatValue(t.value) && t.expr !== String(t.value)) {
         const ex = document.createElement("span");
         ex.className = "expr";
         ex.textContent = t.expr;
@@ -918,7 +1045,7 @@ h1 em { font-style: italic; color: var(--accent); }
       }
       if (pickA === t.id) btn.classList.add("selected");
       btn.addEventListener("click", () => onTile(t.id));
-      clover.appendChild(btn);
+      cardBoard.appendChild(btn);
     });
     updateExprBoard();
   }
@@ -981,16 +1108,16 @@ h1 em { font-style: italic; color: var(--accent); }
     clearOpActive();
     renderTiles();
 
-    const leaf = clover.querySelector('[data-id="' + neu.id + '"]');
-    if (leaf) leaf.classList.add("pulse");
+    const cardEl = cardBoard.querySelector('[data-id="' + neu.id + '"]');
+    if (cardEl) cardEl.classList.add("pulse");
 
     if (tiles.length === 1) {
-      if (tiles[0].value === TARGET) {
+      if (isTargetValue(tiles[0].value)) {
         solved = true;
         setHint("得到 24！本题完成", "ok");
         onSolved();
       } else {
-        setHint("结果是 " + tiles[0].value + "，不是 24。可上一步或重来", "err");
+        setHint("结果是 " + formatValue(tiles[0].value) + "，不是 24。可上一步或重来", "err");
       }
     } else if (tiles.length === 3) {
       setHint(neu.expr + " = " + result + " · 可先算剩下两个数，再与结果合并");
@@ -1001,21 +1128,84 @@ h1 em { font-style: italic; color: var(--accent); }
     }
   }
 
+  function selectOp(op) {
+    if (solved) return;
+    if (pickA == null) {
+      setHint("请先选择一个数字", "err");
+      return;
+    }
+    pickOp = op;
+    clearOpActive();
+    const btn = opsEl.querySelector('[data-op="' + op + '"]');
+    if (btn) btn.classList.add("active");
+    const a = tiles.find(t => t.id === pickA);
+    const sym = btn ? btn.textContent : op;
+    setHint("已选 " + formatValue(a.value) + " " + sym + " ，再选一个数字");
+  }
+
   opsEl.querySelectorAll("button").forEach(btn => {
-    btn.addEventListener("click", () => {
-      if (solved) return;
-      if (pickA == null) {
-        setHint("请先选择一个数字", "err");
-        return;
-      }
-      pickOp = btn.dataset.op;
-      clearOpActive();
-      btn.classList.add("active");
-      const a = tiles.find(t => t.id === pickA);
-      const sym = btn.textContent;
-      setHint("已选 " + a.value + " " + sym + " ，再选一个数字");
-    });
+    btn.addEventListener("click", () => selectOp(btn.dataset.op));
   });
+
+  function clearSelection() {
+    pickA = null;
+    pickOp = null;
+    clearOpActive();
+    renderTiles();
+    setHint("点选一个数字");
+  }
+
+  function onPlayKeydown(e) {
+    if (views.play.classList.contains("hidden")) return;
+    const tag = (e.target && e.target.tagName) || "";
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      clearSelection();
+      return;
+    }
+    if (e.key === "z" || e.key === "Z") {
+      document.getElementById("btn-undo").click();
+      return;
+    }
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      document.getElementById("btn-undo").click();
+      return;
+    }
+    if (e.key === "r" || e.key === "R") {
+      document.getElementById("btn-restart").click();
+      return;
+    }
+
+    const opKeys = {
+      "+": "+", "-": "-", "*": "*", "/": "/",
+      "NumpadAdd": "+", "NumpadSubtract": "-", "NumpadMultiply": "*", "NumpadDivide": "/",
+    };
+    if (opKeys[e.key]) {
+      e.preventDefault();
+      selectOp(opKeys[e.key]);
+      return;
+    }
+
+    if (e.key >= "1" && e.key <= "4") {
+      const idx = parseInt(e.key, 10) - 1;
+      if (idx < tiles.length) {
+        e.preventDefault();
+        onTile(tiles[idx].id);
+      }
+    }
+  }
+
+  document.addEventListener("keydown", onPlayKeydown);
+
+  const fracChk = document.getElementById("chk-fraction");
+  if (fracChk) {
+    fracChk.addEventListener("change", function () {
+      allowFractionMiddle = !!fracChk.checked;
+    });
+  }
 
   function onSolved() {
     if (mode === "casual") {
@@ -1041,9 +1231,9 @@ h1 em { font-style: italic; color: var(--accent); }
     resetRound(remaining[0]);
   }
 
-  function startTimer() {
+  function startTimer(anchorMs) {
     stopTimer();
-    startedAt = Date.now();
+    startedAt = anchorMs != null ? anchorMs : Date.now();
     timerId = window.setInterval(() => {
       document.getElementById("timer-text").textContent = fmtTime(Date.now() - startedAt);
     }, 250);
@@ -1080,7 +1270,10 @@ h1 em { font-style: italic; color: var(--accent); }
       mode = "casual";
       show("play");
       updatePlayChrome();
-      resetRound(puzzle);
+      const run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : (prep, done) => { prep(); done(Date.now()); };
+      run(() => { resetRound(puzzle); }, () => {});
     });
   }
 
@@ -1104,8 +1297,10 @@ h1 em { font-style: italic; color: var(--accent); }
       challengeTotal = remaining.length;
       show("play");
       updatePlayChrome();
-      startTimer();
-      resetRound(remaining[0]);
+      const run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : (prep, done) => { prep(); done(Date.now()); };
+      run(() => { resetRound(remaining[0]); }, (t) => { startTimer(t); });
     });
   }
 

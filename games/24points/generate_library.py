@@ -78,15 +78,15 @@ def build_html(stats: Dict[str, str], groups: List[Tuple[List[int], List[str]]])
 <link rel="stylesheet" href="/css/fgb-theme.css">
 <style>
 :root {
-  --ink: #e8f2ec;
-  --muted: #8fa399;
-  --line: rgba(232, 242, 236, 0.12);
-  --paper: #0c1411;
-  --panel: rgba(18, 32, 28, 0.88);
-  --accent: #3ecf8e;
+  --ink: #1a2b3c;
+  --muted: #5c6d7e;
+  --line: rgba(26, 43, 60, 0.12);
+  --paper: #fff8f0;
+  --panel: #ffffff;
+  --accent: #2ecc71;
   --accent-deep: #1a9f68;
   --warn: #e8a04a;
-  --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  --shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
   --radius: 18px;
   --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
   --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
@@ -97,27 +97,17 @@ html, body { margin: 0; min-height: 100%; }
 body {
   font-family: var(--sans);
   color: var(--ink);
-  background:
-    radial-gradient(900px 480px at 12% -8%, rgba(62, 207, 142, 0.14), transparent 55%),
-    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.06), transparent 50%),
-    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
+  background: transparent;
 }
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.2;
-  background-image:
-    linear-gradient(rgba(232,242,236,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(232,242,236,0.03) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
+body::before { content: none; }
 .wrap {
   position: relative;
-  width: min(960px, calc(100% - 2rem));
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   margin: 0 auto;
-  padding: 2.5rem 0 4rem;
+  padding: 2.5rem var(--console-gutter, clamp(1rem, 3vw, 2.25rem)) 4rem;
+  min-width: 0;
 }
 .brand {
   font-family: var(--display);
@@ -183,8 +173,9 @@ body::before {
   font: inherit;
   font-size: 1.05rem;
   text-align: center;
-  background: rgba(255,255,255,.04);
+  background: #fff;
   color: var(--ink);
+  box-shadow: inset 0 2px 4px rgba(26, 43, 60, 0.04);
 }
 .search input:focus {
   outline: 2px solid rgba(62, 207, 142, 0.35);
@@ -265,16 +256,16 @@ body::before {
   font-family: var(--mono);
   font-size: 0.86rem;
   padding: 0.45rem 0;
-  border-bottom: 1px dashed rgba(232,242,236,0.12);
+  border-bottom: 1px dashed rgba(26, 43, 60, 0.12);
   white-space: nowrap;
 }
 .exprs code:last-child { border-bottom: 0; }
 .empty, .hint {
   padding: 1.4rem 1.1rem;
-  border: 1px dashed rgba(232,242,236,0.2);
+  border: 2px dashed rgba(26, 43, 60, 0.15);
   border-radius: var(--radius);
   color: var(--muted);
-  background: rgba(255,252,246,0.55);
+  background: linear-gradient(180deg, #fffef9 0%, #f8fbff 100%);
 }
 .hint { margin-bottom: 1rem; }
 footer {
@@ -317,7 +308,7 @@ footer {
     <div class="list" id="list"></div>
     <div class="empty" id="empty" hidden>没有匹配的有解组合。</div>
     <div class="meta" id="more-wrap" hidden>
-      <button type="button" class="ghost" id="btn-more" style="border:1px solid var(--line);border-radius:12px;padding:0.55rem 1rem;background:rgba(255,255,255,.04);cursor:pointer;font:inherit;font-weight:600;color:var(--ink)">加载更多</button>
+      <button type="button" class="ghost" id="btn-more" style="border:2px solid var(--line);border-radius:999px;padding:0.55rem 1.1rem;background:linear-gradient(180deg,#fff,#f8fbff);cursor:pointer;font:inherit;font-weight:700;color:var(--ink);box-shadow:0 4px 0 rgba(26,43,60,.06)">加载更多</button>
     </div>
     <footer>数据来自 solutions.txt · <a href="play.html" style="color:var(--accent);font-weight:600;text-decoration:none">去玩 24 点</a> · 整数运算 24 点</footer>
   </div>

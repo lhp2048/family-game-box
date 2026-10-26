@@ -37,8 +37,10 @@ EXTRA_CSS = r"""
   justify-content: center;
   padding: .65rem;
   margin: 0 0 .7rem;
-  border-radius: 14px;
-  background: rgba(255,255,255,.04);
+  border-radius: 18px;
+  background: linear-gradient(165deg, #fff9eb 0%, #e8fff4 55%, #eef4ff 100%);
+  border: 2px solid rgba(251, 191, 36, 0.22);
+  box-shadow: 0 8px 24px rgba(45, 62, 90, 0.08);
 }
 .sudoku-wrap { width: min(100%, 480px, 82vmin); margin: 0 auto; }
 .sudoku {
@@ -46,11 +48,11 @@ EXTRA_CSS = r"""
   width: 100%;
   aspect-ratio: 1;
   max-height: min(82vmin, 480px);
-  background: #1a2420;
-  border: 2.5px solid #1a2420;
-  border-radius: 6px;
+  background: #fffef8;
+  border: 2.5px solid rgba(26, 43, 60, 0.18);
+  border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0,0,0,.35);
+  box-shadow: 0 8px 24px rgba(45, 62, 90, 0.1);
 }
 .sudoku button {
   box-sizing: border-box;
@@ -66,30 +68,30 @@ EXTRA_CSS = r"""
   margin: 0;
   padding: 0;
   line-height: 1;
-  background: rgba(232,242,236,.1);
+  background: #fff;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   font-variant-numeric: tabular-nums;
   font-size: clamp(.9rem, 4.2vw, 1.35rem);
   font-weight: 600;
-  color: var(--accent);
+  color: var(--accent-deep);
   cursor: pointer;
   transition: background .1s ease, color .1s ease;
 }
-.sudoku button.box-alt { background: rgba(232,242,236,.06); }
-.sudoku button.bdr-r-thin { border-right: 1px solid rgba(232,242,236,.14); }
-.sudoku button.bdr-r-thick { border-right: 2px solid #0a1210; }
-.sudoku button.bdr-b-thin { border-bottom: 1px solid rgba(232,242,236,.14); }
-.sudoku button.bdr-b-thick { border-bottom: 2px solid #0a1210; }
-.sudoku button:not(.given):hover { background: rgba(62,207,142,.14); }
+.sudoku button.box-alt { background: #f6faf8; }
+.sudoku button.bdr-r-thin { border-right: 1px solid rgba(26, 43, 60, 0.1); }
+.sudoku button.bdr-r-thick { border-right: 2px solid rgba(26, 43, 60, 0.22); }
+.sudoku button.bdr-b-thin { border-bottom: 1px solid rgba(26, 43, 60, 0.1); }
+.sudoku button.bdr-b-thick { border-bottom: 2px solid rgba(26, 43, 60, 0.22); }
+.sudoku button:not(.given):hover { background: rgba(62,207,142,.12); }
 .sudoku button.given {
-  background: rgba(232,242,236,.14);
+  background: #f0f4f2;
   color: var(--ink);
   font-weight: 700;
   cursor: default;
 }
-.sudoku button.given.box-alt { background: rgba(232,242,236,.1); }
+.sudoku button.given.box-alt { background: #e8eeeb; }
 .sudoku button.related { background: rgba(62,207,142,.1) !important; }
-.sudoku button.given.related { background: rgba(232,242,236,.18) !important; }
+.sudoku button.given.related { background: #dcefe4 !important; }
 .sudoku button.same-num {
   color: var(--accent);
   font-weight: 700;
@@ -103,8 +105,8 @@ EXTRA_CSS = r"""
 }
 .sudoku button.selected.given { color: var(--ink) !important; }
 .sudoku button.conflict {
-  background: rgba(224, 112, 96, 0.28) !important;
-  color: #f0b0a4 !important;
+  background: rgba(224, 112, 96, 0.35) !important;
+  color: #8b2e22 !important;
 }
 .sudoku button.hinted { color: var(--warn); }
 .sudoku.size-4 button { font-size: clamp(1.2rem, 7vw, 1.75rem); }
@@ -114,53 +116,66 @@ EXTRA_CSS = r"""
 /* ── 操作区 ── */
 .play-dock {
   padding: .65rem;
-  border-radius: 14px;
-  background: rgba(255,255,255,.04);
-  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.05);
 }
 .numpad {
   display: flex;
-  gap: .4rem;
+  gap: .45rem;
   justify-content: center;
   flex-wrap: wrap;
 }
 .numpad.grid-9 {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: .4rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: .45rem;
 }
 .numpad button {
-  flex: 1 1 2.6rem;
-  max-width: 3.25rem;
-  height: 2.75rem;
+  flex: 1 1 3.25rem;
+  max-width: 4.25rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  height: clamp(2.75rem, 10vw, 3.5rem);
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 0;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 1.15rem;
+  font-size: clamp(1.05rem, 4.2vw, 1.35rem);
   font-weight: 700;
   color: var(--accent-deep);
-  background: rgba(255,255,255,.92);
+  background: linear-gradient(180deg, #fff 0%, #fff8eb 100%);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  border: 2px solid rgba(26, 43, 60, 0.08);
+  box-shadow: 0 3px 0 rgba(26, 43, 60, 0.08);
   transition: background .1s ease, transform .08s ease;
+  touch-action: manipulation;
 }
-.numpad.grid-9 button { max-width: none; height: 2.5rem; font-size: 1rem; }
+.numpad.grid-9 button {
+  max-width: none;
+  width: 100%;
+  min-height: 2.75rem;
+  height: clamp(2.65rem, 9.5vw, 3.35rem);
+  font-size: clamp(1rem, 3.8vw, 1.25rem);
+}
 .numpad button:hover { background: #e8f5ef; }
 .numpad button:active { transform: scale(.96); }
 .numpad button.clear {
   flex: 0 0 auto;
   max-width: none;
-  min-width: 3.2rem;
-  padding: 0 .6rem;
-  font-size: .88rem;
+  min-width: 3.5rem;
+  min-height: 2.75rem;
+  height: clamp(2.75rem, 10vw, 3.5rem);
+  padding: 0 .75rem;
+  font-size: .95rem;
   font-weight: 600;
   color: var(--muted);
   background: transparent;
   box-shadow: none;
   border: 1px dashed var(--line);
 }
-.numpad button.clear:hover { background: rgba(255,255,255,.08); }
+.numpad button.clear:hover { background: #f0f4f8; }
 
 .play-chrome {
   margin-top: .55rem;
@@ -173,16 +188,16 @@ EXTRA_CSS = r"""
   gap: .4rem;
 }
 .tool-row button {
-  border: 0;
-  border-radius: 10px;
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  border-radius: 999px;
   padding: .55rem .3rem;
   font: inherit;
   font-size: .84rem;
-  font-weight: 600;
-  background: rgba(255,255,255,.08);
+  font-weight: 700;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
   color: var(--ink);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  box-shadow: 0 3px 0 rgba(26, 43, 60, 0.06);
   transition: background .1s ease;
 }
 .tool-row button:hover { background: rgba(62,207,142,.16); }
@@ -198,9 +213,17 @@ EXTRA_CSS = r"""
   .sudoku-wrap { width: min(100%, 520px, 86vmin); }
   .sudoku { max-height: min(86vmin, 520px); }
   .play-dock { padding: .35rem; }
-  .numpad { gap: .3rem; }
-  .numpad button { height: 1.85rem; font-size: .92rem; }
-  .numpad.grid-9 button { height: 1.7rem; font-size: .85rem; }
+  .numpad { gap: .35rem; }
+  .numpad button {
+    min-height: 2.65rem;
+    height: clamp(2.65rem, 11vw, 3.15rem);
+    font-size: clamp(1rem, 4vw, 1.2rem);
+  }
+  .numpad.grid-9 button {
+    min-height: 2.55rem;
+    height: clamp(2.55rem, 10vw, 3rem);
+    font-size: clamp(.95rem, 3.6vw, 1.15rem);
+  }
   /* 工具行 + 退出行合成一行，少占一截高度 */
   .play-chrome {
     display: grid;
@@ -276,7 +299,7 @@ BODY = r"""
     </div>
     <p class="hint" id="play-hint">点格选中，再点数字填入</p>
     <div class="card play-card">
-      <div class="sudoku-stage">
+      <div class="sudoku-stage" data-fgb-board>
         <div class="sudoku-wrap"><div class="sudoku" id="board"></div></div>
       </div>
       <div class="play-dock">
@@ -629,7 +652,7 @@ SCRIPT = r"""
   var puzzleStart = 0;
 
   function loadPuzzle() {
-    puzzleStart = Date.now();
+    if (mode === "casual") puzzleStart = Date.now();
     var p = generatePuzzle(size);
     solution = p.solution;
     givens = p.givens;
@@ -792,7 +815,10 @@ SCRIPT = r"""
       document.getElementById("timer-text").textContent = "—";
       document.getElementById("btn-next").style.display = "";
       showView(views, "play");
-      loadPuzzle();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadPuzzle(); }, function (t) { puzzleStart = t; });
     });
   }
 
@@ -803,13 +829,17 @@ SCRIPT = r"""
       puzzleIndex = 0;
       puzzlesDone = 0;
       totalHints = 0;
-      startedAt = Date.now();
       document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
       document.getElementById("btn-next").style.display = "none";
       showView(views, "play");
-      startTimer();
       document.getElementById("play-progress").textContent = "1 / " + challengeTotal;
-      loadPuzzle();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadPuzzle(); }, function (t) {
+        startedAt = t;
+        startTimer();
+      });
     });
   }
 

@@ -11,8 +11,10 @@
  * FGBUI is optional (not required for topbar / safeNext).
  *
  * Public API: window.FGBShell
- *   - mountTopbar(rootEl, options)
- *       options: { title?, showBack?, backHref?, showUser? }
+   *   - mountTopbar(rootEl, options)
+   *       options: { title?, showBack?, backHref?, showUser?, console?, toyLobby? }
+   *       console defaults true on lobby shell pages (main.fgb-shell, no data-game-skin body).
+   *       toyLobby: bright home lobby — skips dark console bezel (index only).
  *   - safeNext(defaultPath)  — open-redirect-safe ?next= (same-origin relative only)
  *   - requireUserOrRedirect() — authMe; if not logged in, redirect to /login?next=…
  */
@@ -258,6 +260,64 @@
    * @param {HTMLElement} rootEl
    * @param {{ title?: string, showBack?: boolean, backHref?: string, showUser?: boolean }} [options]
    */
+  function isLobbyShellPage() {
+    try {
+      var body = global.document && global.document.body;
+      return !!(body && !body.getAttribute("data-game-skin"));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function applyConsoleDocument(mainEl) {
+    var doc = global.document;
+    if (!doc || !doc.body) return;
+    if (!doc.body.classList.contains("fgb-console")) {
+      doc.body.classList.add("fgb-console");
+    }
+    /* Dark bezel removed — product uses light toy chrome (CSS). */
+    var main = mainEl;
+    if (!main || !main.classList || main.classList.contains("fgb-shell") === false) {
+      main = doc.querySelector("main.fgb-shell");
+    }
+    if (main && !main.classList.contains("fgb-console-shell")) {
+      main.classList.add("fgb-console-shell");
+    }
+  }
+
+  function isToyLobbyBody() {
+    try {
+      var body = global.document && global.document.body;
+      return !!(body && body.classList.contains("fgb-lobby-toy"));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function resolveConsoleShell(opts, rootEl) {
+    if (opts && opts.toyLobby) return false;
+    if (isToyLobbyBody()) return false;
+    if (opts && opts.console != null) return !!opts.console;
+    if (!isLobbyShellPage()) return false;
+    if (rootEl && rootEl.closest && rootEl.closest("main.fgb-shell")) return true;
+    return !!global.document.querySelector("main.fgb-shell");
+  }
+
+  function useProductToyChrome(opts) {
+    if (opts && opts.toyLobby === false) return false;
+    if (opts && opts.toyLobby) return true;
+    if (isToyLobbyBody()) return true;
+    try {
+      var body = global.document && global.document.body;
+      if (!body) return false;
+      return (
+        body.classList.contains("fgb-console") || body.hasAttribute("data-game-skin")
+      );
+    } catch (e) {
+      return false;
+    }
+  }
+
   function mountTopbar(rootEl, options) {
     if (!rootEl) return;
     var opts = options || {};
@@ -265,6 +325,13 @@
     var showBack = !!opts.showBack;
     var backHref = opts.backHref != null && opts.backHref !== "" ? opts.backHref : "/";
     var showUser = !!opts.showUser;
+    var toyLobby = useProductToyChrome(opts);
+    var consoleShell = resolveConsoleShell(opts, rootEl);
+    if (consoleShell) {
+      applyConsoleDocument(
+        rootEl.closest ? rootEl.closest("main.fgb-shell") : null
+      );
+    }
 
     if (
       rootEl.className.indexOf("fgb-topbar") === -1
@@ -273,15 +340,28 @@
         ? rootEl.className + " "
         : "") + "fgb-topbar";
     }
+    if (toyLobby && rootEl.className.indexOf("fgb-topbar-toy") === -1) {
+      rootEl.className += " fgb-topbar-toy";
+    } else if (consoleShell && rootEl.className.indexOf("fgb-topbar-console") === -1) {
+      rootEl.className += " fgb-topbar-console";
+    }
 
     var backLabel =
       !opts.backHref || opts.backHref === "/" ? "回大厅" : "返回";
 
     var brandHtml =
-      '<div>' +
-      '<a class="fgb-brand" href="' +
+      '<div class="fgb-brand-block">' +
+      '<a class="fgb-brand' +
+      (toyLobby ? " fgb-brand-toy" : consoleShell ? " fgb-brand-console" : "") +
+      '" href="' +
       fgbUrl("/") +
-      '">家庭<em>游戏盒</em></a>' +
+      '">' +
+      (toyLobby
+        ? '<span class="fgb-brand-toy-mark" aria-hidden="true"><span></span><span></span><span></span></span><span class="fgb-brand-text">MX游戏<em>盒子</em></span>'
+        : consoleShell
+        ? '<span class="fgb-brand-mark" aria-hidden="true"></span><span class="fgb-brand-text">MX游戏<em>盒子</em></span>'
+        : "MX游戏<em>盒子</em>") +
+      "</a>" +
       (title
         ? '<span class="fgb-page-kicker">' + escapeHtml(title) + "</span>"
         : "") +
@@ -298,19 +378,31 @@
       );
     }
     if (showUser) {
+      var chipClass = "fgb-chip" + (toyLobby ? " fgb-chip-toy" : "");
+      var renameLogout = toyLobby
+        ? '<a href="#" class="fgb-toy-user-btn" data-fgb-rename>改名</a>' +
+          '<a href="#" class="fgb-toy-user-btn fgb-toy-user-btn-out" data-fgb-logout>退出</a>'
+        : '<a href="#" data-fgb-rename style="margin-left:6px;color:var(--muted);font-size:.85rem">改名</a> ' +
+          '<a href="#" data-fgb-logout style="margin-left:2px;color:var(--muted);font-size:.85rem">退出</a>';
       navParts.push(
-        '<div class="fgb-chip" data-fgb-user-chip hidden>你好，' +
+        '<div class="' +
+          chipClass +
+          '" data-fgb-user-chip hidden>你好，' +
           '<strong data-fgb-user-name>—</strong> ' +
-          '<a href="#" data-fgb-rename style="margin-left:6px;color:var(--muted);font-size:.85rem">改名</a> ' +
-          '<a href="#" data-fgb-logout style="margin-left:2px;color:var(--muted);font-size:.85rem">退出</a>' +
+          renameLogout +
           "</div>"
       );
+      var authLinkClass = toyLobby ? "fgb-nav-link fgb-nav-pill fgb-nav-pill-toy" : "fgb-nav-link";
       navParts.push(
         '<span data-fgb-auth-links>' +
-          '<a class="fgb-nav-link" href="' +
+          '<a class="' +
+          authLinkClass +
+          '" href="' +
           fgbUrl("/login") +
           '">登录</a> ' +
-          '<a class="fgb-nav-link" href="' +
+          '<a class="' +
+          authLinkClass +
+          '" href="' +
           fgbUrl("/register") +
           '">注册</a>' +
           "</span>"

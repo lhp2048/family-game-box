@@ -82,7 +82,7 @@
   margin: 0.7rem 0;
   height: 6px;
   border-radius: 99px;
-  background: rgba(232, 242, 236, 0.08);
+  background: rgba(26, 43, 60, 0.08);
   overflow: hidden;
 }
 
@@ -98,7 +98,8 @@
   border-radius: 14px;
   padding: 0.85rem 0.95rem;
   line-height: 1.65;
-  background: rgba(12, 20, 17, 0.55);
+  background: linear-gradient(180deg, #fffef9 0%, #fff8f0 100%);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.04);
 }
 
 .yuwen-passage { max-height: 28vh; overflow: auto; margin-bottom: 0.8rem; }
@@ -110,9 +111,10 @@
 
 .yuwen-opt {
   text-align: left;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: var(--panel-solid);
+  border-radius: 16px;
+  border: 2px solid var(--line);
+  background: #fff;
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.05);
   color: var(--ink);
   padding: 0.75rem 0.85rem;
   font: inherit;
@@ -124,8 +126,8 @@
 .yuwen-mark {
   font-style: normal;
   font-weight: 800;
-  color: #ffe7a3;
-  background: rgba(212, 168, 75, 0.28);
+  color: #92400e;
+  background: rgba(251, 191, 36, 0.35);
   border-radius: 0.28em;
   padding: 0 0.14em;
 }

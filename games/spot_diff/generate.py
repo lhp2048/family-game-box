@@ -46,12 +46,14 @@ EXTRA_CSS = r"""
   min-width: 0;
 }
 .diff-panel.left {
-  background: rgba(15, 122, 90, 0.1);
-  border: 1px solid rgba(15, 122, 90, 0.22);
+  background: linear-gradient(180deg, #e8fff4 0%, #f0f9ff 100%);
+  border: 2px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 6px 0 rgba(45, 62, 90, 0.05);
 }
 .diff-panel.right {
-  background: rgba(154, 74, 18, 0.1);
-  border: 1px solid rgba(154, 74, 18, 0.22);
+  background: linear-gradient(180deg, #fff8eb 0%, #fff5f8 100%);
+  border: 2px solid rgba(232, 160, 74, 0.35);
+  box-shadow: 0 6px 0 rgba(45, 62, 90, 0.05);
 }
 .panel-label {
   text-align: center;
@@ -67,11 +69,46 @@ EXTRA_CSS = r"""
   container-type: inline-size;
 }
 .grid-cells.compact button {
+  position: relative;
   min-height: 0;
   aspect-ratio: 1;
   font-size: clamp(.7rem, 8cqi, 1.15rem);
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: 10px;
+  box-shadow: 0 2px 0 rgba(26, 43, 60, 0.05);
+}
+body[data-game-skin="spot-diff"] .grid-cells.compact button.found {
+  background: linear-gradient(180deg, #bbf7d0 0%, #86efac 100%) !important;
+  color: #14532d;
+  border-color: #16a34a;
+  box-shadow:
+    inset 0 0 0 2px #15803d,
+    0 0 0 2px rgba(255, 255, 255, 0.85),
+    0 3px 0 rgba(22, 101, 52, 0.2);
+  cursor: default;
+  z-index: 1;
+}
+body[data-game-skin="spot-diff"] .grid-cells.compact button.found::after {
+  content: "✓";
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-size: 0.65em;
+  font-weight: 800;
+  line-height: 1;
+  color: #15803d;
+  pointer-events: none;
+}
+.spot-remain-bar {
+  text-align: center;
+  margin: 0 0 0.45rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.spot-remain-bar strong {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  color: var(--ink);
 }
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
   .diff-panels { gap: .45rem; }
@@ -136,9 +173,10 @@ BODY = r"""
       <span>已找 <strong id="found-n">0</strong> / <strong id="total-n">0</strong></span>
       <span><strong id="timer-text">00:00</strong></span>
     </div>
+    <p class="spot-remain-bar" id="remain-wrap">剩余个数：<strong id="remain-n">0</strong></p>
     <p class="hint" id="play-hint">点击任一侧的差异格</p>
     <div class="card">
-      <div class="diff-panels">
+      <div class="diff-panels" data-fgb-board>
         <div class="diff-panel left">
           <div class="panel-label">左图</div>
           <div class="grid-cells compact" id="grid-left"></div>
@@ -275,6 +313,32 @@ SCRIPT_MID = r""";
     return { n: n, left: left, right: right, diffs: Object.keys(diffSet).map(Number), diffSet: diffSet };
   }
 
+  function foundCount() {
+    var n = 0;
+    Object.keys(found).forEach(function (k) { if (found[k]) n++; });
+    return n;
+  }
+
+  function updateCounts() {
+    if (!puzzle) return;
+    var fc = foundCount();
+    document.getElementById("found-n").textContent = String(fc);
+    document.getElementById("total-n").textContent = String(puzzle.diffs.length);
+    document.getElementById("remain-n").textContent = String(Math.max(0, puzzle.diffs.length - fc));
+  }
+
+  function applyFoundVisual(i) {
+    ["grid-left", "grid-right"].forEach(function (id) {
+      var grid = document.getElementById(id);
+      if (!grid) return;
+      var btn = grid.querySelector('button[data-i="' + i + '"]');
+      if (btn) {
+        btn.classList.add("found");
+        btn.setAttribute("aria-pressed", "true");
+      }
+    });
+  }
+
   function renderSide(el, data, side) {
     el.style.gridTemplateColumns = "repeat(" + puzzle.n + ", 1fr)";
     el.innerHTML = "";
@@ -284,7 +348,11 @@ SCRIPT_MID = r""";
       btn.textContent = data[i];
       btn.dataset.i = String(i);
       btn.dataset.side = side;
-      if (found[i]) btn.classList.add("found");
+      btn.setAttribute("aria-pressed", "false");
+      if (found[i]) {
+        btn.classList.add("found");
+        btn.setAttribute("aria-pressed", "true");
+      }
       btn.addEventListener("click", onCellClick);
       el.appendChild(btn);
     }
@@ -293,8 +361,7 @@ SCRIPT_MID = r""";
   function render() {
     renderSide(document.getElementById("grid-left"), puzzle.left, "L");
     renderSide(document.getElementById("grid-right"), puzzle.right, "R");
-    document.getElementById("found-n").textContent = String(Object.keys(found).length);
-    document.getElementById("total-n").textContent = String(puzzle.diffs.length);
+    updateCounts();
   }
 
   function onCellClick() {
@@ -302,10 +369,11 @@ SCRIPT_MID = r""";
     if (Date.now() < frozenUntil || found[i]) return;
     if (puzzle.diffSet[i]) {
       found[i] = true;
-      render();
+      applyFoundVisual(i);
+      updateCounts();
       document.getElementById("play-hint").className = "hint ok";
       document.getElementById("play-hint").textContent = "找到了！";
-      if (Object.keys(found).length >= puzzle.diffs.length) onRoundDone();
+      if (foundCount() >= puzzle.diffs.length) onRoundDone();
     } else {
       totalWrong++;
       this.classList.add("wrong-flash");
@@ -334,7 +402,6 @@ SCRIPT_MID = r""";
   }
 
   function loadRound() {
-    roundStart = Date.now();
     found = {};
     hintsLeft = mode === "challenge" ? 1 : 2;
     puzzle = genPuzzle();
@@ -352,7 +419,10 @@ SCRIPT_MID = r""";
       document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
       document.getElementById("timer-text").textContent = "—";
       showView(views, "play");
-      loadRound();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadRound(); }, function (t) { roundStart = t; });
     });
   }
 
@@ -363,11 +433,15 @@ SCRIPT_MID = r""";
       roundsDone = 0;
       totalWrong = 0;
       totalHints = 0;
-      startedAt = Date.now();
       document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
       showView(views, "play");
-      startTimer();
-      loadRound();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadRound(); }, function (t) {
+        startedAt = t;
+        startTimer();
+      });
     });
   }
 
@@ -424,8 +498,9 @@ SCRIPT_MID = r""";
     found[p] = true;
     hintsLeft--;
     totalHints++;
-    render();
-    if (Object.keys(found).length >= puzzle.diffs.length) onRoundDone();
+    applyFoundVisual(p);
+    updateCounts();
+    if (foundCount() >= puzzle.diffs.length) onRoundDone();
   });
   document.getElementById("btn-restart").addEventListener("click", function () {
     found = {};

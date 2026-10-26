@@ -16,7 +16,8 @@ def test_ensure_today_stable_same_day():
     assert a["date"] == dc.local_today()
     assert a["daySeq"] == 1
     assert a["label"] == "专注力#1"
-    assert len(a["stages"]) == 8
+    assert len(a["stages"]) == 9
+    assert a["stages"][-1]["gameId"] == "mental-speed"
     assert all("seed" in s for s in a["stages"])
 
 

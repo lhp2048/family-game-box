@@ -29,7 +29,7 @@ def test_today_auto_generate():
     assert r.status_code == 200
     body = r.json()
     assert body["comboId"]
-    assert len(body["stages"]) == 8
+    assert len(body["stages"]) == 9
 
 
 def test_start_run_requires_register():

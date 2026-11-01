@@ -47,45 +47,82 @@ EXTRA_CSS = r"""
 .target-bar strong {
   font-family: var(--display);
   font-size: 1.6rem;
-  color: var(--accent-deep);
+  color: var(--accent);
 }
-.grid-wrap {
-  overflow: auto;
-  max-height: min(82vmin, 720px);
+.target-bar .target-remain {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.target-bar .target-remain strong {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  color: var(--ink);
+}
+/* Play view: square board sized by JS --cancel-side (min width/height), centered, no crop. */
+body[data-game-skin="cancel"] #view-play > .card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+body[data-game-skin="cancel"] #view-play .grid-wrap {
+  overflow: hidden;
+  max-height: none !important;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   justify-content: center;
+  align-items: center;
+  margin: 0 -.15rem;
+  padding: .15rem 0;
+  box-sizing: border-box;
 }
-.grid-cells.dense {
-  width: min(100%, 82vmin, 640px);
-  margin: 0;
+html.fgb-daily-mode body[data-game-skin="cancel"] #view-play .grid-wrap {
+  overflow: hidden;
+}
+body[data-game-skin="cancel"] #view-play #grid.grid-cells.dense {
+  --cancel-side: 280px;
+  width: var(--cancel-side) !important;
+  height: var(--cancel-side) !important;
+  max-width: min(100%, var(--cancel-side)) !important;
+  max-height: min(100%, var(--cancel-side)) !important;
+  aspect-ratio: 1;
+  margin: 0 auto !important;
+  gap: clamp(1px, 0.28vw, 3px);
+  grid-auto-rows: 1fr;
+  align-content: stretch;
+  flex: 0 0 auto;
+  align-self: center;
+  box-sizing: border-box;
 }
 .grid-cells.dense button {
-  min-height: 0;
-  aspect-ratio: 1;
-  /* Safari 会给 grid/flex 按钮再套一层空壳，和数字叠成两行。 */
-  display: block;
   width: 100%;
-  position: relative;
-  font-size: clamp(.72rem, 2.6cqi, 1.25rem);
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  aspect-ratio: unset;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: clamp(
+    0.62rem,
+    calc(var(--cancel-side, 320px) / var(--cancel-cols, 12) * 0.44),
+    1.2rem
+  );
   font-weight: 700;
 }
 .grid-cells.dense button > span {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
+  line-height: 1;
   pointer-events: none;
-}
-.grid-cells.dense { container-type: inline-size; }
-.target-bar strong {
-  color: var(--accent);
 }
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
   .target-bar { margin-bottom: .35rem; font-size: 1rem; }
   .target-bar strong { font-size: 1.25rem; }
-  .grid-wrap { max-height: min(86vmin, 720px); }
-  .grid-cells.dense { width: min(100%, 86vmin, 720px); }
+}
+@media (max-width: 420px) {
+  .target-bar .target-remain { font-size: 0.88rem; }
 }
 """
 
@@ -153,10 +190,13 @@ BODY = r"""
       <span>已找 <strong id="found-n">0</strong> / <strong id="total-n">0</strong></span>
       <span id="play-timer"><strong id="timer-text">00:00</strong></span>
     </div>
-    <div class="target-bar">请找出所有的：<strong id="target-display">7</strong></div>
+    <div class="target-bar">
+      请找出所有的：<strong id="target-display">7</strong>
+      <span class="target-remain">剩余个数：<strong id="remain-n">0</strong></span>
+    </div>
     <p class="hint" id="play-hint">点击目标格进行划销</p>
     <div class="card">
-      <div class="grid-wrap">
+      <div class="grid-wrap" data-fgb-board>
         <div class="grid-cells dense" id="grid"></div>
       </div>
       <div class="actions">
@@ -302,9 +342,81 @@ SCRIPT_MID = r""";
       + " · " + diffLabel(diffKey);
   }
 
+  var cancelFitInstalled = false;
+
+  function fitCancelBoard() {
+    var play = document.getElementById("view-play");
+    var wrap = play && play.querySelector(".grid-wrap");
+    var grid = document.getElementById("grid");
+    if (!play || !wrap || !grid || play.classList.contains("hidden")) return;
+
+    var vh = window.innerHeight || document.documentElement.clientHeight || 600;
+    var vw = window.innerWidth || document.documentElement.clientWidth || 800;
+    var pad = 6;
+    var top = wrap.getBoundingClientRect().top;
+    var actions = play.querySelector(".actions");
+    var bottomEdge = vh - pad;
+    if (actions) bottomEdge = actions.getBoundingClientRect().top - pad;
+    else {
+      var card = wrap.closest(".card");
+      if (card) bottomEdge = card.getBoundingClientRect().bottom - pad;
+    }
+    var availH = Math.max(100, Math.floor(bottomEdge - top));
+    var availW = Math.floor(wrap.clientWidth || wrap.getBoundingClientRect().width);
+    if (availW < 1) availW = Math.floor(vw * 0.92);
+
+    var maxB = Math.min(720, Math.floor(Math.min(vw, vh) * 0.88));
+    var side = Math.min(availW, availH, maxB);
+    if (side < 80) side = Math.min(availW, availH);
+
+    wrap.style.minHeight = availH + "px";
+    wrap.style.maxHeight = availH + "px";
+    wrap.style.width = "100%";
+    wrap.style.display = "flex";
+    wrap.style.justifyContent = "center";
+    wrap.style.alignItems = "center";
+    grid.style.setProperty("--cancel-side", side + "px");
+    grid.style.width = side + "px";
+    grid.style.height = side + "px";
+    grid.style.maxWidth = "100%";
+    grid.style.marginLeft = "auto";
+    grid.style.marginRight = "auto";
+    document.documentElement.style.setProperty("--fgb-board", side + "px");
+  }
+
+  function scheduleCancelBoardFit() {
+    if (window.requestAnimationFrame) {
+      requestAnimationFrame(function () { fitCancelBoard(); });
+    } else {
+      fitCancelBoard();
+    }
+  }
+
+  function installCancelBoardFit() {
+    if (cancelFitInstalled) return;
+    cancelFitInstalled = true;
+    function run() { scheduleCancelBoardFit(); }
+    run();
+    window.addEventListener("resize", run);
+    window.addEventListener("orientationchange", function () {
+      setTimeout(run, 80);
+      setTimeout(run, 350);
+    });
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", run);
+    if (window.FGBDaily && FGBDaily.installFitPlay) {
+      FGBDaily.installFitPlay({
+        force: true, min: 120, max: 720, pad: 10, boardSelector: ".grid-wrap"
+      });
+    }
+  }
+
   function renderGrid() {
     var grid = document.getElementById("grid");
-    grid.style.gridTemplateColumns = "repeat(" + puzzle.n + ", 1fr)";
+    var n = puzzle.n;
+    grid.style.setProperty("--cancel-cols", String(n));
+    grid.style.setProperty("--cancel-rows", String(n));
+    grid.style.gridTemplateColumns = "repeat(" + n + ", minmax(0, 1fr))";
+    grid.style.gridTemplateRows = "repeat(" + n + ", minmax(0, 1fr))";
     grid.innerHTML = "";
     marked = {};
     for (var i = 0; i < puzzle.cells.length; i++) {
@@ -320,8 +432,11 @@ SCRIPT_MID = r""";
     document.getElementById("target-display").textContent = puzzle.target;
     document.getElementById("found-n").textContent = "0";
     document.getElementById("total-n").textContent = String(puzzle.targetCount);
+    updateRemainCount();
     document.getElementById("play-hint").className = "hint";
     document.getElementById("play-hint").textContent = "点击目标格进行划销";
+    installCancelBoardFit();
+    scheduleCancelBoardFit();
   }
 
   function isTarget(i) {
@@ -334,6 +449,12 @@ SCRIPT_MID = r""";
     return n;
   }
 
+  function updateRemainCount() {
+    if (!puzzle) return;
+    var rem = puzzle.targetCount - foundCount();
+    document.getElementById("remain-n").textContent = String(rem > 0 ? rem : 0);
+  }
+
   function onCellClick(i, el) {
     if (Date.now() < frozenUntil || marked[i]) return;
     if (isTarget(i)) {
@@ -341,6 +462,7 @@ SCRIPT_MID = r""";
       el.classList.add("marked");
       var fc = foundCount();
       document.getElementById("found-n").textContent = String(fc);
+      updateRemainCount();
       if (fc >= puzzle.targetCount) onRoundComplete(false);
     } else {
       totalWrong++;
@@ -379,7 +501,6 @@ SCRIPT_MID = r""";
   }
 
   function loadRound() {
-    roundStart = Date.now();
     puzzle = genPuzzle(puzzleType);
     renderGrid();
   }
@@ -393,7 +514,10 @@ SCRIPT_MID = r""";
       document.getElementById("timer-text").textContent = "—";
       document.getElementById("casual-extra").classList.remove("hidden");
       showView(views, "play");
-      loadRound();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadRound(); }, function (t) { roundStart = t; });
     });
   }
 
@@ -404,12 +528,16 @@ SCRIPT_MID = r""";
       roundsDone = 0;
       totalWrong = 0;
       totalMiss = 0;
-      startedAt = Date.now();
       document.getElementById("play-label").textContent = modeLabel();
       document.getElementById("casual-extra").classList.add("hidden");
       showView(views, "play");
-      startTimer();
-      loadRound();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadRound(); }, function (t) {
+        startedAt = t;
+        startTimer();
+      });
     });
   }
 

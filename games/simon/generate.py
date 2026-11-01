@@ -40,8 +40,8 @@ EXTRA_CSS = r"""
   padding: 1rem;
   margin: .5rem 0 1rem;
   border-radius: 16px;
-  background: rgba(255,255,255,.04);
-  border: 1px dashed var(--line);
+  background: linear-gradient(180deg, #fff 0%, #f8f0ff 100%);
+  border: 2px dashed var(--line);
   line-height: 1.35;
   transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
 }
@@ -73,7 +73,7 @@ EXTRA_CSS = r"""
   margin: 0 auto;
 }
 .action-grid button {
-  border: 1px solid var(--line);
+  border: 2px solid rgba(26, 43, 60, 0.1);
   border-radius: 22px;
   aspect-ratio: 1;
   width: var(--card);
@@ -82,7 +82,8 @@ EXTRA_CSS = r"""
   font: inherit;
   font-weight: 700;
   font-size: clamp(1.8rem, 6.2vw, 2.35rem);
-  background: rgba(255,255,255,.04);
+  background: linear-gradient(180deg, #fff 0%, #f5f0ff 100%);
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.08);
   color: var(--ink);
   cursor: pointer;
   display: flex;
@@ -174,7 +175,7 @@ BODY = r"""
     <div class="card">
       <div class="command-box" id="command">准备…</div>
       <div class="tts-note" id="tts-note"></div>
-      <div class="action-grid" id="actions">
+      <div class="action-grid" id="actions" data-fgb-board>
         <button type="button" data-act="hands_up">↑ 举手</button>
         <button type="button" data-act="turn_left">← 左转</button>
         <button type="button" data-act="jump">跳</button>
@@ -283,11 +284,27 @@ SCRIPT = r"""
   var impulse = 0;
   var miss = 0;
   var rts = [];
-  var clipCache = {};
-  var activeAudio = null;
-  var audioUnlocked = false;
   var commandEl = document.getElementById("command");
   var ttsNoteEl = document.getElementById("tts-note");
+  var clipIds = [];
+  Object.keys(ACTIONS).forEach(function (act) {
+    ["", "say_"].forEach(function (prefix) {
+      clipIds.push(prefix + act);
+    });
+  });
+  var audioClips = FgbAudioClips({
+    resolveUrl: function (name) { return clipUrl(name); },
+    clipIds: clipIds,
+  });
+  audioClips.warmNetwork();
+  (function wireEarlyAudioUnlock() {
+    function onGesture() {
+      audioClips.unlock();
+    }
+    ["pointerdown", "keydown", "touchstart"].forEach(function (ev) {
+      document.addEventListener(ev, onGesture, { once: true, passive: true });
+    });
+  })();
 
   function clipName(trialObj) {
     if (!trialObj) return "";
@@ -320,24 +337,12 @@ SCRIPT = r"""
 
   function stopSpeak() {
     setSpeaking(false);
-    if (activeAudio) {
-      try { activeAudio.pause(); } catch (e) {}
-      activeAudio = null;
-    }
+    audioClips.stop();
   }
 
   /** 用户手势下解锁 WebView 音频（Android 内置浏览器常见限制） */
   function unlockAudio() {
-    if (audioUnlocked) return;
-    audioUnlocked = true;
-    try {
-      var silent = new Audio(
-        "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"
-      );
-      silent.volume = 0.01;
-      var p = silent.play();
-      if (p && p.then) p.catch(function () {});
-    } catch (e) {}
+    audioClips.unlock();
   }
 
   function playClip(name, onDone) {
@@ -345,42 +350,16 @@ SCRIPT = r"""
       if (onDone) onDone(false);
       return false;
     }
-    var audio = clipCache[name];
-    if (!audio) {
-      audio = new Audio(clipUrl(name));
-      audio.preload = "auto";
-      clipCache[name] = audio;
-    }
-    if (audio.__fgbBad) {
+    if (audioClips.isBad(name)) {
       if (onDone) onDone(false);
       return false;
     }
-    try {
-      audio.pause();
-      audio.currentTime = 0;
-    } catch (e) {}
-    activeAudio = audio;
-    var finished = false;
-    function done(ok) {
-      if (finished) return;
-      finished = true;
-      setSpeaking(false);
-      activeAudio = null;
-      if (!ok) audio.__fgbBad = true;
-      if (onDone) onDone(ok);
-    }
-    audio.onended = function () { done(true); };
-    audio.onerror = function () { done(false); };
     setSpeaking(true);
-    var playPromise = audio.play();
-    if (playPromise && playPromise.then) {
-      playPromise.then(function () {
-        setTtsNote("");
-      }).catch(function () {
-        done(false);
-      });
-    }
-    return true;
+    return audioClips.play(name, function (ok) {
+      setSpeaking(false);
+      if (ok) setTtsNote("");
+      if (onDone) onDone(ok);
+    });
   }
 
   /** 统一播预置 MP3；失败则露出文字（不再用 speechSynthesis） */
@@ -423,15 +402,9 @@ SCRIPT = r"""
   }
 
   function preloadClips() {
-    Object.keys(ACTIONS).forEach(function (act) {
-      ["", "say_"].forEach(function (prefix) {
-        var name = prefix + act;
-        if (clipCache[name]) return;
-        var a = new Audio(clipUrl(name));
-        a.preload = "auto";
-        a.addEventListener("error", function () { a.__fgbBad = true; });
-        clipCache[name] = a;
-      });
+    if (!audioClips.allReady()) setTtsNote("音效准备中…");
+    return audioClips.preloadAll().then(function () {
+      if (audioClips.allReady()) setTtsNote("");
     });
   }
 
@@ -513,7 +486,8 @@ SCRIPT = r"""
     document.getElementById("streak").textContent = String(streak);
     if (mode === "challenge") {
       if (!ok) countPenalty(wrongText);
-      setTimeout(nextTrial, ok ? 900 : 2000);
+      if (ok) celebrateThen(FGB_MSG.done, nextTrial, 480);
+      else setTimeout(nextTrial, 2000);
     }
   }
 
@@ -576,15 +550,16 @@ SCRIPT = r"""
       reverse = false;
       useTts = true;
       unlockAudio();
-      preloadClips();
-      trialIndex = 0;
-      correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
-      document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
-      document.getElementById("btn-next").style.display = "";
-      setTtsNote("");
-      updateRuleBar();
       showView(views, "play");
-      nextTrial();
+      Promise.resolve(preloadClips()).then(function () {
+        trialIndex = 0;
+        correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
+        document.getElementById("play-label").textContent = "休闲 · " + diffLabel(diffKey);
+        document.getElementById("btn-next").style.display = "";
+        setTtsNote("");
+        updateRuleBar();
+        nextTrial();
+      });
     });
   }
 
@@ -596,15 +571,21 @@ SCRIPT = r"""
       // 与休闲一致：挑战固定 MP3，不再提供「关语音看字」
       useTts = true;
       unlockAudio();
-      preloadClips();
-      trialIndex = 0;
-      correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
-      document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
-      document.getElementById("btn-next").style.display = "none";
-      setTtsNote("");
-      updateRuleBar();
       showView(views, "play");
-      nextTrial();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { Promise.resolve(prep()).then(function () { done(Date.now()); }); };
+      run(function () {
+        return Promise.resolve(preloadClips()).then(function () {
+          trialIndex = 0;
+          correct = 0; impulse = 0; miss = 0; streak = 0; maxStreak = 0; rts = [];
+          document.getElementById("play-label").textContent = "挑战 · " + diffLabel(diffKey);
+          document.getElementById("btn-next").style.display = "none";
+          setTtsNote("");
+          updateRuleBar();
+          nextTrial();
+        });
+      }, function () {});
     });
   }
 
@@ -713,6 +694,7 @@ def build_html() -> str:
         inject_lobby_link(BODY),
         SCRIPT,
         game_skin="simon",
+        audio_clips=True,
     )
 
 

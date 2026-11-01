@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>数字华容道</title>
+<link rel="stylesheet" href="/css/fgb-theme.css">
+
+<script>
+(function fgbDailyHead() {
+  if (/(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+    document.documentElement.classList.add("fgb-daily-mode");
+  }
+})();
+</script>
+<style>
+html.fgb-daily-mode #view-home,
+html.fgb-daily-mode #view-setup,
+html.fgb-daily-mode #view-casual,
+html.fgb-daily-mode #view-size,
+html.fgb-daily-mode #view-result,
+html.fgb-daily-mode #view-casual-done { display: none !important; }
+html.fgb-daily-mode .mode-btn,
+html.fgb-daily-mode #casual-extra,
+html.fgb-daily-mode #btn-next,
+html.fgb-daily-mode #btn-restart,
+html.fgb-daily-mode #btn-new,
+html.fgb-daily-mode #btn-hint,
+html.fgb-daily-mode [data-fgb-hint-control] { display: none !important; }
+/* 闯关 iframe 内：收掉重复顶栏/长说明；棋盘边长由 --fgb-board 动态计算 */
+html.fgb-daily-mode {
+  --fgb-board: 280px;
+  height: 100%;
+}
+html.fgb-daily-mode body { height: 100%; }
+html.fgb-daily-mode:not(.fgb-play-scroll),
+html.fgb-daily-mode:not(.fgb-play-scroll) body { overflow: hidden; }
+html.fgb-daily-mode.fgb-play-scroll,
+html.fgb-daily-mode.fgb-play-scroll body { overflow: auto; }
+html.fgb-daily-mode .wrap {
+  width: 100%;
+  max-width: none;
+  padding: 0.35rem var(--play-gutter) 0.4rem;
+  box-sizing: border-box;
+}
+html.fgb-daily-mode #view-play > .topbar { display: none !important; }
+html.fgb-daily-mode #fgb-topbar,
+html.fgb-daily-mode #fgb-result { display: none !important; }
+html.fgb-daily-mode #view-play > .hint { margin: 0 0 0.3rem; min-height: 1.05em; font-size: 0.88rem; }
+html.fgb-daily-mode #view-play .tip { display: none !important; }
+html.fgb-daily-mode .clover {
+  width: var(--fgb-board) !important;
+  height: var(--fgb-board) !important;
+}
+html.fgb-daily-mode .clover-wrap { margin: 0.1rem 0 0.3rem; }
+html.fgb-daily-mode .leaf { font-size: calc(var(--fgb-board) * 0.11) !important; }
+html.fgb-daily-mode .card-board-wrap {
+  max-width: var(--fgb-board) !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+html.fgb-daily-mode .num-card .val {
+  font-size: calc(var(--fgb-board) * 0.14) !important;
+}
+html.fgb-daily-mode .num-card .expr {
+  font-size: calc(var(--fgb-board) * 0.045) !important;
+}
+html.fgb-daily-mode .sudoku-wrap { width: min(100%, var(--fgb-board)) !important; }
+html.fgb-daily-mode .sudoku { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .maze-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .grid-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .diff-panels { max-height: var(--fgb-board) !important; overflow: auto; }
+html.fgb-daily-mode .board {
+  width: min(100%, var(--fgb-board)) !important;
+  max-height: var(--fgb-board) !important;
+}
+</style>
+
+<style>
+
+:root {
+  --ink: #1a2b3c;
+  --muted: #5c6d7e;
+  --line: rgba(26, 43, 60, 0.12);
+  --paper: #fff8f0;
+  --panel: #ffffff;
+  --accent: #2ecc71;
+  --accent-deep: #1a9f68;
+  --warn: #e8a04a;
+  --danger: #e07060;
+  --shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
+  --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
+  --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --play-gutter: var(--console-gutter, clamp(1rem, 3vw, 2.25rem));
+  --fgb-play-max: 560px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: transparent;
+}
+body::before {
+  content: none;
+}
+.wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 1.6rem var(--play-gutter) 3rem;
+  min-width: 0;
+}
+.wrap.wide {
+  width: 100%;
+  max-width: none;
+  --fgb-play-max: 720px;
+}
+.fgb-play-stage,
+[data-fgb-board] {
+  width: 100%;
+  max-width: min(var(--fgb-play-max), 100%);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+.hidden { display: none !important; }
+/* 平板横屏 / 矮视口：压缩边距；棋盘尺寸由各游戏用 vmin 吃满短边 */
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .wrap { padding: .55rem var(--play-gutter) 1rem; }
+  .wrap.wide { width: 100%; max-width: none; }
+  h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); margin-bottom: .2rem; }
+  .sub { margin: 0 0 .65rem; font-size: .88rem; }
+  .card { padding: .75rem; border-radius: 14px; }
+  .topbar { margin-bottom: .45rem; }
+  .hint { margin: 0 0 .4rem; min-height: 1.1em; font-size: .88rem; }
+  .actions { margin-top: .3rem; gap: .35rem; }
+  .actions button { padding: .35rem .2rem; font-size: .82rem; border-radius: 10px; }
+  .task-bar { padding: .45rem .65rem; margin-bottom: .5rem; }
+  .mode-btn { padding: .75rem .85rem; }
+  .choice-row { margin: .65rem 0; }
+  .choice-row button { padding: .65rem .3rem; }
+}
+h1 {
+  font-family: var(--display);
+  font-size: clamp(2rem, 8vw, 3rem);
+  margin: 0 0 .35rem;
+  letter-spacing: -.02em;
+  line-height: .95;
+}
+h1 em { font-style: italic; color: var(--accent); }
+.sub { margin: 0 0 1.4rem; color: var(--muted); line-height: 1.5; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 1.15rem;
+}
+.mode-grid { display: grid; gap: .75rem; }
+.mode-btn {
+  text-align: left;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 1rem 1.05rem;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.05);
+  transition: transform .15s ease, border-color .15s ease;
+}
+.mode-btn:hover { transform: translateY(-1px); border-color: rgba(62,207,142,.4); }
+.mode-btn strong { display: block; font-size: 1.15rem; margin-bottom: .25rem; }
+.mode-btn span { color: var(--muted); font-size: .92rem; }
+.choice-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin: 1rem 0; }
+.choice-row.two { grid-template-columns: repeat(2, 1fr); }
+.choice-row.six { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 640px) {
+  .choice-row.six { grid-template-columns: repeat(6, 1fr); }
+}
+.choice-row button {
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  padding: .9rem .4rem;
+  font: inherit;
+  font-weight: 700;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.05);
+}
+.choice-row button.active {
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #062016;
+  border-color: transparent;
+}
+.primary {
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  padding: .85rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  color: #062016;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  cursor: pointer;
+}
+.ghost {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: .7rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: .9rem;
+  color: var(--muted);
+  font-size: .92rem;
+  flex-wrap: wrap;
+}
+.topbar strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.hint {
+  text-align: center;
+  min-height: 1.4em;
+  margin: 0 0 .8rem;
+  color: var(--muted);
+  font-size: .95rem;
+}
+.hint.err { color: var(--danger); }
+.hint.ok { color: var(--accent); font-weight: 600; }
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .55rem;
+  margin-top: .75rem;
+}
+.actions.two { grid-template-columns: repeat(2, 1fr); }
+.actions button {
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  border-radius: 999px;
+  min-height: 44px;
+  padding: .65rem .4rem;
+  font: inherit;
+  font-weight: 700;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
+  cursor: pointer;
+  color: var(--ink);
+}
+.actions button.warn {
+  color: #a65c10;
+  background: linear-gradient(180deg, #fffef9 0%, #fff5e6 100%);
+  border-color: rgba(232, 160, 74, 0.35);
+}
+.actions button.danger {
+  color: #b33d30;
+  background: linear-gradient(180deg, #fff5f5 0%, #ffe8e6 100%);
+  border-color: rgba(224, 112, 96, 0.35);
+}
+.stats-list { margin: .8rem 0 1.1rem; padding: 0; list-style: none; }
+.stats-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: .55rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.stats-list li:last-child { border-bottom: 0; }
+.linkish {
+  display: inline-block;
+  margin-top: 1rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.grid-cells {
+  display: grid;
+  gap: 2px;
+  margin: .5rem 0;
+  user-select: none;
+}
+.grid-wrap { overflow: auto; max-height: min(82vmin, 720px); }
+.grid-cells button, .grid-cells .cell {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 2px solid rgba(26, 43, 60, 0.08);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff 0%, #f6fffb 100%);
+  color: var(--ink);
+  box-shadow: 0 2px 0 rgba(26, 43, 60, 0.05);
+  font: inherit;
+  font-weight: 600;
+  aspect-ratio: 1;
+  /* Safari：button+flex 会多出一块空壳，改用 grid 居中 */
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  min-width: 0;
+  line-height: 1;
+}
+.grid-cells button.marked {
+  background: rgba(62,207,142,.18);
+  color: var(--accent);
+  text-decoration: line-through;
+}
+.grid-cells button.found {
+  background: rgba(62,207,142,.25);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.grid-cells button.wrong-flash {
+  animation: wrongFlash .5s ease;
+}
+@keyframes wrongFlash {
+  0%, 100% { background: linear-gradient(180deg, #fff 0%, #f6fffb 100%); }
+  50% { background: rgba(224, 112, 96, 0.35); }
+}
+.task-bar {
+  text-align: center;
+  padding: .65rem .8rem;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #e8fff4 0%, #d4fce8 100%);
+  border: 2px solid rgba(46, 204, 113, 0.25);
+  color: var(--accent-deep);
+  font-weight: 700;
+  margin-bottom: .85rem;
+}
+
+
+.confirm-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(6, 14, 12, 0.72);
+  backdrop-filter: blur(2px);
+}
+.confirm-mask.hidden { display: none !important; }
+.confirm-box {
+  width: min(360px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.2rem 1.1rem;
+}
+.confirm-box p {
+  margin: 0 0 1.1rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .55rem;
+}
+.confirm-actions button {
+  border-radius: 14px;
+  padding: .75rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.confirm-actions .confirm-cancel {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+}
+.confirm-actions .confirm-ok {
+  border: 0;
+  color: #062016;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+}
+/* 统一完成反馈：轻量、不挡操作 */
+.celebrate {
+  position: fixed;
+  left: 50%;
+  top: 18%;
+  transform: translate(-50%, -12px) scale(.92);
+  z-index: 1100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease, transform .28s cubic-bezier(.2,.9,.3,1.2);
+}
+.celebrate.show {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+.celebrate-pill {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .7rem 1.1rem .7rem .85rem;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid rgba(62,207,142,.35);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+.celebrate-mark {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #062016;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .95rem;
+  line-height: 1;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(62,207,142,.35);
+  animation: celebratePulse .55s ease;
+}
+@keyframes celebratePulse {
+  0% { box-shadow: 0 0 0 0 rgba(15,122,90,.4); transform: scale(.85); }
+  60% { box-shadow: 0 0 0 10px rgba(15,122,90,0); transform: scale(1.06); }
+  100% { box-shadow: 0 0 0 0 rgba(15,122,90,0); transform: scale(1); }
+}
+.celebrate-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+}
+.celebrate.show .celebrate-burst {
+  animation: celebrateBurst .5s ease forwards;
+}
+.celebrate-burst:nth-child(1) { --dx: -28px; --dy: -22px; }
+.celebrate-burst:nth-child(2) { --dx: 30px; --dy: -18px; background: #c9a227; }
+.celebrate-burst:nth-child(3) { --dx: -22px; --dy: 24px; background: #9a4a12; }
+.celebrate-burst:nth-child(4) { --dx: 26px; --dy: 20px; background: #2471a3; }
+.celebrate-burst:nth-child(5) { --dx: 0; --dy: -32px; background: #7d3c98; }
+.celebrate-burst:nth-child(6) { --dx: 0; --dy: 30px; background: #1e8449; }
+@keyframes celebrateBurst {
+  0% { opacity: .9; transform: translate(0,0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3); }
+}
+
+
+.ns-hero { text-align: center; margin-bottom: 1rem; }
+.ns-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+.ns-tier-grid {
+  display: grid;
+  gap: 0.65rem;
+  margin-bottom: 0.85rem;
+}
+.ns-tier-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.05);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.ns-tier-btn strong { font-family: var(--display); font-size: 1.05rem; }
+.ns-tier-btn span { font-size: 0.82rem; color: var(--muted); margin-top: 0.2rem; line-height: 1.4; }
+.ns-tier-btn:hover, .ns-tier-btn:focus-visible {
+  border-color: rgba(96, 165, 250, 0.55);
+  outline: none;
+  transform: translateY(-1px);
+}
+.ns-tier-btn.active {
+  border-color: rgba(96, 165, 250, 0.65);
+  background: rgba(96, 165, 250, 0.12);
+}
+.ns-hud {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.65rem;
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+.ns-hud strong {
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  font-family: var(--display);
+  font-size: 1.1rem;
+}
+.ns-board-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 0.35rem 0 0.75rem;
+  touch-action: manipulation;
+}
+.ns-board {
+  display: grid;
+  gap: clamp(2px, 0.45vw, 5px);
+  width: min(100%, min(78vmin, 440px));
+  aspect-ratio: 1;
+  padding: clamp(4px, 1vw, 8px);
+  border-radius: 18px;
+  border: 2px solid rgba(96, 165, 250, 0.35);
+  background: linear-gradient(165deg, #eef4ff 0%, #e8f8f0 55%, #fff5e8 100%);
+  box-shadow: 0 10px 28px rgba(45, 62, 90, 0.1);
+}
+.ns-board button {
+  margin: 0;
+  padding: 0;
+  border: 2px solid rgba(26, 43, 60, 0.08);
+  border-radius: clamp(8px, 1.2vw, 14px);
+  background: linear-gradient(180deg, #fff 0%, #f0f7ff 100%);
+  box-shadow: 0 3px 0 rgba(26, 43, 60, 0.06);
+  color: #1a2b3c;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(0.85rem, 4.2vw, 1.45rem);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  min-height: 0;
+  aspect-ratio: 1;
+  transition: transform 0.1s ease, background 0.12s ease, border-color 0.12s ease;
+}
+.ns-board button:hover:not(:disabled) {
+  border-color: rgba(96, 165, 250, 0.45);
+  background: rgba(96, 165, 250, 0.18);
+}
+.ns-board button:active:not(:disabled) { transform: scale(0.96); }
+.ns-board button.is-blank {
+  visibility: hidden;
+  pointer-events: none;
+}
+.ns-board button.is-near {
+  box-shadow: inset 0 0 0 2px rgba(96, 165, 250, 0.35);
+}
+.ns-board button.is-settled {
+  border-color: rgba(62, 207, 142, 0.5);
+  background: linear-gradient(
+    165deg,
+    rgba(62, 207, 142, 0.24),
+    rgba(62, 207, 142, 0.08)
+  );
+  color: #0d4d32;
+  box-shadow: inset 0 0 0 2px rgba(62, 207, 142, 0.45);
+}
+.ns-board button.is-settled:hover:not(:disabled) {
+  border-color: rgba(62, 207, 142, 0.65);
+  background: linear-gradient(
+    165deg,
+    rgba(62, 207, 142, 0.32),
+    rgba(62, 207, 142, 0.12)
+  );
+}
+.ns-board button.is-settled.is-near {
+  box-shadow:
+    inset 0 0 0 2px rgba(96, 165, 250, 0.35),
+    inset 0 0 0 1px rgba(62, 207, 142, 0.45);
+}
+html.fgb-daily-mode .ns-board {
+  width: min(100%, var(--fgb-board, 360px));
+  max-width: min(100%, var(--fgb-board, 360px));
+}
+@media (orientation: landscape) and (max-height: 520px) {
+  .ns-board { width: min(48vmin, 360px); }
+}
+
+</style>
+</head>
+<body data-game-skin="number-slide">
+<header id="fgb-topbar"></header>
+<div class="wrap wide">
+
+  <section id="view-home">
+    <div class="ns-hero">
+      <p class="ns-tag">滑动拼图</p>
+      <h1>数字<em>华容道</em></h1>
+      <p class="sub">把 1…n²−1 按顺序排好，空格在右下角。点邻格或方向键移动。</p>
+    </div>
+    <div class="card">
+      <p style="margin:0 0 .5rem;color:var(--muted);font-size:.9rem">选择规模</p>
+      <div class="ns-tier-grid" id="tier-pick">
+        <button type="button" class="ns-tier-btn active" data-tier="intro">
+          <strong>4×4 入门</strong>
+          <span>约 40～80 步洗牌 · 适合热身</span>
+        </button>
+        <button type="button" class="ns-tier-btn" data-tier="normal">
+          <strong>5×5 进阶</strong>
+          <span>约 80～140 步洗牌</span>
+        </button>
+        <button type="button" class="ns-tier-btn" data-tier="hard">
+          <strong>6×6 挑战</strong>
+          <span>约 120～220 步洗牌</span>
+        </button>
+      </div>
+      <button type="button" class="primary" id="btn-start">开始</button>
+    </div>
+    <a class="linkish fgb-nav-link" href="/">← 返回大厅</a>
+  </section>
+
+  <section id="view-play" class="hidden">
+    <div class="topbar">
+      <span id="play-label">4×4 入门</span>
+      <span id="play-hint-label">目标：升序 · 空格右下</span>
+    </div>
+    <div class="ns-hud">
+      <span>步数 <strong id="ns-moves">0</strong></span>
+      <span>用时 <strong id="ns-timer">00:00</strong></span>
+    </div>
+    <div class="card">
+      <div class="ns-board-wrap" data-fgb-board>
+        <div class="ns-board" id="ns-board" role="grid" aria-label="数字华容道棋盘"></div>
+      </div>
+      <p class="hint" id="play-hint">点击与空格相邻的数字，或用方向键移动</p>
+      <div class="actions two">
+        <button type="button" class="danger" id="btn-exit">退出</button>
+        <button type="button" id="btn-restart">重开本局</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-result" class="hidden">
+    <h1>完成！</h1>
+    <p class="sub" id="result-sub">拼图已还原</p>
+    <div class="card">
+      <ul class="stats-list">
+        <li><span>规模</span><strong id="st-size">4×4</strong></li>
+        <li><span>步数</span><strong id="st-moves">0</strong></li>
+        <li><span>用时</span><strong id="st-time">00:00</strong></li>
+      </ul>
+      <button type="button" class="primary" id="btn-again">再来一局</button>
+      <div style="height:.65rem"></div>
+      <button type="button" class="ghost" id="btn-home" style="width:100%">回首页</button>
+    </div>
+  </section>
+
+</div>
+
+<div id="fgb-result" class="fgb-result hidden" role="dialog" aria-modal="true" aria-labelledby="fgb-result-title">
+  <div class="fgb-result-box">
+    <h2 id="fgb-result-title" class="fgb-result-title">本局结束</h2>
+    <p id="fgb-result-sub" class="fgb-result-sub"></p>
+    <div id="fgb-result-stats" class="fgb-result-stats"></div>
+    <div class="fgb-result-actions">
+      <button type="button" class="fgb-btn" id="fgb-result-retry">再来一局</button>
+      <a class="fgb-btn-ghost" id="fgb-result-hall" href="/">回大厅</a>
+      <a class="fgb-btn-ghost" id="fgb-result-board" href="/leaderboard">排行榜</a>
+    </div>
+  </div>
+</div>
+
+
+<div class="confirm-mask hidden" id="confirm-mask" role="dialog" aria-modal="true">
+  <div class="confirm-box">
+    <p id="confirm-msg">确定？</p>
+    <div class="confirm-actions">
+      <button type="button" class="confirm-cancel" id="confirm-cancel">取消</button>
+      <button type="button" class="confirm-ok" id="confirm-ok">确定</button>
+    </div>
+  </div>
+</div>
+<div class="celebrate hidden" id="celebrate" aria-live="polite">
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <div class="celebrate-pill">
+    <span class="celebrate-mark">✓</span>
+    <span id="celebrate-text">完成！</span>
+  </div>
+</div>
+
+<script src="/js/fgb-daily.js"></script>
+<script src="/js/fgb-client.js"></script>
+<script src="/js/fgb-ui.js"></script>
+<script src="/js/fgb-shell.js"></script>
+<script>
+/* fgb-daily-boot */
+
+function showView(views, name) {
+  if (window.__FGB_IS_DAILY__ && name !== "play") return;
+  Object.keys(views).forEach(function (k) {
+    views[k].classList.toggle("hidden", k !== name);
+  });
+}
+function fmtTime(ms) {
+  var s = Math.floor(ms / 1000);
+  var m = Math.floor(s / 60);
+  var r = s % 60;
+  return String(m).padStart(2, "0") + ":" + String(r).padStart(2, "0");
+}
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = (Math.random() * (i + 1)) | 0;
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function randInt(n) { return (Math.random() * n) | 0; }
+function pick(arr) { return arr[randInt(arr.length)]; }
+
+var FGB_MSG = {
+  exitConfirm: "退出并查看统计？",
+  done: "完成！",
+  sessionDone: "完成！"
+};
+
+var _confirmCb = null;
+function askConfirm(message, onYes, onNo) {
+  var mask = document.getElementById("confirm-mask");
+  var msg = document.getElementById("confirm-msg");
+  if (!mask || !msg) {
+    // 无页面内弹层时走 FGBUI；禁止回退到浏览器 confirm/alert
+    if (window.FGBUI && FGBUI.askConfirm) {
+      FGBUI.askConfirm(message, onYes, onNo);
+      return;
+    }
+    if (onYes) onYes();
+    return;
+  }
+  msg.textContent = message || FGB_MSG.exitConfirm;
+  _confirmCb = { yes: onYes, no: onNo };
+  mask.classList.remove("hidden");
+}
+function _resolveConfirm(ok) {
+  var mask = document.getElementById("confirm-mask");
+  if (mask) mask.classList.add("hidden");
+  var cb = _confirmCb;
+  _confirmCb = null;
+  if (!cb) return;
+  if (ok && cb.yes) cb.yes();
+  if (!ok && cb.no) cb.no();
+}
+(function bindConfirmUI() {
+  var ok = document.getElementById("confirm-ok");
+  var cancel = document.getElementById("confirm-cancel");
+  var mask = document.getElementById("confirm-mask");
+  if (ok) ok.addEventListener("click", function () { _resolveConfirm(true); });
+  if (cancel) cancel.addEventListener("click", function () { _resolveConfirm(false); });
+  if (mask) mask.addEventListener("click", function (e) {
+    if (e.target === mask) _resolveConfirm(false);
+  });
+})();
+
+var _celebrateTimer = null;
+/** 统一关卡/回合完成横幅（优先 FGBUI.stageDone，与 daily 一致） */
+function celebrate(message) {
+  if (window.FGBUI && FGBUI.stageDone) {
+    FGBUI.stageDone(message || FGB_MSG.done, { duration: 520 });
+    return;
+  }
+  var el = document.getElementById("celebrate");
+  var text = document.getElementById("celebrate-text");
+  if (!el || !text) return;
+  text.textContent = message || FGB_MSG.done;
+  el.classList.remove("show");
+  void el.offsetWidth;
+  el.classList.add("show");
+  el.classList.remove("hidden");
+  if (_celebrateTimer) clearTimeout(_celebrateTimer);
+  _celebrateTimer = setTimeout(function () {
+    el.classList.remove("show");
+    setTimeout(function () { el.classList.add("hidden"); }, 200);
+  }, 520);
+}
+/** 播完成动效后短延迟回调；默认 480ms，几乎不拖慢下一局 */
+function celebrateThen(message, callback, delayMs) {
+  celebrate(message);
+  var wait = delayMs == null ? 480 : delayMs;
+  setTimeout(function () {
+    if (callback) callback();
+  }, wait);
+}
+
+
+(function () {
+  var qraw = location.search || "";
+  if (!/(?:^|[?&])daily=1(?:&|$)/.test(qraw)) return;
+  var params = new URLSearchParams(qraw);
+  var q = {
+    daily: true,
+    runId: params.get("runId") || "",
+    tier: params.get("tier") || "normal",
+    seed: Number(params.get("seed") || "0") || 1,
+    stageIndex: Number(params.get("stageIndex") || "0") || 0,
+  };
+  window.__FGB_DAILY_Q__ = q;
+  window.__FGB_IS_DAILY__ = true;
+  document.documentElement.classList.add("fgb-daily-mode");
+  if (window.FGBDaily && FGBDaily.installMathRandom) {
+    FGBDaily.installMathRandom(q.seed);
+  }
+  if (window.FGBDaily && FGBDaily.installFitPlay) {
+    FGBDaily.installFitPlay({ min: 168, max: 480, pad: 16 });
+  }
+  window.fgbSubmitScore = function (payload) {
+    var ms = 0;
+    if (payload && payload.metrics && payload.metrics.timeMs != null) ms = payload.metrics.timeMs | 0;
+    if (window.FGBDaily && FGBDaily.notifyStageDone) FGBDaily.notifyStageDone(ms);
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-stage-done", timeMs: ms }, "*");
+    }
+  };
+  function abortDaily(e) {
+    if (e) {
+      e.preventDefault();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      else e.stopPropagation();
+    }
+    if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-abort" }, "*");
+    }
+  }
+  var base = (window.__FGB_BASE__ || "").replace(/\/$/, "");
+  var homeSel = 'a.linkish[href="/"], a[href="/"]';
+  if (base) {
+    homeSel += ', a.linkish[href="' + base + '/"], a[href="' + base + '/"], a.linkish[href="' + base + '"], a[href="' + base + '"]';
+  }
+  document.querySelectorAll(homeSel).forEach(function (a) {
+    a.textContent = "退出本关";
+    a.href = "#";
+    a.addEventListener("click", abortDaily);
+  });
+  // 游戏内退出按钮：每日模式禁止 show(home)，须通知父页结束挑战
+  ["btn-exit", "btn-exit-casual", "btn-exit-challenge", "btn-quit"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", abortDaily, true);
+  });
+})();
+
+/* fgb-game-chrome-boot */
+(function () {
+  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) return;
+  var el = document.getElementById("fgb-topbar");
+  if (!el || !window.FGBShell || !FGBShell.mountTopbar) return;
+  FGBShell.mountTopbar(el, {
+    title: "数字华容道",
+    showBack: true,
+    backHref: "/",
+    showUser: true
+  });
+})();
+
+
+(function () {
+  var DIFF = {
+    intro: { n: 4, label: "4×4 入门", scrambleMin: 40, scrambleMax: 80 },
+    normal: { n: 5, label: "5×5 进阶", scrambleMin: 80, scrambleMax: 140 },
+    hard: { n: 6, label: "6×6 挑战", scrambleMin: 120, scrambleMax: 220 },
+  };
+  var DIRS = [
+    { dr: -1, dc: 0, key: "ArrowUp", opp: 1 },
+    { dr: 1, dc: 0, key: "ArrowDown", opp: 0 },
+    { dr: 0, dc: -1, key: "ArrowLeft", opp: 3 },
+    { dr: 0, dc: 1, key: "ArrowRight", opp: 2 },
+  ];
+
+  var views = {
+    home: document.getElementById("view-home"),
+    play: document.getElementById("view-play"),
+    result: document.getElementById("view-result"),
+  };
+  var tierKey = "intro";
+  var n = 4;
+  var board = [];
+  var blankIdx = 0;
+  var moves = 0;
+  var startedAt = 0;
+  var timerId = null;
+  var playing = false;
+  var scrambleSeed = 0;
+
+  function show(name) {
+    Object.keys(views).forEach(function (k) {
+      views[k].classList.toggle("hidden", k !== name);
+    });
+  }
+
+  function fmtTime(ms) {
+    ms = Math.max(0, ms | 0);
+    var s = Math.floor(ms / 1000);
+    var m = Math.floor(s / 60);
+    s = s % 60;
+    return (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function stopTimer() {
+    if (timerId) clearInterval(timerId);
+    timerId = null;
+  }
+
+  function updateTimer() {
+    if (!startedAt) return;
+    document.getElementById("ns-timer").textContent = fmtTime(Date.now() - startedAt);
+  }
+
+  function startTimer(anchorMs) {
+    stopTimer();
+    startedAt = anchorMs != null ? anchorMs : Date.now();
+    timerId = setInterval(updateTimer, 200);
+    updateTimer();
+  }
+
+  function solvedState(size) {
+    var out = [];
+    var i;
+    for (i = 1; i < size * size; i++) out.push(i);
+    out.push(0);
+    return out;
+  }
+
+  function scrambleCount(cfg, seed) {
+    var lo = cfg.scrambleMin;
+    var hi = cfg.scrambleMax;
+    var span = hi - lo + 1;
+    var t = (seed >>> 0) || 1;
+    t = Math.imul(t ^ (t >>> 15), 1 | t);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return lo + (((t ^ (t >>> 14)) >>> 0) % span);
+  }
+
+  function shuffleBoard(size, steps, seed) {
+    var t = (seed >>> 0) || 1;
+    function rnd() {
+      t += 0x6d2b79f5;
+      var r = Math.imul(t ^ (t >>> 15), 1 | t);
+      r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    }
+    var b = solvedState(size);
+    var blank = size * size - 1;
+    var lastDir = -1;
+    var s;
+    for (s = 0; s < steps; s++) {
+      var r = Math.floor(blank / size);
+      var c = blank % size;
+      var options = [];
+      var d;
+      for (d = 0; d < DIRS.length; d++) {
+        if (lastDir >= 0 && d === DIRS[lastDir].opp) continue;
+        var nr = r + DIRS[d].dr;
+        var nc = c + DIRS[d].dc;
+        if (nr >= 0 && nr < size && nc >= 0 && nc < size) options.push(d);
+      }
+      if (!options.length) {
+        for (d = 0; d < DIRS.length; d++) {
+          var nr2 = r + DIRS[d].dr;
+          var nc2 = c + DIRS[d].dc;
+          if (nr2 >= 0 && nr2 < size && nc2 >= 0 && nc2 < size) options.push(d);
+        }
+      }
+      var pick = options[Math.floor(rnd() * options.length)];
+      var nr3 = r + DIRS[pick].dr;
+      var nc3 = c + DIRS[pick].dc;
+      var swapIdx = nr3 * size + nc3;
+      b[blank] = b[swapIdx];
+      b[swapIdx] = 0;
+      blank = swapIdx;
+      lastDir = pick;
+    }
+    return b;
+  }
+
+  function isSolved() {
+    var target = solvedState(n);
+    var i;
+    for (i = 0; i < target.length; i++) {
+      if (board[i] !== target[i]) return false;
+    }
+    return true;
+  }
+
+  function targetValueAt(idx) {
+    return idx === n * n - 1 ? 0 : idx + 1;
+  }
+
+  function isTileSettled(idx) {
+    return board[idx] === targetValueAt(idx);
+  }
+
+  function renderBoard() {
+    var el = document.getElementById("ns-board");
+    el.style.gridTemplateColumns = "repeat(" + n + ", minmax(0, 1fr))";
+    el.style.gridTemplateRows = "repeat(" + n + ", minmax(0, 1fr))";
+    el.innerHTML = "";
+    var i;
+    for (i = 0; i < board.length; i++) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      var val = board[i];
+      if (val === 0) {
+        btn.className = "is-blank";
+        btn.textContent = "";
+        btn.disabled = true;
+      } else {
+        btn.textContent = String(val);
+        btn.dataset.idx = String(i);
+        if (isTileSettled(i)) {
+          btn.classList.add("is-settled");
+          btn.setAttribute("aria-label", val + " 已到位");
+        }
+        if (isAdjacentToBlank(i)) btn.classList.add("is-near");
+        btn.addEventListener("click", function () {
+          tryMove(Number(this.dataset.idx));
+        });
+      }
+      el.appendChild(btn);
+    }
+  }
+
+  function isAdjacentToBlank(idx) {
+    var br = Math.floor(blankIdx / n);
+    var bc = blankIdx % n;
+    var r = Math.floor(idx / n);
+    var c = idx % n;
+    return (Math.abs(br - r) + Math.abs(bc - c)) === 1;
+  }
+
+  function tryMove(idx) {
+    if (!playing || board[idx] === 0) return false;
+    if (!isAdjacentToBlank(idx)) return false;
+    board[blankIdx] = board[idx];
+    board[idx] = 0;
+    blankIdx = idx;
+    moves += 1;
+    document.getElementById("ns-moves").textContent = String(moves);
+    renderBoard();
+    if (isSolved()) finishRun();
+    return true;
+  }
+
+  function moveByDir(dirIndex) {
+    if (!playing) return;
+    var br = Math.floor(blankIdx / n);
+    var bc = blankIdx % n;
+    var d = DIRS[dirIndex];
+    var tr = br - d.dr;
+    var tc = bc - d.dc;
+    if (tr < 0 || tr >= n || tc < 0 || tc >= n) return;
+    tryMove(tr * n + tc);
+  }
+
+  function preparePuzzle() {
+    var cfg = DIFF[tierKey] || DIFF.intro;
+    n = cfg.n;
+    scrambleSeed = Date.now() ^ ((Math.random() * 0x7fffffff) | 0);
+    var dq = window.__FGB_DAILY_Q__;
+    if (dq && dq.seed) scrambleSeed = dq.seed >>> 0;
+    var steps = scrambleCount(cfg, scrambleSeed);
+    board = shuffleBoard(n, steps, scrambleSeed);
+    blankIdx = board.indexOf(0);
+    moves = 0;
+    document.getElementById("play-label").textContent = cfg.label;
+    document.getElementById("ns-moves").textContent = "0";
+    document.getElementById("ns-timer").textContent = "00:00";
+    renderBoard();
+  }
+
+  function beginPlay() {
+    playing = false;
+    stopTimer();
+    startedAt = 0;
+    show("play");
+    var run = window.FGBUI && FGBUI.runWhenPlayable
+      ? FGBUI.runWhenPlayable.bind(FGBUI)
+      : function (prep, done) { prep(); done(Date.now()); };
+    run(function () {
+      preparePuzzle();
+    }, function (t) {
+      playing = true;
+      startTimer(t);
+    });
+  }
+
+  function finishRun() {
+    playing = false;
+    stopTimer();
+    var elapsed = Date.now() - startedAt;
+    var cfg = DIFF[tierKey] || DIFF.intro;
+    document.getElementById("st-size").textContent = cfg.n + "×" + cfg.n;
+    document.getElementById("st-moves").textContent = String(moves);
+    document.getElementById("st-time").textContent = fmtTime(elapsed);
+    document.getElementById("result-sub").textContent =
+      moves <= 80 ? "很利索！" : "完成还原，不错！";
+    show("result");
+    celebrate(FGB_MSG.sessionDone);
+    if (typeof fgbSubmitScore === "function") {
+      fgbSubmitScore({
+        gameId: "number-slide",
+        mode: "challenge",
+        tier: tierKey,
+        tierLabel: cfg.label,
+        metrics: {
+          timeMs: elapsed,
+          moves: moves,
+          done: 1,
+          total: 1,
+        },
+      });
+    }
+  }
+
+  document.querySelectorAll("#tier-pick .ns-tier-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll("#tier-pick .ns-tier-btn").forEach(function (b) {
+        b.classList.remove("active");
+      });
+      btn.classList.add("active");
+      tierKey = btn.getAttribute("data-tier") || "intro";
+    });
+  });
+
+  document.getElementById("btn-start").addEventListener("click", beginPlay);
+  document.getElementById("btn-again").addEventListener("click", beginPlay);
+  document.getElementById("btn-restart").addEventListener("click", beginPlay);
+  document.getElementById("btn-home").addEventListener("click", function () {
+    stopTimer();
+    show("home");
+  });
+  document.getElementById("btn-exit").addEventListener("click", function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
+      return;
+    }
+    askConfirm("确定退出？本局不会记入成绩。", function () {
+      stopTimer();
+      show("home");
+    });
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (views.play.classList.contains("hidden") || !playing) return;
+    var map = { ArrowUp: 0, ArrowDown: 1, ArrowLeft: 2, ArrowRight: 3 };
+    if (map[e.key] == null) return;
+    e.preventDefault();
+    moveByDir(map[e.key]);
+  });
+
+  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+    var dq = window.__FGB_DAILY_Q__ || {};
+    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "intro";
+    if (dq.tier && DIFF[dq.tier]) tierKey = dq.tier;
+    beginPlay();
+  } else {
+    show("home");
+  }
+})();
+
+</script>
+</body>
+</html>

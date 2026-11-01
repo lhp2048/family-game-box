@@ -2,112 +2,117 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>家庭游戏盒</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fff8f0">
+<title>MX游戏盒子</title>
 <link rel="stylesheet" href="/css/fgb-theme.css">
 </head>
-<body>
-<main class="fgb-shell">
-  <header id="fgb-topbar"></header>
+<body class="fgb-lobby-toy">
+<main class="fgb-shell fgb-lobby-toy-shell">
+  <header id="fgb-topbar" class="fgb-lobby-topbar"></header>
 
-  <section class="fgb-stat-strip" id="stat-strip" aria-label="我的战绩">
-    <div class="cell">
-      <div class="label">专注力名次</div>
-      <div class="value" id="stat-rank">—</div>
-    </div>
-    <div class="cell">
-      <div class="label">语文名次</div>
-      <div class="value" id="stat-yuwen">—</div>
-    </div>
-    <div class="cell">
-      <div class="label">最近一局</div>
-      <div class="value" id="stat-recent">—</div>
-    </div>
-  </section>
+  <div class="fgb-toy-page">
+    <div class="fgb-toy-top-row">
+    <section class="fgb-toy-scoreboards" aria-label="挑战排行榜">
+      <header class="fgb-toy-scoreboards-head">
+        <div class="fgb-toy-scoreboards-head-main">
+          <h2 class="fgb-toy-zone-title">挑战排行榜</h2>
+          <p class="fgb-toy-zone-sub">今日前三名 · 全家冲榜看这里</p>
+        </div>
+        <div class="fgb-toy-stat-chip fgb-toy-stat-chip-recent" id="stat-strip" aria-label="我的战绩">
+          <span class="fgb-toy-stat-chip-label">最近一局</span>
+          <span class="fgb-toy-stat-chip-value fgb-toy-stat-recent" id="stat-recent">—</span>
+        </div>
+      </header>
+      <div class="fgb-toy-scoreboards-grid">
+        <div class="fgb-toy-leaderboard fgb-toy-leaderboard-daily">
+          <div class="fgb-toy-leaderboard-head">
+            <span class="fgb-toy-leaderboard-icon" aria-hidden="true">🏆</span>
+            <h3 class="fgb-toy-leaderboard-title">专注力挑战榜</h3>
+          </div>
+          <div class="fgb-toy-stat-chip fgb-toy-stat-chip-rank">
+            <span class="fgb-toy-stat-chip-label">我的专注力名次</span>
+            <span class="fgb-toy-stat-chip-value" id="stat-rank">—</span>
+          </div>
+          <ol class="fgb-podium-list fgb-toy-podium-list fgb-toy-leaderboard-list" id="podium-list"></ol>
+          <a class="fgb-toy-board-link fgb-toy-board-link-btn" href="/daily/leaderboard">完整榜 →</a>
+        </div>
+        <div class="fgb-toy-leaderboard fgb-toy-leaderboard-yuwen">
+          <div class="fgb-toy-leaderboard-head">
+            <span class="fgb-toy-leaderboard-icon" aria-hidden="true">🏆</span>
+            <h3 class="fgb-toy-leaderboard-title">语文挑战榜</h3>
+          </div>
+          <div class="fgb-toy-stat-chip fgb-toy-stat-chip-rank fgb-toy-stat-chip-yuwen">
+            <span class="fgb-toy-stat-chip-label">我的语文名次</span>
+            <span class="fgb-toy-stat-chip-value" id="stat-yuwen">—</span>
+          </div>
+          <ol class="fgb-podium-list fgb-toy-podium-list fgb-toy-leaderboard-list" id="yuwen-podium"></ol>
+          <a class="fgb-toy-board-link fgb-toy-board-link-btn" href="/yuwen-daily/leaderboard">完整榜 →</a>
+        </div>
+      </div>
+      <p class="fgb-toy-scoreboards-foot">
+        <a class="fgb-toy-board-link fgb-toy-board-link-all" href="/leaderboard">总排行榜（全部游戏）→</a>
+      </p>
+    </section>
 
-  <section class="fgb-arena-split">
-    <a class="fgb-card fgb-card-daily" href="/daily" id="daily-card">
-      <div class="tag">今日对决</div>
-      <h2>每日专注力挑战</h2>
-      <p id="daily-progress">加载中…</p>
-      <span class="fgb-cta-daily" id="daily-cta">开始挑战</span>
-    </a>
-    <div class="fgb-panel fgb-panel-pad">
-      <h3 class="fgb-page-kicker" style="margin:0 0 .5rem">专注力挑战榜</h3>
-      <ol class="fgb-podium-list" id="podium-list"></ol>
-      <a class="fgb-nav-link" href="/daily/leaderboard">完整榜 →</a>
-    </div>
-  </section>
+      <aside class="fgb-toy-challenge-rail fgb-toy-challenges-band" aria-label="今日挑战">
+        <header class="fgb-toy-rail-head fgb-toy-band-head">
+          <h2 class="fgb-toy-zone-title">今日挑战</h2>
+          <p class="fgb-toy-zone-sub">每天一局，全家一起冲榜</p>
+        </header>
 
-  <section class="fgb-arena-split">
-    <a class="fgb-card fgb-card-yuwen" href="/yuwen-daily" id="yuwen-daily-card">
-      <div class="tag">今日对决</div>
-      <h2>每日语文挑战</h2>
-      <p id="yuwen-progress">加载中…</p>
-      <span class="fgb-cta-daily" id="yuwen-cta">开始挑战</span>
-    </a>
-    <div class="fgb-panel fgb-panel-pad">
-      <h3 class="fgb-page-kicker" style="margin:0 0 .5rem">语文挑战榜</h3>
-      <ol class="fgb-podium-list" id="yuwen-podium"></ol>
-      <a class="fgb-nav-link" href="/yuwen-daily/leaderboard">完整榜 →</a>
-    </div>
-  </section>
+        <article class="fgb-toy-challenge-pack">
+          <a class="fgb-toy-challenge-card fgb-toy-challenge-daily" href="/daily" id="daily-card">
+            <span class="fgb-toy-challenge-badge">专注力</span>
+            <h3>每日专注力挑战</h3>
+            <p class="fgb-toy-challenge-progress" id="daily-progress">加载中…</p>
+            <span class="fgb-toy-challenge-cta" id="daily-cta">开始挑战</span>
+          </a>
+        </article>
 
-  <h2 class="fgb-page-title" style="font-size:1.65rem;margin-bottom:.35rem">自由训练</h2>
-  <p class="fgb-lead" style="margin-bottom:.85rem">单机练习，冲击个人最佳。</p>
-  <div id="game-list" class="fgb-grid-train"></div>
-  <p class="fgb-footer-link"><a href="/admin">管理</a></p>
+        <article class="fgb-toy-challenge-pack">
+          <a class="fgb-toy-challenge-card fgb-toy-challenge-yuwen" href="/yuwen-daily" id="yuwen-daily-card">
+            <span class="fgb-toy-challenge-badge">语文</span>
+            <h3>每日语文挑战</h3>
+            <p class="fgb-toy-challenge-progress" id="yuwen-progress">加载中…</p>
+            <span class="fgb-toy-challenge-cta" id="yuwen-cta">开始挑战</span>
+          </a>
+        </article>
+      </aside>
+    </div>
+
+    <section class="fgb-toy-games-zone" aria-label="游戏库">
+      <header class="fgb-toy-zone-head">
+        <h2 class="fgb-toy-zone-title">游戏库</h2>
+        <p class="fgb-toy-zone-sub">点封面即开玩 · 方向键可切换焦点</p>
+      </header>
+      <div class="fgb-toy-shelf-stage">
+        <div class="fgb-toy-shelf-plank" aria-hidden="true"></div>
+        <div id="game-list" class="fgb-toy-shelf-grid" role="list"></div>
+      </div>
+    </section>
+
+    <p class="fgb-toy-admin"><a href="/admin">管理</a></p>
+  </div>
 </main>
 <script src="/js/fgb-client.js"></script>
 <script src="/js/fgb-ui.js"></script>
 <script src="/js/fgb-shell.js"></script>
+<script src="/js/fgb-home.js"></script>
 <script>
 (function () {
   var list = document.getElementById("game-list");
 
   FGBShell.mountTopbar(document.getElementById("fgb-topbar"), {
-    title: "竞技厅",
     showUser: true,
+    console: false,
+    toyLobby: true,
   });
 
-  // Hall board links — append after shell chip/auth without extending FGBShell API
-  var topNav = document.querySelector("#fgb-topbar .fgb-nav");
-  if (topNav) {
-    [
-      { href: "/daily/leaderboard", label: "专注力挑战榜" },
-      { href: "/yuwen-daily/leaderboard", label: "语文挑战榜" },
-      { href: "/leaderboard", label: "排行榜" },
-    ].forEach(function (item) {
-      var a = document.createElement("a");
-      a.className = "fgb-nav-link";
-      a.href = FGB.url(item.href);
-      a.textContent = item.label;
-      topNav.appendChild(a);
-    });
-  }
-
-  function esc(s) {
-    return String(s || "").replace(/[&<>"']/g, function (c) {
-      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
-    });
-  }
-
   function renderGames(games) {
-    list.innerHTML = "";
-    (games || []).forEach(function (g) {
-      var a = document.createElement("a");
-      a.className = "fgb-train-card" + (g.extra && g.extra.kind === "reference" ? " is-ref" : "");
-      a.setAttribute("data-game-id", g.id);
-      var path = g.path || "";
-      a.href = FGB.url(path.charAt(0) === "/" ? path : "/" + path);
-      a.innerHTML =
-        "<strong>" + esc(g.title) + "</strong>" +
-        "<p class=\"meta\">" + esc(g.subtitle || (g.extra && g.extra.kind === "reference" ? "工具" : "训练")) + "</p>" +
-        "<span class=\"go\">" + (g.extra && g.extra.kind === "reference" ? "查阅" : "进入") + "</span>";
-      list.appendChild(a);
-    });
-    if (!(games || []).length) {
-      list.innerHTML = "<p class=\"fgb-lead\">暂无可用游戏</p>";
+    if (window.FGBHome && FGBHome.renderGameShelf) {
+      FGBHome.renderGameShelf(list, games);
+      return;
     }
   }
 
@@ -124,6 +129,12 @@
       });
     }, function () {
       sessionStorage.setItem("fgb_claim_declined", "1");
+    });
+  }
+
+  function esc(s) {
+    return String(s || "").replace(/[&<>"']/g, function (c) {
+      return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
     });
   }
 
@@ -145,17 +156,17 @@
     ol.innerHTML = "";
     var podium = s.podium || [];
     if (!podium.length) {
-      ol.innerHTML = "<li style=\"color:var(--muted)\">还没有成绩，去做每日专注力挑战吧</li>";
+      ol.innerHTML = "<li class=\"fgb-toy-empty\">还没有成绩，去做每日专注力挑战吧</li>";
     } else {
-    podium.forEach(function (p) {
-      var li = document.createElement("li");
-      var medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
-      var titles = { 1: "冠军", 2: "亚军", 3: "季军" };
-      var medal = medals[p.rank] ? ('<span class="medal">' + medals[p.rank] + "</span>") : "";
-      var title = titles[p.rank] ? (titles[p.rank] + " · ") : (p.rank + ". ");
-      li.innerHTML = "<span>" + medal + title + (p.nickname || "—") + "</span><span>" + (p.display || "") + "</span>";
-      ol.appendChild(li);
-    });
+      podium.forEach(function (p) {
+        var li = document.createElement("li");
+        var medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
+        var titles = { 1: "冠军", 2: "亚军", 3: "季军" };
+        var medal = medals[p.rank] ? ('<span class="medal">' + medals[p.rank] + "</span>") : "";
+        var title = titles[p.rank] ? (titles[p.rank] + " · ") : (p.rank + ". ");
+        li.innerHTML = "<span>" + medal + title + esc(p.nickname || "—") + "</span><span>" + esc(p.display || "") + "</span>";
+        ol.appendChild(li);
+      });
     }
     var yol = document.getElementById("yuwen-podium");
     yol.innerHTML = "";
@@ -165,7 +176,7 @@
     yc.textContent = ycta === "view" ? "查看成绩" : (ycta === "continue" ? "继续挑战" : "开始挑战");
     var ypodium = s.yuwenPodium || [];
     if (!ypodium.length) {
-      yol.innerHTML = "<li style=\"color:var(--muted)\">还没有成绩，去做每日语文挑战吧</li>";
+      yol.innerHTML = "<li class=\"fgb-toy-empty\">还没有成绩，去做每日语文挑战吧</li>";
       return;
     }
     ypodium.forEach(function (p) {
@@ -174,7 +185,7 @@
       var titles = { 1: "冠军", 2: "亚军", 3: "季军" };
       var medal = medals[p.rank] ? ('<span class="medal">' + medals[p.rank] + "</span>") : "";
       var title = titles[p.rank] ? (titles[p.rank] + " · ") : (p.rank + ". ");
-      li.innerHTML = "<span>" + medal + title + (p.nickname || "—") + "</span><span>" + (p.display || "") + "</span>";
+      li.innerHTML = "<span>" + medal + title + esc(p.nickname || "—") + "</span><span>" + esc(p.display || "") + "</span>";
       yol.appendChild(li);
     });
   }

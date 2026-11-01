@@ -72,6 +72,38 @@ class PasswordBody(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
+class AdminSetupBody(BaseModel):
+    password: str = Field(min_length=1, max_length=128)
+    bootstrapSecret: Optional[str] = None
+
+
+def _rate_limit_check(request: Request, scope: str, identity: str = "") -> None:
+    from app import rate_limit as rl
+
+    key = rl.make_key(scope, rl.client_ip(request), identity)
+    ok, retry = rl.check_allowed(key)
+    if not ok:
+        raise HTTPException(
+            status_code=429,
+            detail="尝试次数过多，请 %d 秒后再试" % retry,
+            headers={"Retry-After": str(max(1, retry))},
+        )
+
+
+def _rate_limit_fail(request: Request, scope: str, identity: str = "") -> None:
+    from app import rate_limit as rl
+
+    key = rl.make_key(scope, rl.client_ip(request), identity)
+    rl.record_failure(key)
+
+
+def _rate_limit_success(request: Request, scope: str, identity: str = "") -> None:
+    from app import rate_limit as rl
+
+    key = rl.make_key(scope, rl.client_ip(request), identity)
+    rl.record_success(key)
+
+
 class TemplateBody(BaseModel):
     stages: list = Field(default_factory=list)
 
@@ -137,6 +169,8 @@ class AuthRenameBody(BaseModel):
 
 
 def create_app() -> FastAPI:
+    from app.security_headers import SecurityHeadersMiddleware
+
     prefix = get_root_path()
     app = FastAPI(title="家庭游戏盒", version=_load_version())
     router = APIRouter()
@@ -144,6 +178,10 @@ def create_app() -> FastAPI:
     app.include_router(router, prefix=prefix)
 
     _mount_static(app, prefix)
+    from app.cache_headers import CacheHeadersMiddleware
+
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(CacheHeadersMiddleware)
 
     @app.middleware("http")
     async def play_gate_middleware(request: Request, call_next):
@@ -524,17 +562,28 @@ def _register_routes(api: APIRouter) -> None:
         return daily_admin_mod.admin_status(x_admin_token)
 
     @api.post("/api/v1/admin/setup")
-    async def admin_setup(body: PasswordBody):
+    async def admin_setup(body: AdminSetupBody, request: Request):
+        _rate_limit_check(request, "admin_setup")
         try:
-            return daily_admin_mod.setup_password(body.password)
+            out = daily_admin_mod.setup_password(body.password, body.bootstrapSecret)
+            _rate_limit_success(request, "admin_setup")
+            return out
+        except PermissionError as exc:
+            _rate_limit_fail(request, "admin_setup")
+            raise HTTPException(status_code=403, detail=str(exc)) from exc
         except ValueError as exc:
+            _rate_limit_fail(request, "admin_setup")
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     @api.post("/api/v1/admin/login")
-    async def admin_login(body: PasswordBody):
+    async def admin_login(body: PasswordBody, request: Request):
+        _rate_limit_check(request, "admin_login")
         try:
-            return daily_admin_mod.login(body.password)
+            out = daily_admin_mod.login(body.password)
+            _rate_limit_success(request, "admin_login")
+            return out
         except ValueError as exc:
+            _rate_limit_fail(request, "admin_login")
             raise HTTPException(status_code=401, detail=str(exc)) from exc
 
     @api.post("/api/v1/admin/logout")
@@ -569,13 +618,16 @@ def _register_routes(api: APIRouter) -> None:
         from app.daily_admin import issue_play_cookie, play_gate_snapshot
         from app import users as users_mod
 
+        _rate_limit_check(request, "auth_register", body.username)
         try:
             if play_gate_snapshot().get("playGateEnabled"):
                 issue_play_cookie(body.passphrase or "")
             me = users_mod.register_user(body.username, body.password)
             cookie = users_mod.issue_user_cookie(me["userId"])
         except ValueError as exc:
+            _rate_limit_fail(request, "auth_register", body.username)
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        _rate_limit_success(request, "auth_register", body.username)
         response = JSONResponse(me)
         _set_user_cookie(response, cookie, request)
         return response
@@ -584,11 +636,14 @@ def _register_routes(api: APIRouter) -> None:
     async def auth_login(body: AuthLoginBody, request: Request):
         from app import users as users_mod
 
+        _rate_limit_check(request, "auth_login", body.username)
         try:
             me = users_mod.authenticate(body.username, body.password)
             cookie = users_mod.issue_user_cookie(me["userId"])
         except ValueError as exc:
+            _rate_limit_fail(request, "auth_login", body.username)
             raise HTTPException(status_code=400, detail=str(exc)) from exc
+        _rate_limit_success(request, "auth_login", body.username)
         response = JSONResponse(me)
         _set_user_cookie(response, cookie, request)
         return response
@@ -655,10 +710,13 @@ def _register_routes(api: APIRouter) -> None:
     async def play_gate_unlock(body: PlayUnlockBody, request: Request):
         from app.daily_admin import PLAY_COOKIE, issue_play_cookie
 
+        _rate_limit_check(request, "play_gate")
         try:
             value = issue_play_cookie(body.passphrase)
         except ValueError as exc:
+            _rate_limit_fail(request, "play_gate")
             raise HTTPException(status_code=401, detail="口令不对") from exc
+        _rate_limit_success(request, "play_gate")
         response = JSONResponse({"ok": True})
         response.set_cookie(
             PLAY_COOKIE,

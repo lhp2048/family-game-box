@@ -28,21 +28,35 @@ MAZE_TIER_SUB = {
 }
 
 EXTRA_CSS = r"""
+body[data-game-skin="maze"] #view-play .card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
 .maze-wrap {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: .5rem 0;
-  overflow: auto;
-  max-height: min(90vmin, 920px);
-  min-height: min(62vmin, 560px);
+  margin: .5rem auto;
+  overflow: hidden;
   width: 100%;
+  max-width: min(var(--fgb-play-max, 720px), 100%);
+  box-sizing: border-box;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 0;
+}
+html.fgb-daily-mode body[data-game-skin="maze"] #view-play .maze-wrap {
+  min-height: var(--fgb-board, 280px);
+  max-height: var(--fgb-board, 90vmin);
 }
 .maze {
   display: grid;
   gap: 0;
-  border: 2px solid #e8f2ec;
-  background: #050a08;
+  border: 3px solid rgba(52, 211, 153, 0.45);
+  border-radius: 12px;
+  background: #e8f4ef;
+  box-shadow: 0 10px 28px rgba(45, 62, 90, 0.1);
   --cell: 24px;
 }
 .maze .cell {
@@ -54,26 +68,26 @@ EXTRA_CSS = r"""
   cursor: default;
   flex-shrink: 0;
 }
-.maze .wall { background: #050a08; }
+.maze .wall { background: #4a8f72; }
 .maze .path,
 .maze .start,
 .maze .end {
-  background: #d8e8df;
+  background: #f0fff8;
   cursor: pointer;
   transition: background .14s ease, box-shadow .14s ease, transform .14s ease;
 }
-.maze .path:hover { background: #b8dcc8; }
-.maze .start { background: #2bb673; }
-.maze .end { background: #e8a04a; }
+.maze .path:hover { background: #d4f5e6; }
+.maze .start { background: #5fd99a; }
+.maze .end { background: #ffc978; }
 .maze .player {
-  background: #3ecf8e !important;
-  box-shadow: inset 0 0 0 2px #062016;
+  background: #2ecc71 !important;
+  box-shadow: inset 0 0 0 2px #1a6b45;
   transform: scale(1.06);
   z-index: 1;
 }
 .maze .player.is-sliding {
   transform: scale(1.14);
-  box-shadow: inset 0 0 0 2px #062016, 0 0 10px rgba(62, 207, 142, 0.45);
+  box-shadow: inset 0 0 0 2px #1a6b45, 0 0 10px rgba(62, 207, 142, 0.45);
 }
 /* 走过痕迹：琥珀，与浅色通道、深色墙都易区分 */
 .maze .path.in-trail { background: #f0c86a; }
@@ -99,11 +113,7 @@ EXTRA_CSS = r"""
   opacity: .85;
 }
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
-  .maze-wrap {
-    max-height: min(88vmin, 860px);
-    min-height: min(48vmin, 400px);
-    margin: .3rem 0;
-  }
+  .maze-wrap { margin: .3rem auto; }
   .stat-pills { margin-bottom: .3rem; gap: .65rem; font-size: .82rem; }
 }
 """
@@ -167,7 +177,7 @@ BODY = r"""
     </div>
     <p class="hint" id="play-hint">点击同行或同列、路径畅通的格子移动</p>
     <div class="card">
-      <div class="maze-wrap"><div class="maze" id="maze"></div></div>
+      <div class="maze-wrap" data-fgb-board><div class="maze" id="maze"></div></div>
       <div class="actions">
         <button type="button" class="danger" id="btn-exit">退出</button>
         <button type="button" id="btn-restart">重来</button>
@@ -462,9 +472,10 @@ SCRIPT = r"""
     document.getElementById("steps").textContent = String(steps);
   }
 
-  function loadLevel(size) {
+  function loadLevel(size, optLevelStart) {
     stopMoveAnim();
-    levelStart = Date.now();
+    if (optLevelStart != null) levelStart = optLevelStart;
+    else if (mode !== "challenge" || levelIndex > 0) levelStart = Date.now();
     maze = generateMaze(size);
     maze.shortest = bfsShortest(maze);
     player = maze.start.slice();
@@ -478,25 +489,43 @@ SCRIPT = r"""
     renderMaze();
   }
 
+  function readFgbBoardPx() {
+    var root = document.documentElement;
+    var raw = root.style.getPropertyValue("--fgb-board") || window.getComputedStyle(root).getPropertyValue("--fgb-board");
+    var n = parseFloat(raw);
+    return n > 0 ? Math.floor(n) : 0;
+  }
+
+  function syncMazeStageLayout() {
+    var wrap = document.querySelector("#view-play .maze-wrap");
+    var play = document.getElementById("view-play");
+    if (!wrap || !play || play.classList.contains("hidden")) return;
+    var stage = readFgbBoardPx();
+    if (!stage) {
+      var vh = window.innerHeight || document.documentElement.clientHeight || 700;
+      var top = wrap.getBoundingClientRect().top;
+      var actions = play.querySelector(".actions");
+      var bottom = 16;
+      if (actions) bottom += actions.getBoundingClientRect().height;
+      stage = Math.max(200, Math.floor(vh - top - bottom));
+    }
+    wrap.style.minHeight = stage + "px";
+    if (document.documentElement.classList.contains("fgb-daily-mode")) {
+      wrap.style.maxHeight = stage + "px";
+    }
+  }
+
   function renderMaze() {
+    syncMazeStageLayout();
     var el = document.getElementById("maze");
     var wrap = document.querySelector(".maze-wrap");
     var pad = 12;
     var availW = (wrap && wrap.clientWidth) ? wrap.clientWidth - pad : 640;
-    // 用视口剩余高度，避免按当前小迷宫高度回算导致一直偏小
-    var vh = window.innerHeight || 700;
-    var wrapTop = wrap ? wrap.getBoundingClientRect().top : 120;
-    var actions = document.querySelector("#view-play .actions");
-    var bottom = 72;
-    if (actions) {
-      var ar = actions.getBoundingClientRect();
-      bottom = Math.max(56, Math.ceil(vh - ar.top) + 8);
-    }
-    var cssMax = Math.floor(Math.min(vh, window.innerWidth || vh) * 0.9);
-    var availH = Math.max(220, Math.min(cssMax, Math.floor(vh - wrapTop - bottom)));
-    if (wrap) {
-      var mh = parseFloat(window.getComputedStyle(wrap).maxHeight);
-      if (mh > 0) availH = Math.min(availH, Math.floor(mh) - pad);
+    var availH = (wrap && wrap.clientHeight) ? wrap.clientHeight - pad : 480;
+    var boardCap = readFgbBoardPx();
+    if (boardCap > 0) {
+      availW = Math.min(availW, boardCap - pad);
+      availH = Math.min(availH, boardCap - pad);
     }
     var side = Math.min(availW, availH);
     // 原上限 32px 在 Mac 大屏上会把迷宫锁得很小；按可用空间缩放，软顶 56
@@ -632,7 +661,10 @@ SCRIPT = r"""
       document.getElementById("play-progress").textContent = "";
       document.getElementById("timer-text").textContent = "—";
       showView(views, "play");
-      loadLevel(mazeSize);
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadLevel(mazeSize); }, function (t) { levelStart = t; });
     });
   }
 
@@ -644,12 +676,17 @@ SCRIPT = r"""
       levelsDone = 0;
       totalSteps = 0;
       effSum = 0;
-      startedAt = Date.now();
       document.getElementById("play-label").textContent = modeLabel();
       showView(views, "play");
-      startTimer();
       document.getElementById("play-progress").textContent = "1 / " + challengeTotal;
-      loadLevel(mazeSize);
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadLevel(mazeSize); }, function (t) {
+        startedAt = t;
+        levelStart = t;
+        startTimer();
+      });
     });
   }
 
@@ -726,6 +763,7 @@ SCRIPT = r"""
     renderMaze();
   });
   document.getElementById("btn-new").addEventListener("click", function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) return;
     loadLevel(mazeSize);
   });
   document.getElementById("btn-again").addEventListener("click", function () { stopMoveAnim(); showView(views, "setup"); });

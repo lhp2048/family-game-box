@@ -30,6 +30,10 @@ GAME_IDS = [
     "spot-diff",
     "maze",
     "sudoku",
+    "mental-speed",
+    "number-slide",
+    "huarongdao",
+    "word-battle",
     "yuwen",
     "24points-library",
 ]
@@ -106,8 +110,8 @@ def test_lobby_html():
     text = r.text
     assert 'id="game-list"' in text
     assert "/api/v1/games" in text
-    # Free-train board link lives in shell top-nav JS (FGB.url), not a static href
-    assert 'href: "/leaderboard"' in text or 'href="/game-box/leaderboard"' in text
+    assert 'href="/game-box/leaderboard"' in text
+    assert "总排行榜" in text
     assert "fgb-client.js" in text
     assert "fgb-shell.js" in text
     assert "FGBShell.mountTopbar" in text
@@ -119,12 +123,29 @@ def test_lobby_html():
     assert 'href="/game-box/admin"' in text
     assert 'href="/game-box/daily/leaderboard"' in text
     assert '__FGB_BASE__="/game-box"' in text
+    assert "fgb-lobby-toy" in text
+    assert "fgb-lobby-toy-shell" in text
+    assert "fgb-home.js" in text
+    assert "fgb-toy-shelf-grid" in text
+    assert "fgb-toy-top-row" in text
+    assert "fgb-toy-challenges-band" in text
+    assert "fgb-toy-scoreboards" in text
+    assert 'id="podium-list"' in text
+    assert "FGBHome.renderGameShelf" in text
+
+
+def test_maze_daily_hides_new_maze_button():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/maze/index.html").read_text(encoding="utf-8")
+    assert "fgb-daily-mode #btn-new" in html
 
 
 def test_leaderboard_page():
     r = client.get(p("/leaderboard"))
     assert r.status_code == 200
     assert "排行榜" in r.text
+    assert "fgb-console" in r.text
+    assert "fgb-console-shell" in r.text
 
 
 def test_build_packs_shell_pages():
@@ -165,6 +186,8 @@ def test_attention_game_page():
     assert 'id="fgb-topbar"' in text
     assert "fgb-shell.js" in text
     assert "FGBShell.mountTopbar" in text
+    assert "fgb-audio-clips.js" in text
+    assert "FgbAudioClips" in text
     assert "fgbSubmitScore" in text or "submitScore" in text or "view-result" in text
 
 
@@ -187,6 +210,9 @@ def test_remaining_free_train_chrome():
         assert "fgb-shell.js" in html, slug
         assert "FGBShell.mountTopbar" in html, slug
         assert "← 返回大厅" in html or "回大厅" in html, slug
+    simon_html = (root / "web" / "games" / "simon" / "index.html").read_text(encoding="utf-8")
+    assert "fgb-audio-clips.js" in simon_html
+    assert "FgbAudioClips" in simon_html
     theme = (root / "web" / "css" / "fgb-theme.css").read_text(encoding="utf-8")
     for skin in expected.values():
         assert 'data-game-skin="%s"' % skin in theme, skin
@@ -213,10 +239,184 @@ def test_yuwen_and_24points_chrome():
         assert 'data-game-skin="%s"' % skin in theme, skin
 
 
+def test_stroop_challenge_stops_after_finish():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/stroop/index.html").read_text(encoding="utf-8")
+    assert "var challengeDone = false" in html
+    assert "if (challengeDone) return" in html
+    assert "if (mode === \"challenge\" && challengeDone) return" in html
+
+
+def test_schulte_daily_shows_stage_done_on_finish():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/schulte/index.html").read_text(encoding="utf-8")
+    assert "celebrateThen(FGB_MSG.done" in html
+    assert "FGBDaily.notifyStageDone" in html
+    idx = html.index("if (isDaily)")
+    block = html[idx : idx + 650]
+    assert "celebrateThen" in block
+    assert block.index("celebrateThen") < block.index("notifyStageDone")
+
+
+def test_unified_stage_done_banner():
+    root = Path(__file__).resolve().parents[1]
+    ui = (root / "web/js/fgb-ui.js").read_text(encoding="utf-8")
+    assert "function stageDone" in ui
+    assert "stageDone:" in ui
+    common = (root / "games/common/game_common.py").read_text(encoding="utf-8")
+    assert "FGBUI.stageDone" in common
+    theme = (root / "web/css/fgb-theme.css").read_text(encoding="utf-8")
+    assert ".fgb-stage-done" in theme
+
+
+def test_daily_mode_hides_hint_buttons():
+    root = Path(__file__).resolve().parents[1]
+    theme = (root / "web/css/fgb-theme.css").read_text(encoding="utf-8")
+    assert "html.fgb-daily-mode #btn-hint" in theme
+    common = (root / "games/common/game_common.py").read_text(encoding="utf-8")
+    assert "html.fgb-daily-mode #btn-hint" in common
+
+
+def test_sudoku_numpad_touch_targets():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/sudoku/index.html").read_text(encoding="utf-8")
+    assert "min-height: 2.75rem" in html
+    assert "touch-action: manipulation" in html
+
+
+def test_maze_board_centered_in_stage():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/maze/index.html").read_text(encoding="utf-8")
+    assert "syncMazeStageLayout" in html
+    assert "align-items: center" in html
+    assert "justify-content: center" in html
+
+
+def test_spot_diff_found_and_remain_ui():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/spot-diff/index.html").read_text(encoding="utf-8")
+    assert 'id="remain-n"' in html
+    assert "applyFoundVisual" in html
+    assert "updateCounts" in html
+    assert "button.found::after" in html or "button.found::after" in html
+
+
+def test_cancel_board_fits_viewport():
+    root = Path(__file__).resolve().parents[1]
+    html = (root / "web/games/cancel/index.html").read_text(encoding="utf-8")
+    assert "fitCancelBoard" in html
+    assert "installCancelBoardFit" in html
+    assert "scheduleCancelBoardFit" in html
+    assert "Math.min(availW, availH" in html
+    assert "align-items: center" in html
+    assert "justify-content: center" in html
+    assert "#grid.grid-cells.dense" in html
+    assert "width: var(--cancel-side) !important" in html
+    assert 'grid.style.width = side + "px"' in html
+    assert 'id="remain-n"' in html
+    assert "updateRemainCount" in html
+
+
+def test_cancel_board_fit_landscape_tablet():
+    """Side must shrink when height < width (landscape tablet)."""
+    avail_w, avail_h = 820, 340
+    max_b = min(720, int(min(1024, 768) * 0.88))
+    side = min(avail_w, avail_h, max_b)
+    assert side == avail_h
+    assert side < avail_w
+
+
+def test_mental_speed_page():
+    login_as(client, "mental_spd")
+    r = client.get(p("/games/mental-speed/"))
+    assert r.status_code == 200
+    text = r.text
+    assert "心算" in text
+    assert 'data-game-skin="mental-speed"' in text
+    assert 'id="btn-start-classic"' in text
+    assert 'id="ms-numpad"' in text
+    assert "fgb-shell.js" in text
+    assert "FGBShell.mountTopbar" in text
+    assert "fgb-daily.js" in text
+    assert "__FGB_IS_DAILY__" in text or "daily=1" in text
+
+
+def test_mental_speed_daily_candidate():
+    from app.game_registry import daily_candidate_games
+
+    assert "mental-speed" in [g["id"] for g in daily_candidate_games()]
+
+
+def test_number_slide_page():
+    login_as(client, "num_slide")
+    r = client.get(p("/games/number-slide/"))
+    assert r.status_code == 200
+    text = r.text
+    assert "华容道" in text
+    assert 'data-game-skin="number-slide"' in text
+    assert 'id="ns-board"' in text
+    assert "fgb-daily.js" in text
+    assert "runWhenPlayable" in text or "FGBUI" in text
+
+
+def test_number_slide_daily_candidate():
+    from app.game_registry import daily_candidate_games
+
+    assert "number-slide" in [g["id"] for g in daily_candidate_games()]
+
+
+def test_huarongdao_page():
+    login_as(client, "hrd_player")
+    r = client.get(p("/games/huarongdao/"))
+    assert r.status_code == 200
+    text = r.text
+    assert "华容道" in text
+    assert 'data-game-skin="huarongdao"' in text
+    assert 'id="hrg-board"' in text or 'class="hrg-board"' in text
+    assert "hrd-solver.js" in text
+    assert "fgb-shell.js" in text
+
+
+def test_huarongdao_not_daily_candidate():
+    from app.game_registry import daily_candidate_games
+
+    assert "huarongdao" not in [g["id"] for g in daily_candidate_games()]
+
+
+def test_word_battle_page():
+    login_as(client, "word_battle")
+    r = client.get(p("/games/word-battle/"))
+    assert r.status_code == 200
+    text = r.text
+    assert "单词" in text
+    assert 'data-game-skin="word-battle"' in text
+    assert 'id="wb-spell"' in text
+    assert "words.json" in text
+    assert "FgbAudioClips" in text
+    assert "audio/" in text and ".mp3" in text
+    letter_a = client.get(p("/games/word-battle/audio/a.mp3"))
+    assert letter_a.status_code == 200
+    assert len(letter_a.content) > 400
+    bank = client.get(p("/games/word-battle/words.json"))
+    assert bank.status_code == 200
+    data = bank.json()
+    assert data.get("version") == 1
+    assert len(data.get("words") or []) > 6000
+
+
+def test_word_battle_not_daily_candidate():
+    from app.game_registry import daily_candidate_games
+
+    assert "word-battle" not in [g["id"] for g in daily_candidate_games()]
+
+
 def test_24points_play_and_bank():
     login_as(client, "pts24_play")
     page = client.get(p("/games/24points/play.html"))
     assert page.status_code == 200
+    assert 'id="card-board"' in page.text
+    assert "num-card" in page.text
+    assert "onPlayKeydown" in page.text or "keydown" in page.text
     bank = client.get(p("/games/24points/bank.json"))
     assert bank.status_code == 200
     data = bank.json()

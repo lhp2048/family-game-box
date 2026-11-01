@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>心算快答</title>
+<link rel="stylesheet" href="/css/fgb-theme.css">
+
+<script>
+(function fgbDailyHead() {
+  if (/(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+    document.documentElement.classList.add("fgb-daily-mode");
+  }
+})();
+</script>
+<style>
+html.fgb-daily-mode #view-home,
+html.fgb-daily-mode #view-setup,
+html.fgb-daily-mode #view-casual,
+html.fgb-daily-mode #view-size,
+html.fgb-daily-mode #view-result,
+html.fgb-daily-mode #view-casual-done { display: none !important; }
+html.fgb-daily-mode .mode-btn,
+html.fgb-daily-mode #casual-extra,
+html.fgb-daily-mode #btn-next,
+html.fgb-daily-mode #btn-restart,
+html.fgb-daily-mode #btn-new,
+html.fgb-daily-mode #btn-hint,
+html.fgb-daily-mode [data-fgb-hint-control] { display: none !important; }
+/* 闯关 iframe 内：收掉重复顶栏/长说明；棋盘边长由 --fgb-board 动态计算 */
+html.fgb-daily-mode {
+  --fgb-board: 280px;
+  height: 100%;
+}
+html.fgb-daily-mode body { height: 100%; }
+html.fgb-daily-mode:not(.fgb-play-scroll),
+html.fgb-daily-mode:not(.fgb-play-scroll) body { overflow: hidden; }
+html.fgb-daily-mode.fgb-play-scroll,
+html.fgb-daily-mode.fgb-play-scroll body { overflow: auto; }
+html.fgb-daily-mode .wrap {
+  width: 100%;
+  max-width: none;
+  padding: 0.35rem var(--play-gutter) 0.4rem;
+  box-sizing: border-box;
+}
+html.fgb-daily-mode #view-play > .topbar { display: none !important; }
+html.fgb-daily-mode #fgb-topbar,
+html.fgb-daily-mode #fgb-result { display: none !important; }
+html.fgb-daily-mode #view-play > .hint { margin: 0 0 0.3rem; min-height: 1.05em; font-size: 0.88rem; }
+html.fgb-daily-mode #view-play .tip { display: none !important; }
+html.fgb-daily-mode .clover {
+  width: var(--fgb-board) !important;
+  height: var(--fgb-board) !important;
+}
+html.fgb-daily-mode .clover-wrap { margin: 0.1rem 0 0.3rem; }
+html.fgb-daily-mode .leaf { font-size: calc(var(--fgb-board) * 0.11) !important; }
+html.fgb-daily-mode .card-board-wrap {
+  max-width: var(--fgb-board) !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+html.fgb-daily-mode .num-card .val {
+  font-size: calc(var(--fgb-board) * 0.14) !important;
+}
+html.fgb-daily-mode .num-card .expr {
+  font-size: calc(var(--fgb-board) * 0.045) !important;
+}
+html.fgb-daily-mode .sudoku-wrap { width: min(100%, var(--fgb-board)) !important; }
+html.fgb-daily-mode .sudoku { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .maze-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .grid-wrap { max-height: var(--fgb-board) !important; }
+html.fgb-daily-mode .diff-panels { max-height: var(--fgb-board) !important; overflow: auto; }
+html.fgb-daily-mode .board {
+  width: min(100%, var(--fgb-board)) !important;
+  max-height: var(--fgb-board) !important;
+}
+</style>
+
+<style>
+
+:root {
+  --ink: #1a2b3c;
+  --muted: #5c6d7e;
+  --line: rgba(26, 43, 60, 0.12);
+  --paper: #fff8f0;
+  --panel: #ffffff;
+  --accent: #2ecc71;
+  --accent-deep: #1a9f68;
+  --warn: #e8a04a;
+  --danger: #e07060;
+  --shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
+  --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
+  --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --play-gutter: var(--console-gutter, clamp(1rem, 3vw, 2.25rem));
+  --fgb-play-max: 560px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  background: transparent;
+}
+body::before {
+  content: none;
+}
+.wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 1.6rem var(--play-gutter) 3rem;
+  min-width: 0;
+}
+.wrap.wide {
+  width: 100%;
+  max-width: none;
+  --fgb-play-max: 720px;
+}
+.fgb-play-stage,
+[data-fgb-board] {
+  width: 100%;
+  max-width: min(var(--fgb-play-max), 100%);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+.hidden { display: none !important; }
+/* 平板横屏 / 矮视口：压缩边距；棋盘尺寸由各游戏用 vmin 吃满短边 */
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .wrap { padding: .55rem var(--play-gutter) 1rem; }
+  .wrap.wide { width: 100%; max-width: none; }
+  h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); margin-bottom: .2rem; }
+  .sub { margin: 0 0 .65rem; font-size: .88rem; }
+  .card { padding: .75rem; border-radius: 14px; }
+  .topbar { margin-bottom: .45rem; }
+  .hint { margin: 0 0 .4rem; min-height: 1.1em; font-size: .88rem; }
+  .actions { margin-top: .3rem; gap: .35rem; }
+  .actions button { padding: .35rem .2rem; font-size: .82rem; border-radius: 10px; }
+  .task-bar { padding: .45rem .65rem; margin-bottom: .5rem; }
+  .mode-btn { padding: .75rem .85rem; }
+  .choice-row { margin: .65rem 0; }
+  .choice-row button { padding: .65rem .3rem; }
+}
+h1 {
+  font-family: var(--display);
+  font-size: clamp(2rem, 8vw, 3rem);
+  margin: 0 0 .35rem;
+  letter-spacing: -.02em;
+  line-height: .95;
+}
+h1 em { font-style: italic; color: var(--accent); }
+.sub { margin: 0 0 1.4rem; color: var(--muted); line-height: 1.5; }
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 1.15rem;
+}
+.mode-grid { display: grid; gap: .75rem; }
+.mode-btn {
+  text-align: left;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 1rem 1.05rem;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.05);
+  transition: transform .15s ease, border-color .15s ease;
+}
+.mode-btn:hover { transform: translateY(-1px); border-color: rgba(62,207,142,.4); }
+.mode-btn strong { display: block; font-size: 1.15rem; margin-bottom: .25rem; }
+.mode-btn span { color: var(--muted); font-size: .92rem; }
+.choice-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: .6rem; margin: 1rem 0; }
+.choice-row.two { grid-template-columns: repeat(2, 1fr); }
+.choice-row.six { grid-template-columns: repeat(3, 1fr); }
+@media (min-width: 640px) {
+  .choice-row.six { grid-template-columns: repeat(6, 1fr); }
+}
+.choice-row button {
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  padding: .9rem .4rem;
+  font: inherit;
+  font-weight: 700;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.05);
+}
+.choice-row button.active {
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #062016;
+  border-color: transparent;
+}
+.primary {
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  padding: .85rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  color: #062016;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  cursor: pointer;
+}
+.ghost {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: .7rem 1rem;
+  font: inherit;
+  font-weight: 600;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  margin-bottom: .9rem;
+  color: var(--muted);
+  font-size: .92rem;
+  flex-wrap: wrap;
+}
+.topbar strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.hint {
+  text-align: center;
+  min-height: 1.4em;
+  margin: 0 0 .8rem;
+  color: var(--muted);
+  font-size: .95rem;
+}
+.hint.err { color: var(--danger); }
+.hint.ok { color: var(--accent); font-weight: 600; }
+.actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .55rem;
+  margin-top: .75rem;
+}
+.actions.two { grid-template-columns: repeat(2, 1fr); }
+.actions button {
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  border-radius: 999px;
+  min-height: 44px;
+  padding: .65rem .4rem;
+  font: inherit;
+  font-weight: 700;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
+  cursor: pointer;
+  color: var(--ink);
+}
+.actions button.warn {
+  color: #a65c10;
+  background: linear-gradient(180deg, #fffef9 0%, #fff5e6 100%);
+  border-color: rgba(232, 160, 74, 0.35);
+}
+.actions button.danger {
+  color: #b33d30;
+  background: linear-gradient(180deg, #fff5f5 0%, #ffe8e6 100%);
+  border-color: rgba(224, 112, 96, 0.35);
+}
+.stats-list { margin: .8rem 0 1.1rem; padding: 0; list-style: none; }
+.stats-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: .55rem 0;
+  border-bottom: 1px dashed var(--line);
+}
+.stats-list li:last-child { border-bottom: 0; }
+.linkish {
+  display: inline-block;
+  margin-top: 1rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+.grid-cells {
+  display: grid;
+  gap: 2px;
+  margin: .5rem 0;
+  user-select: none;
+}
+.grid-wrap { overflow: auto; max-height: min(82vmin, 720px); }
+.grid-cells button, .grid-cells .cell {
+  -webkit-appearance: none;
+  appearance: none;
+  border: 2px solid rgba(26, 43, 60, 0.08);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff 0%, #f6fffb 100%);
+  color: var(--ink);
+  box-shadow: 0 2px 0 rgba(26, 43, 60, 0.05);
+  font: inherit;
+  font-weight: 600;
+  aspect-ratio: 1;
+  /* Safari：button+flex 会多出一块空壳，改用 grid 居中 */
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+  min-height: 0;
+  min-width: 0;
+  line-height: 1;
+}
+.grid-cells button.marked {
+  background: rgba(62,207,142,.18);
+  color: var(--accent);
+  text-decoration: line-through;
+}
+.grid-cells button.found {
+  background: rgba(62,207,142,.25);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.grid-cells button.wrong-flash {
+  animation: wrongFlash .5s ease;
+}
+@keyframes wrongFlash {
+  0%, 100% { background: linear-gradient(180deg, #fff 0%, #f6fffb 100%); }
+  50% { background: rgba(224, 112, 96, 0.35); }
+}
+.task-bar {
+  text-align: center;
+  padding: .65rem .8rem;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #e8fff4 0%, #d4fce8 100%);
+  border: 2px solid rgba(46, 204, 113, 0.25);
+  color: var(--accent-deep);
+  font-weight: 700;
+  margin-bottom: .85rem;
+}
+
+
+.confirm-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(6, 14, 12, 0.72);
+  backdrop-filter: blur(2px);
+}
+.confirm-mask.hidden { display: none !important; }
+.confirm-box {
+  width: min(360px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 1.25rem 1.2rem 1.1rem;
+}
+.confirm-box p {
+  margin: 0 0 1.1rem;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.confirm-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .55rem;
+}
+.confirm-actions button {
+  border-radius: 14px;
+  padding: .75rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+.confirm-actions .confirm-cancel {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--muted);
+}
+.confirm-actions .confirm-ok {
+  border: 0;
+  color: #062016;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+}
+/* 统一完成反馈：轻量、不挡操作 */
+.celebrate {
+  position: fixed;
+  left: 50%;
+  top: 18%;
+  transform: translate(-50%, -12px) scale(.92);
+  z-index: 1100;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .18s ease, transform .28s cubic-bezier(.2,.9,.3,1.2);
+}
+.celebrate.show {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+.celebrate-pill {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .7rem 1.1rem .7rem .85rem;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid rgba(62,207,142,.35);
+  box-shadow: 0 12px 32px rgba(0,0,0,.35);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+.celebrate-mark {
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 50%;
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #062016;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .95rem;
+  line-height: 1;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(62,207,142,.35);
+  animation: celebratePulse .55s ease;
+}
+@keyframes celebratePulse {
+  0% { box-shadow: 0 0 0 0 rgba(15,122,90,.4); transform: scale(.85); }
+  60% { box-shadow: 0 0 0 10px rgba(15,122,90,0); transform: scale(1.06); }
+  100% { box-shadow: 0 0 0 0 rgba(15,122,90,0); transform: scale(1); }
+}
+.celebrate-burst {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+}
+.celebrate.show .celebrate-burst {
+  animation: celebrateBurst .5s ease forwards;
+}
+.celebrate-burst:nth-child(1) { --dx: -28px; --dy: -22px; }
+.celebrate-burst:nth-child(2) { --dx: 30px; --dy: -18px; background: #c9a227; }
+.celebrate-burst:nth-child(3) { --dx: -22px; --dy: 24px; background: #9a4a12; }
+.celebrate-burst:nth-child(4) { --dx: 26px; --dy: 20px; background: #2471a3; }
+.celebrate-burst:nth-child(5) { --dx: 0; --dy: -32px; background: #7d3c98; }
+.celebrate-burst:nth-child(6) { --dx: 0; --dy: 30px; background: #1e8449; }
+@keyframes celebrateBurst {
+  0% { opacity: .9; transform: translate(0,0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.3); }
+}
+
+
+.ms-console { padding: 1rem 1.05rem; }
+.ms-hero {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+.ms-hero h1 { margin-bottom: 0.35rem; }
+.ms-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+.ms-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.65rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.ms-progress strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.ms-timer {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+.ms-play-grid {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: min(620px, 100%);
+  margin: 0 auto;
+  align-items: stretch;
+}
+@media (min-width: 520px) {
+  .ms-play-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(200px, 252px);
+    gap: 0.65rem 0.85rem;
+  }
+}
+.ms-play-expr-col,
+.ms-play-input-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ms-play-input-col {
+  gap: 0.45rem;
+  justify-content: center;
+}
+.ms-expr-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 11.5rem;
+  margin: 0;
+  padding: 1rem 0.85rem;
+  border-radius: 20px;
+  border: 2px solid rgba(244, 114, 182, 0.35);
+  background: linear-gradient(165deg, #fff5f9 0%, #ffe8f4 55%, #f0f9ff 100%);
+  box-shadow: 0 8px 24px rgba(45, 62, 90, 0.08);
+}
+@media (min-width: 520px) {
+  .ms-expr-wrap {
+    min-height: 100%;
+  }
+}
+.ms-expr {
+  font-family: var(--display);
+  font-size: clamp(1.35rem, 4.8vw, 2.35rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+  text-align: center;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.ms-expr-note {
+  margin: 0.55rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.35;
+}
+.ms-answer {
+  display: block;
+  margin: 0;
+}
+.ms-answer label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+.ms-answer-display {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 3.1rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 16px;
+  border: 2px solid rgba(244, 114, 182, 0.35);
+  background: linear-gradient(180deg, #fff 0%, #fff8fc 100%);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
+  font-family: var(--display);
+  font-size: clamp(1.55rem, 5vw, 2rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  letter-spacing: 0.12em;
+}
+.ms-answer-display.is-err {
+  border-color: var(--danger);
+  animation: msShake 0.35s ease;
+}
+@keyframes msShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+.ms-numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.45rem;
+  width: 100%;
+  margin: 0;
+}
+.ms-numpad button {
+  min-height: 52px;
+  border-radius: 16px;
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  background: linear-gradient(180deg, #fff 0%, #fff5f8 100%);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+}
+.ms-numpad button:active { transform: scale(0.97); }
+.ms-numpad button.wide { grid-column: span 2; }
+.ms-numpad button.accent {
+  background: linear-gradient(160deg, var(--accent), var(--accent-deep));
+  color: #062016;
+  border-color: transparent;
+}
+.ms-hint {
+  text-align: center;
+  min-height: 1.25em;
+  font-size: 0.86rem;
+  color: var(--muted);
+  margin: 0.45rem 0 0;
+}
+.ms-hint.err { color: var(--danger); }
+.ms-hint.ok { color: var(--accent); font-weight: 600; }
+.ms-penalty {
+  font-size: 0.8rem;
+  color: var(--warn);
+  text-align: center;
+  margin-top: -0.25rem;
+  margin-bottom: 0.35rem;
+  min-height: 1.1em;
+}
+@media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
+  .ms-expr-wrap { min-height: 8.5rem; padding: 0.65rem 0.55rem; }
+  .ms-expr { font-size: clamp(1.2rem, 4.2vw, 1.85rem); }
+  .ms-numpad button { min-height: 46px; font-size: 1.15rem; }
+}
+
+</style>
+</head>
+<body data-game-skin="mental-speed">
+<header id="fgb-topbar"></header>
+<div class="wrap">
+
+  <section id="view-home">
+    <div class="ms-hero">
+      <p class="ms-tag">客厅速算</p>
+      <h1>心算<em>快答</em></h1>
+      <p class="sub">看算式、键入得数。每题 3～4 步运算（4～5 个数），连续 10 题竞速；答错 +3 秒罚时，可重试本题。</p>
+    </div>
+    <div class="card mode-grid">
+      <button type="button" class="mode-btn" id="btn-start-classic">
+        <strong>初阶 · 10 题</strong>
+        <span>加减乘除，即时出题，适合热身与亲子对战</span>
+      </button>
+    </div>
+    <a class="linkish fgb-nav-link" href="/">← 返回大厅</a>
+  </section>
+
+  <section id="view-play" class="hidden">
+    <div class="card ms-console">
+      <div class="ms-progress">
+        <span>第 <strong id="ms-q-n">1</strong> / 10 题</span>
+        <span class="ms-timer" id="ms-timer" aria-live="polite">0.0s</span>
+      </div>
+      <p class="ms-penalty" id="ms-penalty"></p>
+      <div class="ms-play-grid" data-fgb-board>
+        <div class="ms-play-expr-col">
+          <div class="ms-expr-wrap">
+            <p class="ms-expr" id="ms-expr">—</p>
+            <p class="ms-expr-note">先乘除后加减 · 输入得数</p>
+          </div>
+          <p class="ms-hint" id="ms-hint" aria-live="polite"></p>
+        </div>
+        <div class="ms-play-input-col">
+          <div class="ms-answer">
+            <label for="ms-answer">答案</label>
+            <div class="ms-answer-display" id="ms-answer" role="textbox" aria-label="答案" tabindex="0">—</div>
+          </div>
+          <div class="ms-numpad" id="ms-numpad">
+            <button type="button" data-key="1">1</button>
+            <button type="button" data-key="2">2</button>
+            <button type="button" data-key="3">3</button>
+            <button type="button" data-key="4">4</button>
+            <button type="button" data-key="5">5</button>
+            <button type="button" data-key="6">6</button>
+            <button type="button" data-key="7">7</button>
+            <button type="button" data-key="8">8</button>
+            <button type="button" data-key="9">9</button>
+            <button type="button" data-key="clear" class="wide">清除</button>
+            <button type="button" data-key="0">0</button>
+            <button type="button" data-key="back">⌫</button>
+            <button type="button" data-key="submit" class="wide accent">确认</button>
+          </div>
+        </div>
+      </div>
+      <button type="button" class="ghost" id="btn-quit" style="width:100%;margin-top:.5rem">退出本局</button>
+    </div>
+  </section>
+
+  <section id="view-result" class="hidden">
+    <h1>结算</h1>
+    <p class="sub" id="ms-result-sub">本局结束</p>
+    <div class="card">
+      <ul class="stats-list">
+        <li><span>总用时（含罚时）</span><strong id="st-time">—</strong></li>
+        <li><span>答错次数</span><strong id="st-wrong">0</strong></li>
+        <li><span>罚时</span><strong id="st-penalty">+0s</strong></li>
+      </ul>
+      <button type="button" class="primary" id="btn-again">再来一局</button>
+      <div style="height:.65rem"></div>
+      <button type="button" class="ghost" id="btn-home" style="width:100%">回首页</button>
+    </div>
+  </section>
+
+
+</div>
+
+<div id="fgb-result" class="fgb-result hidden" role="dialog" aria-modal="true" aria-labelledby="fgb-result-title">
+  <div class="fgb-result-box">
+    <h2 id="fgb-result-title" class="fgb-result-title">本局结束</h2>
+    <p id="fgb-result-sub" class="fgb-result-sub"></p>
+    <div id="fgb-result-stats" class="fgb-result-stats"></div>
+    <div class="fgb-result-actions">
+      <button type="button" class="fgb-btn" id="fgb-result-retry">再来一局</button>
+      <a class="fgb-btn-ghost" id="fgb-result-hall" href="/">回大厅</a>
+      <a class="fgb-btn-ghost" id="fgb-result-board" href="/leaderboard">排行榜</a>
+    </div>
+  </div>
+</div>
+
+
+<div class="confirm-mask hidden" id="confirm-mask" role="dialog" aria-modal="true">
+  <div class="confirm-box">
+    <p id="confirm-msg">确定？</p>
+    <div class="confirm-actions">
+      <button type="button" class="confirm-cancel" id="confirm-cancel">取消</button>
+      <button type="button" class="confirm-ok" id="confirm-ok">确定</button>
+    </div>
+  </div>
+</div>
+<div class="celebrate hidden" id="celebrate" aria-live="polite">
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <span class="celebrate-burst"></span>
+  <div class="celebrate-pill">
+    <span class="celebrate-mark">✓</span>
+    <span id="celebrate-text">完成！</span>
+  </div>
+</div>
+
+<script src="/js/fgb-daily.js"></script>
+<script src="/js/fgb-client.js"></script>
+<script src="/js/fgb-ui.js"></script>
+<script src="/js/fgb-shell.js"></script>
+<script>
+/* fgb-daily-boot */
+
+function showView(views, name) {
+  if (window.__FGB_IS_DAILY__ && name !== "play") return;
+  Object.keys(views).forEach(function (k) {
+    views[k].classList.toggle("hidden", k !== name);
+  });
+}
+function fmtTime(ms) {
+  var s = Math.floor(ms / 1000);
+  var m = Math.floor(s / 60);
+  var r = s % 60;
+  return String(m).padStart(2, "0") + ":" + String(r).padStart(2, "0");
+}
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = (Math.random() * (i + 1)) | 0;
+    var t = a[i]; a[i] = a[j]; a[j] = t;
+  }
+  return a;
+}
+function randInt(n) { return (Math.random() * n) | 0; }
+function pick(arr) { return arr[randInt(arr.length)]; }
+
+var FGB_MSG = {
+  exitConfirm: "退出并查看统计？",
+  done: "完成！",
+  sessionDone: "完成！"
+};
+
+var _confirmCb = null;
+function askConfirm(message, onYes, onNo) {
+  var mask = document.getElementById("confirm-mask");
+  var msg = document.getElementById("confirm-msg");
+  if (!mask || !msg) {
+    // 无页面内弹层时走 FGBUI；禁止回退到浏览器 confirm/alert
+    if (window.FGBUI && FGBUI.askConfirm) {
+      FGBUI.askConfirm(message, onYes, onNo);
+      return;
+    }
+    if (onYes) onYes();
+    return;
+  }
+  msg.textContent = message || FGB_MSG.exitConfirm;
+  _confirmCb = { yes: onYes, no: onNo };
+  mask.classList.remove("hidden");
+}
+function _resolveConfirm(ok) {
+  var mask = document.getElementById("confirm-mask");
+  if (mask) mask.classList.add("hidden");
+  var cb = _confirmCb;
+  _confirmCb = null;
+  if (!cb) return;
+  if (ok && cb.yes) cb.yes();
+  if (!ok && cb.no) cb.no();
+}
+(function bindConfirmUI() {
+  var ok = document.getElementById("confirm-ok");
+  var cancel = document.getElementById("confirm-cancel");
+  var mask = document.getElementById("confirm-mask");
+  if (ok) ok.addEventListener("click", function () { _resolveConfirm(true); });
+  if (cancel) cancel.addEventListener("click", function () { _resolveConfirm(false); });
+  if (mask) mask.addEventListener("click", function (e) {
+    if (e.target === mask) _resolveConfirm(false);
+  });
+})();
+
+var _celebrateTimer = null;
+/** 统一关卡/回合完成横幅（优先 FGBUI.stageDone，与 daily 一致） */
+function celebrate(message) {
+  if (window.FGBUI && FGBUI.stageDone) {
+    FGBUI.stageDone(message || FGB_MSG.done, { duration: 520 });
+    return;
+  }
+  var el = document.getElementById("celebrate");
+  var text = document.getElementById("celebrate-text");
+  if (!el || !text) return;
+  text.textContent = message || FGB_MSG.done;
+  el.classList.remove("show");
+  void el.offsetWidth;
+  el.classList.add("show");
+  el.classList.remove("hidden");
+  if (_celebrateTimer) clearTimeout(_celebrateTimer);
+  _celebrateTimer = setTimeout(function () {
+    el.classList.remove("show");
+    setTimeout(function () { el.classList.add("hidden"); }, 200);
+  }, 520);
+}
+/** 播完成动效后短延迟回调；默认 480ms，几乎不拖慢下一局 */
+function celebrateThen(message, callback, delayMs) {
+  celebrate(message);
+  var wait = delayMs == null ? 480 : delayMs;
+  setTimeout(function () {
+    if (callback) callback();
+  }, wait);
+}
+
+
+(function () {
+  var qraw = location.search || "";
+  if (!/(?:^|[?&])daily=1(?:&|$)/.test(qraw)) return;
+  var params = new URLSearchParams(qraw);
+  var q = {
+    daily: true,
+    runId: params.get("runId") || "",
+    tier: params.get("tier") || "normal",
+    seed: Number(params.get("seed") || "0") || 1,
+    stageIndex: Number(params.get("stageIndex") || "0") || 0,
+  };
+  window.__FGB_DAILY_Q__ = q;
+  window.__FGB_IS_DAILY__ = true;
+  document.documentElement.classList.add("fgb-daily-mode");
+  if (window.FGBDaily && FGBDaily.installMathRandom) {
+    FGBDaily.installMathRandom(q.seed);
+  }
+  if (window.FGBDaily && FGBDaily.installFitPlay) {
+    FGBDaily.installFitPlay({ min: 168, max: 480, pad: 16 });
+  }
+  window.fgbSubmitScore = function (payload) {
+    var ms = 0;
+    if (payload && payload.metrics && payload.metrics.timeMs != null) ms = payload.metrics.timeMs | 0;
+    if (window.FGBDaily && FGBDaily.notifyStageDone) FGBDaily.notifyStageDone(ms);
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-stage-done", timeMs: ms }, "*");
+    }
+  };
+  function abortDaily(e) {
+    if (e) {
+      e.preventDefault();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      else e.stopPropagation();
+    }
+    if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
+    else if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: "fgb-daily-abort" }, "*");
+    }
+  }
+  var base = (window.__FGB_BASE__ || "").replace(/\/$/, "");
+  var homeSel = 'a.linkish[href="/"], a[href="/"]';
+  if (base) {
+    homeSel += ', a.linkish[href="' + base + '/"], a[href="' + base + '/"], a.linkish[href="' + base + '"], a[href="' + base + '"]';
+  }
+  document.querySelectorAll(homeSel).forEach(function (a) {
+    a.textContent = "退出本关";
+    a.href = "#";
+    a.addEventListener("click", abortDaily);
+  });
+  // 游戏内退出按钮：每日模式禁止 show(home)，须通知父页结束挑战
+  ["btn-exit", "btn-exit-casual", "btn-exit-challenge", "btn-quit"].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener("click", abortDaily, true);
+  });
+})();
+
+/* fgb-game-chrome-boot */
+(function () {
+  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) return;
+  var el = document.getElementById("fgb-topbar");
+  if (!el || !window.FGBShell || !FGBShell.mountTopbar) return;
+  FGBShell.mountTopbar(el, {
+    title: "心算快答",
+    showBack: true,
+    backHref: "/",
+    showUser: true
+  });
+})();
+
+
+(function () {
+  const TOTAL = 10;
+  const PENALTY_MS = 3000;
+  const MAX_DIGITS = 3;
+  const OPS = ["+", "-", "*", "/"];
+  const OP_SYM = { "+": "+", "-": "−", "*": "×", "/": "÷" };
+
+  const views = {
+    home: document.getElementById("view-home"),
+    play: document.getElementById("view-play"),
+    result: document.getElementById("view-result"),
+  };
+
+  function show(name) {
+    Object.keys(views).forEach(function (k) {
+      views[k].classList.toggle("hidden", k !== name);
+    });
+  }
+
+  function randInt(lo, hi) {
+    return lo + ((Math.random() * (hi - lo + 1)) | 0);
+  }
+
+  function pickOp(forceMulDiv) {
+    if (forceMulDiv && Math.random() < 0.55) {
+      return Math.random() < 0.5 ? "*" : "/";
+    }
+    return OPS[(Math.random() * OPS.length) | 0];
+  }
+
+  function applyOp(a, b, op) {
+    if (op === "+") return a + b;
+    if (op === "-") {
+      if (a < b) return null;
+      return a - b;
+    }
+    if (op === "*") return a * b;
+    if (op === "/") {
+      if (b === 0 || a % b !== 0) return null;
+      return (a / b) | 0;
+    }
+    return null;
+  }
+
+  /** 先乘除后加减（无括号） */
+  function evalWithPrecedence(nums, ops) {
+    var values = nums.slice();
+    var operators = ops.slice();
+    var i = 0;
+    while (i < operators.length) {
+      var op = operators[i];
+      if (op !== "*" && op !== "/") {
+        i++;
+        continue;
+      }
+      var r = applyOp(values[i], values[i + 1], op);
+      if (r === null) return null;
+      values.splice(i, 2, r);
+      operators.splice(i, 1);
+    }
+    if (!values.length) return null;
+    var v = values[0];
+    for (var j = 0; j < operators.length; j++) {
+      v = applyOp(v, values[j + 1], operators[j]);
+      if (v === null) return null;
+    }
+    return v;
+  }
+
+  /** 特殊大数乘：积可 >100；连乘中该步之后不能再接 × */
+  var MUL_WHITELIST = {
+    "4,25": true, "8,25": true,
+    "5,20": true, "2,50": true, "4,50": true, "5,25": true,
+  };
+
+  function mulPairKey(a, b) {
+    var x = a < b ? a : b;
+    var y = a < b ? b : a;
+    return x + "," + y;
+  }
+
+  function isMulWhitelisted(a, b) {
+    return !!MUL_WHITELIST[mulPairKey(a, b)];
+  }
+
+  /** 乘除阶段：单次 × 积 ≤100 或白名单；白名单大数乘后不可再连 × */
+  function passesMulRules(nums, ops) {
+    var values = nums.slice();
+    var operators = ops.slice();
+    var i = 0;
+    while (i < operators.length) {
+      var op = operators[i];
+      if (op !== "*" && op !== "/") {
+        i++;
+        continue;
+      }
+      var a = values[i];
+      var b = values[i + 1];
+      if (op === "*") {
+        var prod = a * b;
+        if (prod > 100) {
+          if (!isMulWhitelisted(a, b)) return false;
+          if (i + 1 < operators.length && operators[i + 1] === "*") return false;
+        }
+      }
+      var r = applyOp(a, b, op);
+      if (r === null) return false;
+      values.splice(i, 2, r);
+      operators.splice(i, 1);
+    }
+    return true;
+  }
+
+  /** 标准优先级求值结果存在且 ≥ 0 */
+  function passesNonNegative(nums, ops) {
+    var ans = evalWithPrecedence(nums, ops);
+    return ans !== null && ans >= 0;
+  }
+
+  function formatExpr(nums, ops) {
+    var parts = [String(nums[0])];
+    for (var i = 0; i < ops.length; i++) {
+      parts.push(OP_SYM[ops[i]] || ops[i]);
+      parts.push(String(nums[i + 1]));
+    }
+    return parts.join(" ");
+  }
+
+  /** 每题 3～4 个运算符（4～5 个操作数） */
+  function operatorCountForQuestion() {
+    return Math.random() < 0.45 ? 4 : 3;
+  }
+
+  function maxOperandForQuestion(qIndex) {
+    return qIndex < 5 ? 9 : 12;
+  }
+
+  function generateQuestion(qIndex) {
+    var opCount = operatorCountForQuestion();
+    var n = opCount + 1;
+    var maxNum = maxOperandForQuestion(qIndex);
+    for (var t = 0; t < 160; t++) {
+      var nums = [];
+      for (var i = 0; i < n; i++) nums.push(randInt(1, maxNum));
+      var ops = [];
+      var hasMulDiv = false;
+      for (var j = 0; j < opCount; j++) {
+        var op = pickOp(j === opCount - 1 && !hasMulDiv);
+        ops.push(op);
+        if (op === "*" || op === "/") hasMulDiv = true;
+      }
+      if (!hasMulDiv) continue;
+      if (!passesMulRules(nums, ops)) continue;
+      if (!passesNonNegative(nums, ops)) continue;
+      var ans = evalWithPrecedence(nums, ops);
+      if (ans === null || ans < 0 || ans > 999) continue;
+      return { text: formatExpr(nums, ops), answer: ans };
+    }
+    return { text: "2 + 3 × 4 − 1", answer: 13 };
+  }
+
+  var tier = "intro";
+  var qIndex = 0;
+  var wrongCount = 0;
+  var penaltyMs = 0;
+  var clockStart = 0;
+  var timerId = null;
+  var current = null;
+  var inputStr = "";
+
+  var exprEl = document.getElementById("ms-expr");
+  var answerEl = document.getElementById("ms-answer");
+  var hintEl = document.getElementById("ms-hint");
+  var penaltyEl = document.getElementById("ms-penalty");
+  var timerEl = document.getElementById("ms-timer");
+  var qnEl = document.getElementById("ms-q-n");
+  function formatSec(ms) {
+    return (ms / 1000).toFixed(1) + "s";
+  }
+
+  function elapsedMs() {
+    if (!clockStart) return penaltyMs;
+    return Math.max(0, performance.now() - clockStart) + penaltyMs;
+  }
+
+  function updateTimer() {
+    timerEl.textContent = formatSec(elapsedMs());
+  }
+
+  function startClock(anchorPerf) {
+    clockStart = anchorPerf != null ? anchorPerf : performance.now();
+    stopClock();
+    timerId = setInterval(updateTimer, 100);
+    updateTimer();
+  }
+
+  function stopClock() {
+    if (timerId) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+  }
+
+  function setInput(str) {
+    inputStr = str;
+    answerEl.textContent = str.length ? str : "—";
+    answerEl.classList.remove("is-err");
+  }
+
+  function appendDigit(d) {
+    if (inputStr.length >= MAX_DIGITS) return;
+    if (inputStr === "0") inputStr = String(d);
+    else inputStr += String(d);
+    setInput(inputStr);
+  }
+
+  function showQuestion() {
+    current = generateQuestion(qIndex);
+    exprEl.textContent = current.text;
+    qnEl.textContent = String(qIndex + 1);
+    setInput("");
+    hintEl.className = "ms-hint";
+    hintEl.textContent = "";
+    penaltyEl.textContent = penaltyMs > 0 ? ("罚时累计 +" + (penaltyMs / 1000).toFixed(0) + "s") : "";
+  }
+
+  function beginRun() {
+    qIndex = 0;
+    wrongCount = 0;
+    penaltyMs = 0;
+    clockStart = 0;
+    show("play");
+    var runPlay = window.FGBUI && FGBUI.runWhenPlayable
+      ? FGBUI.runWhenPlayable.bind(FGBUI)
+      : function (prep, done) { prep(); done(Date.now()); };
+    runPlay(function () { showQuestion(); }, function () {
+      startClock(performance.now());
+    });
+  }
+
+  function finishRun() {
+    stopClock();
+    var total = elapsedMs();
+    document.getElementById("st-time").textContent = formatSec(total);
+    document.getElementById("st-wrong").textContent = String(wrongCount);
+    document.getElementById("st-penalty").textContent = "+" + (penaltyMs / 1000).toFixed(0) + "s";
+    document.getElementById("ms-result-sub").textContent =
+      wrongCount === 0 ? "全部正确，真快！" : "完成 10 题，继续练习会更稳";
+    show("result");
+    celebrate(FGB_MSG.sessionDone);
+    if (typeof fgbSubmitScore === "function") {
+      fgbSubmitScore({
+        gameId: "mental-speed",
+        mode: "challenge",
+        tier: tier,
+        tierLabel: TIER_LABELS[tier] || tier,
+        metrics: {
+          timeMs: Math.round(total),
+          done: TOTAL,
+          correct: TOTAL,
+          total: TOTAL,
+          wrong: wrongCount,
+        },
+      });
+    }
+  }
+
+  function submitAnswer() {
+    if (!current || !clockStart) return;
+    if (!inputStr.length) {
+      hintEl.className = "ms-hint err";
+      hintEl.textContent = "请输入答案";
+      return;
+    }
+    var guess = parseInt(inputStr, 10);
+    if (!isFinite(guess)) return;
+    if (guess === current.answer) {
+      hintEl.className = "ms-hint ok";
+      hintEl.textContent = "正确！";
+      qIndex += 1;
+      if (qIndex >= TOTAL) {
+        setTimeout(finishRun, 320);
+        return;
+      }
+      setTimeout(function () {
+        showQuestion();
+      }, 280);
+      return;
+    }
+    wrongCount += 1;
+    penaltyMs += PENALTY_MS;
+    answerEl.classList.add("is-err");
+    hintEl.className = "ms-hint err";
+    hintEl.textContent = "不对，+3 秒罚时 · 再试一次";
+    penaltyEl.textContent = "罚时累计 +" + (penaltyMs / 1000).toFixed(0) + "s";
+    updateTimer();
+  }
+
+  function onKey(d) {
+    if (d === "clear") setInput("");
+    else if (d === "back") setInput(inputStr.slice(0, -1));
+    else if (d === "submit") submitAnswer();
+    else appendDigit(parseInt(d, 10));
+  }
+
+  document.getElementById("ms-numpad").addEventListener("click", function (e) {
+    var btn = e.target.closest("button[data-key]");
+    if (!btn) return;
+    onKey(btn.getAttribute("data-key"));
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (views.play.classList.contains("hidden")) return;
+    if (e.key >= "0" && e.key <= "9") {
+      e.preventDefault();
+      appendDigit(parseInt(e.key, 10));
+      return;
+    }
+    if (e.key === "Backspace") {
+      e.preventDefault();
+      onKey("back");
+      return;
+    }
+    if (e.key === "Enter") {
+      e.preventDefault();
+      submitAnswer();
+    }
+  });
+
+  document.getElementById("btn-start-classic").addEventListener("click", beginRun);
+  document.getElementById("btn-again").addEventListener("click", beginRun);
+  document.getElementById("btn-home").addEventListener("click", function () {
+    stopClock();
+    show("home");
+  });
+  document.getElementById("btn-quit").addEventListener("click", function () {
+    if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+      if (window.FGBDaily && FGBDaily.notifyAbort) FGBDaily.notifyAbort();
+      return;
+    }
+    askConfirm("确定退出本局？进度不会保存。", function () {
+      stopClock();
+      show("home");
+    });
+  });
+
+  var TIER_LABELS = {
+    intro: "初阶", simple: "简单", normal: "普通", hard: "困难", master: "大师", god: "大神"
+  };
+
+  if (window.__FGB_IS_DAILY__ || /(?:^|[?&])daily=1(?:&|$)/.test(location.search || "")) {
+    var dq = window.__FGB_DAILY_Q__ || {};
+    if (!dq.tier) dq.tier = (new URLSearchParams(location.search || "")).get("tier") || "normal";
+    if (dq.tier) tier = dq.tier;
+    beginRun();
+  } else {
+    show("home");
+  }
+})();
+
+</script>
+</body>
+</html>

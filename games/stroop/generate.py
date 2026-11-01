@@ -56,8 +56,9 @@ EXTRA_CSS = r"""
   margin: 0 auto;
 }
 .color-grid button {
-  border: 2px solid var(--line);
+  border: 2px solid rgba(255, 255, 255, 0.65);
   border-radius: 22px;
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.12);
   padding: 0;
   font: inherit;
   font-size: clamp(1.25rem, 4vw, 1.65rem);
@@ -153,7 +154,7 @@ BODY = r"""
     <p class="hint" id="play-hint">看颜色，点下方色块</p>
     <div class="card">
       <div class="stroop-word" id="stroop-word">—</div>
-      <div class="color-grid" id="color-grid"></div>
+      <div class="color-grid" id="color-grid" data-fgb-board></div>
       <div class="stat-row">
         <span>连击 <strong id="streak">0</strong></span>
         <span>正确 <strong id="correct-n">0</strong></span>
@@ -257,6 +258,7 @@ SCRIPT = r"""
   var penaltyTimer = null;
   var startedAt = 0;
   var trialStart = 0;
+  var challengeDone = false;
   var waiting = false;
   var currentTrial = null;
 
@@ -273,13 +275,24 @@ SCRIPT = r"""
   var hintEl = document.getElementById("play-hint");
   var progressEl = document.getElementById("play-progress");
   var labelEl = document.getElementById("play-label");
-  var clipCache = {};
-  var activeAudio = null;
-  var audioUnlocked = false;
-
   function clipUrl(name) {
     return "audio/" + name + ".mp3";
   }
+
+  var audioClipIds = COLORS.map(function (c) { return c.id; });
+  var audioClips = FgbAudioClips({
+    resolveUrl: function (name) { return clipUrl(name); },
+    clipIds: audioClipIds,
+  });
+  audioClips.warmNetwork();
+  (function wireEarlyAudioUnlock() {
+    function onGesture() {
+      audioClips.unlock();
+    }
+    ["pointerdown", "keydown", "touchstart"].forEach(function (ev) {
+      document.addEventListener(ev, onGesture, { once: true, passive: true });
+    });
+  })();
 
   function setSpeaking(on) {
     if (wordEl) wordEl.classList.toggle("is-speaking", !!on);
@@ -287,67 +300,29 @@ SCRIPT = r"""
 
   function stopSpeak() {
     setSpeaking(false);
-    if (activeAudio) {
-      try { activeAudio.pause(); } catch (e) {}
-      activeAudio = null;
-    }
+    audioClips.stop();
   }
 
   /** 用户手势下解锁 WebView 音频 */
   function unlockAudio() {
-    if (audioUnlocked) return;
-    audioUnlocked = true;
-    try {
-      var silent = new Audio(
-        "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"
-      );
-      silent.volume = 0.01;
-      var p = silent.play();
-      if (p && p.then) p.catch(function () {});
-    } catch (e) {}
+    audioClips.unlock();
   }
 
   function preloadClips() {
-    COLORS.forEach(function (c) {
-      if (clipCache[c.id]) return;
-      var a = new Audio(clipUrl(c.id));
-      a.preload = "auto";
-      a.addEventListener("error", function () { a.__fgbBad = true; });
-      clipCache[c.id] = a;
-    });
+    return audioClips.preloadAll();
   }
 
   /** 固定播报字义（红→红色）；不可关闭 */
   function speakWordLabel(wordId) {
     stopSpeak();
-    if (!wordId) return;
-    var audio = clipCache[wordId];
-    if (!audio) {
-      audio = new Audio(clipUrl(wordId));
-      audio.preload = "auto";
-      clipCache[wordId] = audio;
-    }
-    if (audio.__fgbBad) return;
-    try {
-      audio.pause();
-      audio.currentTime = 0;
-    } catch (e) {}
-    activeAudio = audio;
+    if (!wordId || audioClips.isBad(wordId)) return;
     setSpeaking(true);
-    audio.onended = function () { setSpeaking(false); activeAudio = null; };
-    audio.onerror = function () {
-      audio.__fgbBad = true;
+    audioClips.play(wordId, function (ok) {
       setSpeaking(false);
-      activeAudio = null;
-    };
-    var playPromise = audio.play();
-    if (playPromise && playPromise.then) {
-      playPromise.catch(function () {
-        audio.__fgbBad = true;
-        setSpeaking(false);
-        activeAudio = null;
-      });
-    }
+      if (!ok) {
+        /* 字已在屏幕上，静默失败即可 */
+      }
+    });
   }
   function avg(arr) {
     if (!arr.length) return null;
@@ -385,7 +360,7 @@ SCRIPT = r"""
   function updateTimer() {
     var left = Math.max(0, deadline - Date.now());
     document.getElementById("timer-text").textContent = fmtTime(left);
-    if (left <= 0 && mode === "challenge" && timeLimitMs > 0) finishChallenge();
+    if (left <= 0 && mode === "challenge" && timeLimitMs > 0 && !challengeDone) finishChallenge();
   }
 
   function startTimer() {
@@ -395,6 +370,7 @@ SCRIPT = r"""
   }
 
   function resetStats() {
+    challengeDone = false;
     total = 0; correct = 0; streak = 0; maxStreak = 0;
     rts = []; rtsCong = []; rtsIncong = [];
     document.getElementById("streak").textContent = "0";
@@ -430,6 +406,7 @@ SCRIPT = r"""
   }
 
   function showTrial() {
+    if (mode === "challenge" && challengeDone) return;
     clearPenalty();
     waiting = true;
     currentTrial = buildTrial();
@@ -452,6 +429,7 @@ SCRIPT = r"""
 
   function onAnswer(choiceId) {
     if (waiting || !currentTrial) return;
+    if (mode === "challenge" && challengeDone) return;
     waiting = true;
     stopSpeak();
     renderChoices(currentTrial.choices, true);
@@ -485,6 +463,10 @@ SCRIPT = r"""
         setTimeout(finishChallenge, ok ? 700 : 2000);
         return;
       }
+      if (timeLimitMs > 0 && Date.now() >= deadline) {
+        setTimeout(finishChallenge, ok ? 500 : 2000);
+        return;
+      }
     }
     if (mode === "casual") {
       setTimeout(showTrial, ok ? 400 : 900);
@@ -505,13 +487,17 @@ SCRIPT = r"""
       mode = "casual";
       applyDiff();
       unlockAudio();
-      preloadClips();
       stopTimer();
       resetStats();
       updateChrome();
       document.getElementById("timer-text").textContent = "—";
       showView(views, "play");
-      showTrial();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { Promise.resolve(prep()).then(function () { done(Date.now()); }); };
+      run(function () {
+        return Promise.resolve(preloadClips()).then(function () { showTrial(); });
+      }, function () {});
     });
   }
 
@@ -520,23 +506,29 @@ SCRIPT = r"""
       mode = "challenge";
       applyDiff();
       unlockAudio();
-      preloadClips();
       resetStats();
-      startedAt = Date.now();
-      if (timeLimitMs > 0) {
-        deadline = startedAt + timeLimitMs;
-      } else {
-        deadline = startedAt + 86400000;
-        document.getElementById("timer-text").textContent = "00:00";
-      }
       updateChrome();
       showView(views, "play");
-      startTimer();
-      showTrial();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { Promise.resolve(prep()).then(function () { done(Date.now()); }); };
+      run(function () {
+        return Promise.resolve(preloadClips()).then(function () { showTrial(); });
+      }, function (t) {
+        startedAt = t;
+        if (timeLimitMs > 0) deadline = startedAt + timeLimitMs;
+        else {
+          deadline = startedAt + 86400000;
+          document.getElementById("timer-text").textContent = "00:00";
+        }
+        startTimer();
+      });
     });
   }
 
   function finishChallenge() {
+    if (challengeDone) return;
+    challengeDone = true;
     clearPenalty();
     stopTimer();
     stopSpeak();
@@ -642,6 +634,7 @@ def build_html() -> str:
         inject_lobby_link(BODY),
         SCRIPT,
         game_skin="stroop",
+        audio_clips=True,
     )
 
 

@@ -249,6 +249,28 @@
     return api("/api/v1/lobby/summary").catch(function () { return null; });
   }
 
+  function markProductToyHtml() {
+    try {
+      var doc = global.document;
+      if (!doc || !doc.documentElement) return;
+      var body = doc.body;
+      if (!body) return;
+      if (
+        body.classList.contains("fgb-console") ||
+        body.classList.contains("fgb-lobby-toy") ||
+        body.hasAttribute("data-game-skin")
+      ) {
+        doc.documentElement.classList.add("fgb-product-toy");
+      }
+    } catch (e) {}
+  }
+
+  if (global.document && global.document.body) {
+    markProductToyHtml();
+  } else if (global.document) {
+    global.document.addEventListener("DOMContentLoaded", markProductToyHtml);
+  }
+
   global.FGB = {
     basePath: basePath,
     url: withBase,

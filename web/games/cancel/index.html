@@ -23,7 +23,10 @@ html.fgb-daily-mode #view-casual-done { display: none !important; }
 html.fgb-daily-mode .mode-btn,
 html.fgb-daily-mode #casual-extra,
 html.fgb-daily-mode #btn-next,
-html.fgb-daily-mode #btn-restart { display: none !important; }
+html.fgb-daily-mode #btn-restart,
+html.fgb-daily-mode #btn-new,
+html.fgb-daily-mode #btn-hint,
+html.fgb-daily-mode [data-fgb-hint-control] { display: none !important; }
 /* 闯关 iframe 内：收掉重复顶栏/长说明；棋盘边长由 --fgb-board 动态计算 */
 html.fgb-daily-mode {
   --fgb-board: 280px;
@@ -35,8 +38,9 @@ html.fgb-daily-mode:not(.fgb-play-scroll) body { overflow: hidden; }
 html.fgb-daily-mode.fgb-play-scroll,
 html.fgb-daily-mode.fgb-play-scroll body { overflow: auto; }
 html.fgb-daily-mode .wrap {
-  width: min(720px, calc(100% - 0.75rem));
-  padding: 0.35rem 0 0.4rem;
+  width: 100%;
+  max-width: none;
+  padding: 0.35rem var(--play-gutter) 0.4rem;
   box-sizing: border-box;
 }
 html.fgb-daily-mode #view-play > .topbar { display: none !important; }
@@ -50,6 +54,17 @@ html.fgb-daily-mode .clover {
 }
 html.fgb-daily-mode .clover-wrap { margin: 0.1rem 0 0.3rem; }
 html.fgb-daily-mode .leaf { font-size: calc(var(--fgb-board) * 0.11) !important; }
+html.fgb-daily-mode .card-board-wrap {
+  max-width: var(--fgb-board) !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+html.fgb-daily-mode .num-card .val {
+  font-size: calc(var(--fgb-board) * 0.14) !important;
+}
+html.fgb-daily-mode .num-card .expr {
+  font-size: calc(var(--fgb-board) * 0.045) !important;
+}
 html.fgb-daily-mode .sudoku-wrap { width: min(100%, var(--fgb-board)) !important; }
 html.fgb-daily-mode .sudoku { max-height: var(--fgb-board) !important; }
 html.fgb-daily-mode .maze-wrap { max-height: var(--fgb-board) !important; }
@@ -64,44 +79,59 @@ html.fgb-daily-mode .board {
 <style>
 
 :root {
-  --ink: #e8f2ec;
-  --muted: #8fa399;
-  --line: rgba(232, 242, 236, 0.12);
-  --paper: #0c1411;
-  --panel: rgba(18, 32, 28, 0.88);
-  --accent: #3ecf8e;
+  --ink: #1a2b3c;
+  --muted: #5c6d7e;
+  --line: rgba(26, 43, 60, 0.12);
+  --paper: #fff8f0;
+  --panel: #ffffff;
+  --accent: #2ecc71;
   --accent-deep: #1a9f68;
   --warn: #e8a04a;
   --danger: #e07060;
-  --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  --shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
   --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
   --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --play-gutter: var(--console-gutter, clamp(1rem, 3vw, 2.25rem));
+  --fgb-play-max: 560px;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
 body {
   font-family: var(--sans);
   color: var(--ink);
-  background:
-    radial-gradient(900px 480px at 12% -8%, rgba(62, 207, 142, 0.14), transparent 55%),
-    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.06), transparent 50%),
-    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
+  background: transparent;
 }
 body::before {
-  content: "";
-  position: fixed; inset: 0; pointer-events: none; opacity: .2;
-  background-image:
-    linear-gradient(rgba(232,242,236,.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(232,242,236,.03) 1px, transparent 1px);
-  background-size: 28px 28px;
+  content: none;
 }
-.wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
-.wrap.wide { width: min(720px, calc(100% - 1.5rem)); }
+.wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 1.6rem var(--play-gutter) 3rem;
+  min-width: 0;
+}
+.wrap.wide {
+  width: 100%;
+  max-width: none;
+  --fgb-play-max: 720px;
+}
+.fgb-play-stage,
+[data-fgb-board] {
+  width: 100%;
+  max-width: min(var(--fgb-play-max), 100%);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
 .hidden { display: none !important; }
 /* 平板横屏 / 矮视口：压缩边距；棋盘尺寸由各游戏用 vmin 吃满短边 */
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
-  .wrap { padding: .55rem 0 1rem; width: min(560px, calc(100% - 1rem)); }
-  .wrap.wide { width: min(960px, calc(100% - 1rem)); }
+  .wrap { padding: .55rem var(--play-gutter) 1rem; }
+  .wrap.wide { width: 100%; max-width: none; }
   h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); margin-bottom: .2rem; }
   .sub { margin: 0 0 .65rem; font-size: .88rem; }
   .card { padding: .75rem; border-radius: 14px; }
@@ -133,13 +163,14 @@ h1 em { font-style: italic; color: var(--accent); }
 .mode-grid { display: grid; gap: .75rem; }
 .mode-btn {
   text-align: left;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 16px;
   padding: 1rem 1.05rem;
-  background: rgba(255,255,255,.04);
+  background: #fff;
   cursor: pointer;
   font: inherit;
   color: inherit;
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.05);
   transition: transform .15s ease, border-color .15s ease;
 }
 .mode-btn:hover { transform: translateY(-1px); border-color: rgba(62,207,142,.4); }
@@ -152,14 +183,15 @@ h1 em { font-style: italic; color: var(--accent); }
   .choice-row.six { grid-template-columns: repeat(6, 1fr); }
 }
 .choice-row button {
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 14px;
   padding: .9rem .4rem;
   font: inherit;
   font-weight: 700;
-  background: rgba(255,255,255,.04);
+  background: #fff;
   color: var(--ink);
   cursor: pointer;
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.05);
 }
 .choice-row button.active {
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
@@ -215,17 +247,27 @@ h1 em { font-style: italic; color: var(--accent); }
 }
 .actions.two { grid-template-columns: repeat(2, 1fr); }
 .actions button {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: .7rem .3rem;
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  border-radius: 999px;
+  min-height: 44px;
+  padding: .65rem .4rem;
   font: inherit;
-  font-weight: 600;
-  background: rgba(255,255,255,.04);
+  font-weight: 700;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
   cursor: pointer;
   color: var(--ink);
 }
-.actions button.warn { color: var(--warn); }
-.actions button.danger { color: var(--danger); }
+.actions button.warn {
+  color: #a65c10;
+  background: linear-gradient(180deg, #fffef9 0%, #fff5e6 100%);
+  border-color: rgba(232, 160, 74, 0.35);
+}
+.actions button.danger {
+  color: #b33d30;
+  background: linear-gradient(180deg, #fff5f5 0%, #ffe8e6 100%);
+  border-color: rgba(224, 112, 96, 0.35);
+}
 .stats-list { margin: .8rem 0 1.1rem; padding: 0; list-style: none; }
 .stats-list li {
   display: flex;
@@ -251,10 +293,11 @@ h1 em { font-style: italic; color: var(--accent); }
 .grid-cells button, .grid-cells .cell {
   -webkit-appearance: none;
   appearance: none;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: rgba(232,242,236,.08);
+  border: 2px solid rgba(26, 43, 60, 0.08);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff 0%, #f6fffb 100%);
   color: var(--ink);
+  box-shadow: 0 2px 0 rgba(26, 43, 60, 0.05);
   font: inherit;
   font-weight: 600;
   aspect-ratio: 1;
@@ -281,16 +324,17 @@ h1 em { font-style: italic; color: var(--accent); }
   animation: wrongFlash .5s ease;
 }
 @keyframes wrongFlash {
-  0%, 100% { background: rgba(232,242,236,.08); }
-  50% { background: rgba(163,59,45,.35); }
+  0%, 100% { background: linear-gradient(180deg, #fff 0%, #f6fffb 100%); }
+  50% { background: rgba(224, 112, 96, 0.35); }
 }
 .task-bar {
   text-align: center;
   padding: .65rem .8rem;
-  border-radius: 12px;
-  background: rgba(62,207,142,.1);
-  color: var(--accent);
-  font-weight: 600;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #e8fff4 0%, #d4fce8 100%);
+  border: 2px solid rgba(46, 204, 113, 0.25);
+  color: var(--accent-deep);
+  font-weight: 700;
   margin-bottom: .85rem;
 }
 
@@ -426,45 +470,82 @@ h1 em { font-style: italic; color: var(--accent); }
 .target-bar strong {
   font-family: var(--display);
   font-size: 1.6rem;
-  color: var(--accent-deep);
+  color: var(--accent);
 }
-.grid-wrap {
-  overflow: auto;
-  max-height: min(82vmin, 720px);
+.target-bar .target-remain {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+.target-bar .target-remain strong {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  color: var(--ink);
+}
+/* Play view: square board sized by JS --cancel-side (min width/height), centered, no crop. */
+body[data-game-skin="cancel"] #view-play > .card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+body[data-game-skin="cancel"] #view-play .grid-wrap {
+  overflow: hidden;
+  max-height: none !important;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   justify-content: center;
+  align-items: center;
+  margin: 0 -.15rem;
+  padding: .15rem 0;
+  box-sizing: border-box;
 }
-.grid-cells.dense {
-  width: min(100%, 82vmin, 640px);
-  margin: 0;
+html.fgb-daily-mode body[data-game-skin="cancel"] #view-play .grid-wrap {
+  overflow: hidden;
+}
+body[data-game-skin="cancel"] #view-play #grid.grid-cells.dense {
+  --cancel-side: 280px;
+  width: var(--cancel-side) !important;
+  height: var(--cancel-side) !important;
+  max-width: min(100%, var(--cancel-side)) !important;
+  max-height: min(100%, var(--cancel-side)) !important;
+  aspect-ratio: 1;
+  margin: 0 auto !important;
+  gap: clamp(1px, 0.28vw, 3px);
+  grid-auto-rows: 1fr;
+  align-content: stretch;
+  flex: 0 0 auto;
+  align-self: center;
+  box-sizing: border-box;
 }
 .grid-cells.dense button {
-  min-height: 0;
-  aspect-ratio: 1;
-  /* Safari 会给 grid/flex 按钮再套一层空壳，和数字叠成两行。 */
-  display: block;
   width: 100%;
-  position: relative;
-  font-size: clamp(.72rem, 2.6cqi, 1.25rem);
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  aspect-ratio: unset;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  font-size: clamp(
+    0.62rem,
+    calc(var(--cancel-side, 320px) / var(--cancel-cols, 12) * 0.44),
+    1.2rem
+  );
   font-weight: 700;
 }
 .grid-cells.dense button > span {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
+  line-height: 1;
   pointer-events: none;
-}
-.grid-cells.dense { container-type: inline-size; }
-.target-bar strong {
-  color: var(--accent);
 }
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
   .target-bar { margin-bottom: .35rem; font-size: 1rem; }
   .target-bar strong { font-size: 1.25rem; }
-  .grid-wrap { max-height: min(86vmin, 720px); }
-  .grid-cells.dense { width: min(100%, 86vmin, 720px); }
+}
+@media (max-width: 420px) {
+  .target-bar .target-remain { font-size: 0.88rem; }
 }
 
 </style>
@@ -550,10 +631,13 @@ h1 em { font-style: italic; color: var(--accent); }
       <span>已找 <strong id="found-n">0</strong> / <strong id="total-n">0</strong></span>
       <span id="play-timer"><strong id="timer-text">00:00</strong></span>
     </div>
-    <div class="target-bar">请找出所有的：<strong id="target-display">7</strong></div>
+    <div class="target-bar">
+      请找出所有的：<strong id="target-display">7</strong>
+      <span class="target-remain">剩余个数：<strong id="remain-n">0</strong></span>
+    </div>
     <p class="hint" id="play-hint">点击目标格进行划销</p>
     <div class="card">
-      <div class="grid-wrap">
+      <div class="grid-wrap" data-fgb-board>
         <div class="grid-cells dense" id="grid"></div>
       </div>
       <div class="actions">
@@ -656,7 +740,7 @@ function pick(arr) { return arr[randInt(arr.length)]; }
 var FGB_MSG = {
   exitConfirm: "退出并查看统计？",
   done: "完成！",
-  sessionDone: "本局完成！"
+  sessionDone: "完成！"
 };
 
 var _confirmCb = null;
@@ -697,8 +781,12 @@ function _resolveConfirm(ok) {
 })();
 
 var _celebrateTimer = null;
-/** 轻量完成动效：不挡点击，约 0.5s 自动消失 */
+/** 统一关卡/回合完成横幅（优先 FGBUI.stageDone，与 daily 一致） */
 function celebrate(message) {
+  if (window.FGBUI && FGBUI.stageDone) {
+    FGBUI.stageDone(message || FGB_MSG.done, { duration: 520 });
+    return;
+  }
   var el = document.getElementById("celebrate");
   var text = document.getElementById("celebrate-text");
   if (!el || !text) return;
@@ -773,7 +861,7 @@ function celebrateThen(message, callback, delayMs) {
     a.addEventListener("click", abortDaily);
   });
   // 游戏内退出按钮：每日模式禁止 show(home)，须通知父页结束挑战
-  ["btn-exit", "btn-exit-casual", "btn-exit-challenge"].forEach(function (id) {
+  ["btn-exit", "btn-exit-casual", "btn-exit-challenge", "btn-quit"].forEach(function (id) {
     var el = document.getElementById(id);
     if (!el) return;
     el.addEventListener("click", abortDaily, true);
@@ -905,9 +993,81 @@ function celebrateThen(message, callback, delayMs) {
       + " · " + diffLabel(diffKey);
   }
 
+  var cancelFitInstalled = false;
+
+  function fitCancelBoard() {
+    var play = document.getElementById("view-play");
+    var wrap = play && play.querySelector(".grid-wrap");
+    var grid = document.getElementById("grid");
+    if (!play || !wrap || !grid || play.classList.contains("hidden")) return;
+
+    var vh = window.innerHeight || document.documentElement.clientHeight || 600;
+    var vw = window.innerWidth || document.documentElement.clientWidth || 800;
+    var pad = 6;
+    var top = wrap.getBoundingClientRect().top;
+    var actions = play.querySelector(".actions");
+    var bottomEdge = vh - pad;
+    if (actions) bottomEdge = actions.getBoundingClientRect().top - pad;
+    else {
+      var card = wrap.closest(".card");
+      if (card) bottomEdge = card.getBoundingClientRect().bottom - pad;
+    }
+    var availH = Math.max(100, Math.floor(bottomEdge - top));
+    var availW = Math.floor(wrap.clientWidth || wrap.getBoundingClientRect().width);
+    if (availW < 1) availW = Math.floor(vw * 0.92);
+
+    var maxB = Math.min(720, Math.floor(Math.min(vw, vh) * 0.88));
+    var side = Math.min(availW, availH, maxB);
+    if (side < 80) side = Math.min(availW, availH);
+
+    wrap.style.minHeight = availH + "px";
+    wrap.style.maxHeight = availH + "px";
+    wrap.style.width = "100%";
+    wrap.style.display = "flex";
+    wrap.style.justifyContent = "center";
+    wrap.style.alignItems = "center";
+    grid.style.setProperty("--cancel-side", side + "px");
+    grid.style.width = side + "px";
+    grid.style.height = side + "px";
+    grid.style.maxWidth = "100%";
+    grid.style.marginLeft = "auto";
+    grid.style.marginRight = "auto";
+    document.documentElement.style.setProperty("--fgb-board", side + "px");
+  }
+
+  function scheduleCancelBoardFit() {
+    if (window.requestAnimationFrame) {
+      requestAnimationFrame(function () { fitCancelBoard(); });
+    } else {
+      fitCancelBoard();
+    }
+  }
+
+  function installCancelBoardFit() {
+    if (cancelFitInstalled) return;
+    cancelFitInstalled = true;
+    function run() { scheduleCancelBoardFit(); }
+    run();
+    window.addEventListener("resize", run);
+    window.addEventListener("orientationchange", function () {
+      setTimeout(run, 80);
+      setTimeout(run, 350);
+    });
+    if (window.visualViewport) window.visualViewport.addEventListener("resize", run);
+    if (window.FGBDaily && FGBDaily.installFitPlay) {
+      FGBDaily.installFitPlay({
+        force: true, min: 120, max: 720, pad: 10, boardSelector: ".grid-wrap"
+      });
+    }
+  }
+
   function renderGrid() {
     var grid = document.getElementById("grid");
-    grid.style.gridTemplateColumns = "repeat(" + puzzle.n + ", 1fr)";
+    var n = puzzle.n;
+    grid.style.setProperty("--cancel-cols", String(n));
+    grid.style.setProperty("--cancel-rows", String(n));
+    grid.style.gridTemplateColumns = "repeat(" + n + ", minmax(0, 1fr))";
+    grid.style.gridTemplateRows = "repeat(" + n + ", minmax(0, 1fr))";
     grid.innerHTML = "";
     marked = {};
     for (var i = 0; i < puzzle.cells.length; i++) {
@@ -923,8 +1083,11 @@ function celebrateThen(message, callback, delayMs) {
     document.getElementById("target-display").textContent = puzzle.target;
     document.getElementById("found-n").textContent = "0";
     document.getElementById("total-n").textContent = String(puzzle.targetCount);
+    updateRemainCount();
     document.getElementById("play-hint").className = "hint";
     document.getElementById("play-hint").textContent = "点击目标格进行划销";
+    installCancelBoardFit();
+    scheduleCancelBoardFit();
   }
 
   function isTarget(i) {
@@ -937,6 +1100,12 @@ function celebrateThen(message, callback, delayMs) {
     return n;
   }
 
+  function updateRemainCount() {
+    if (!puzzle) return;
+    var rem = puzzle.targetCount - foundCount();
+    document.getElementById("remain-n").textContent = String(rem > 0 ? rem : 0);
+  }
+
   function onCellClick(i, el) {
     if (Date.now() < frozenUntil || marked[i]) return;
     if (isTarget(i)) {
@@ -944,6 +1113,7 @@ function celebrateThen(message, callback, delayMs) {
       el.classList.add("marked");
       var fc = foundCount();
       document.getElementById("found-n").textContent = String(fc);
+      updateRemainCount();
       if (fc >= puzzle.targetCount) onRoundComplete(false);
     } else {
       totalWrong++;
@@ -982,7 +1152,6 @@ function celebrateThen(message, callback, delayMs) {
   }
 
   function loadRound() {
-    roundStart = Date.now();
     puzzle = genPuzzle(puzzleType);
     renderGrid();
   }
@@ -996,7 +1165,10 @@ function celebrateThen(message, callback, delayMs) {
       document.getElementById("timer-text").textContent = "—";
       document.getElementById("casual-extra").classList.remove("hidden");
       showView(views, "play");
-      loadRound();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadRound(); }, function (t) { roundStart = t; });
     });
   }
 
@@ -1007,12 +1179,16 @@ function celebrateThen(message, callback, delayMs) {
       roundsDone = 0;
       totalWrong = 0;
       totalMiss = 0;
-      startedAt = Date.now();
       document.getElementById("play-label").textContent = modeLabel();
       document.getElementById("casual-extra").classList.add("hidden");
       showView(views, "play");
-      startTimer();
-      loadRound();
+      var run = window.FGBUI && FGBUI.runWhenPlayable
+        ? FGBUI.runWhenPlayable.bind(FGBUI)
+        : function (prep, done) { prep(); done(Date.now()); };
+      run(function () { loadRound(); }, function (t) {
+        startedAt = t;
+        startTimer();
+      });
     });
   }
 

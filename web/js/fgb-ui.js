@@ -84,6 +84,54 @@
     }, 2200);
   }
 
+  var _stageDoneTimer = null;
+
+  function ensureStageDoneDom() {
+    if (!document.body) return null;
+    var el = document.getElementById("fgb-stage-done");
+    if (!el) {
+      el = document.createElement("div");
+      el.id = "fgb-stage-done";
+      el.className = "fgb-stage-done hidden";
+      el.setAttribute("aria-live", "polite");
+      el.innerHTML =
+        '<span class="fgb-stage-done-mark" aria-hidden="true">✓</span>' +
+        '<span class="fgb-stage-done-text"></span>';
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+
+  /**
+   * Unified round/stage finish banner (free play + daily).
+   * opts.duration — visible ms (default 520)
+   */
+  function stageDone(message, opts) {
+    opts = opts || {};
+    if (!document.body) {
+      setTimeout(function () { stageDone(message, opts); }, 0);
+      return;
+    }
+    var el = ensureStageDoneDom();
+    if (!el) return;
+    var textEl = el.querySelector(".fgb-stage-done-text");
+    var fallback =
+      global.FGB_MSG && global.FGB_MSG.done ? global.FGB_MSG.done : "完成！";
+    if (textEl) textEl.textContent = message || fallback;
+    el.classList.remove("show");
+    void el.offsetWidth;
+    el.classList.add("show");
+    el.classList.remove("hidden");
+    if (_stageDoneTimer) clearTimeout(_stageDoneTimer);
+    var duration = opts.duration != null ? opts.duration : 520;
+    _stageDoneTimer = setTimeout(function () {
+      el.classList.remove("show");
+      setTimeout(function () {
+        el.classList.add("hidden");
+      }, 200);
+    }, duration);
+  }
+
 
   var _promptCb = null;
 
@@ -178,6 +226,48 @@
     } catch (e) { /* ignore */ }
   }
 
+  /**
+   * Run prepare (build board, preload), wait for paint, then onPlayable(playableAt).
+   * playableAt is Date.now() — use as challenge startedAt / roundStart.
+   * In daily iframe, posts fgb-daily-stage-ready unless opts.signalReady === false.
+   */
+  function runWhenPlayable(prepare, onPlayable, opts) {
+    opts = opts || {};
+    function signalReady() {
+      if (opts.signalReady === false) return;
+      if (global.FGBDaily && FGBDaily.notifyStageReady) FGBDaily.notifyStageReady();
+      else if (global.parent && global.parent !== global) {
+        global.parent.postMessage({ type: "fgb-daily-stage-ready" }, "*");
+      }
+    }
+    function afterLoad() {
+      Promise.resolve()
+        .then(function () {
+          return typeof prepare === "function" ? prepare() : undefined;
+        })
+        .then(function () {
+          return new Promise(function (resolve) {
+            requestAnimationFrame(function () {
+              requestAnimationFrame(resolve);
+            });
+          });
+        })
+        .then(function () {
+          var t = Date.now();
+          signalReady();
+          if (typeof onPlayable === "function") onPlayable(t);
+        })
+        .catch(function (err) {
+          console.error(err);
+          var t = Date.now();
+          signalReady();
+          if (typeof onPlayable === "function") onPlayable(t);
+        });
+    }
+    if (document.readyState === "complete") afterLoad();
+    else global.addEventListener("load", afterLoad, { once: true });
+  }
+
   patchNativeDialogs();
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () { ensureDom(); });
@@ -189,6 +279,8 @@
     askConfirm: askConfirm,
     askPrompt: askPrompt,
     toast: toast,
+    stageDone: stageDone,
+    runWhenPlayable: runWhenPlayable,
     patchNativeDialogs: patchNativeDialogs,
   };
 })(window);

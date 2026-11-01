@@ -145,44 +145,59 @@ def tier_choice_row(
 
 COMMON_CSS = r"""
 :root {
-  --ink: #e8f2ec;
-  --muted: #8fa399;
-  --line: rgba(232, 242, 236, 0.12);
-  --paper: #0c1411;
-  --panel: rgba(18, 32, 28, 0.88);
-  --accent: #3ecf8e;
+  --ink: #1a2b3c;
+  --muted: #5c6d7e;
+  --line: rgba(26, 43, 60, 0.12);
+  --paper: #fff8f0;
+  --panel: #ffffff;
+  --accent: #2ecc71;
   --accent-deep: #1a9f68;
   --warn: #e8a04a;
   --danger: #e07060;
-  --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  --shadow: 0 12px 32px rgba(45, 62, 90, 0.12);
   --display: "Fraunces", "Songti SC", "Palatino Linotype", serif;
   --sans: "DM Sans", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  --play-gutter: var(--console-gutter, clamp(1rem, 3vw, 2.25rem));
+  --fgb-play-max: 560px;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; min-height: 100%; }
 body {
   font-family: var(--sans);
   color: var(--ink);
-  background:
-    radial-gradient(900px 480px at 12% -8%, rgba(62, 207, 142, 0.14), transparent 55%),
-    radial-gradient(700px 400px at 100% 0%, rgba(232, 160, 74, 0.06), transparent 50%),
-    linear-gradient(165deg, #0a1210 0%, #0c1411 45%, #101a16 100%);
+  background: transparent;
 }
 body::before {
-  content: "";
-  position: fixed; inset: 0; pointer-events: none; opacity: .2;
-  background-image:
-    linear-gradient(rgba(232,242,236,.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(232,242,236,.03) 1px, transparent 1px);
-  background-size: 28px 28px;
+  content: none;
 }
-.wrap { position: relative; z-index: 1; width: min(560px, calc(100% - 1.5rem)); margin: 0 auto; padding: 1.6rem 0 3rem; }
-.wrap.wide { width: min(720px, calc(100% - 1.5rem)); }
+.wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 1.6rem var(--play-gutter) 3rem;
+  min-width: 0;
+}
+.wrap.wide {
+  width: 100%;
+  max-width: none;
+  --fgb-play-max: 720px;
+}
+.fgb-play-stage,
+[data-fgb-board] {
+  width: 100%;
+  max-width: min(var(--fgb-play-max), 100%);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
 .hidden { display: none !important; }
 /* 平板横屏 / 矮视口：压缩边距；棋盘尺寸由各游戏用 vmin 吃满短边 */
 @media (max-height: 720px), (orientation: landscape) and (max-height: 900px) {
-  .wrap { padding: .55rem 0 1rem; width: min(560px, calc(100% - 1rem)); }
-  .wrap.wide { width: min(960px, calc(100% - 1rem)); }
+  .wrap { padding: .55rem var(--play-gutter) 1rem; }
+  .wrap.wide { width: 100%; max-width: none; }
   h1 { font-size: clamp(1.45rem, 4.5vw, 2.1rem); margin-bottom: .2rem; }
   .sub { margin: 0 0 .65rem; font-size: .88rem; }
   .card { padding: .75rem; border-radius: 14px; }
@@ -214,13 +229,14 @@ h1 em { font-style: italic; color: var(--accent); }
 .mode-grid { display: grid; gap: .75rem; }
 .mode-btn {
   text-align: left;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 16px;
   padding: 1rem 1.05rem;
-  background: rgba(255,255,255,.04);
+  background: #fff;
   cursor: pointer;
   font: inherit;
   color: inherit;
+  box-shadow: 0 6px 0 rgba(26, 43, 60, 0.05);
   transition: transform .15s ease, border-color .15s ease;
 }
 .mode-btn:hover { transform: translateY(-1px); border-color: rgba(62,207,142,.4); }
@@ -233,14 +249,15 @@ h1 em { font-style: italic; color: var(--accent); }
   .choice-row.six { grid-template-columns: repeat(6, 1fr); }
 }
 .choice-row button {
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 14px;
   padding: .9rem .4rem;
   font: inherit;
   font-weight: 700;
-  background: rgba(255,255,255,.04);
+  background: #fff;
   color: var(--ink);
   cursor: pointer;
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.05);
 }
 .choice-row button.active {
   background: linear-gradient(160deg, var(--accent), var(--accent-deep));
@@ -296,17 +313,27 @@ h1 em { font-style: italic; color: var(--accent); }
 }
 .actions.two { grid-template-columns: repeat(2, 1fr); }
 .actions button {
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: .7rem .3rem;
+  border: 2px solid rgba(26, 43, 60, 0.1);
+  border-radius: 999px;
+  min-height: 44px;
+  padding: .65rem .4rem;
   font: inherit;
-  font-weight: 600;
-  background: rgba(255,255,255,.04);
+  font-weight: 700;
+  background: linear-gradient(180deg, #fff 0%, #f8fbff 100%);
+  box-shadow: 0 4px 0 rgba(26, 43, 60, 0.06);
   cursor: pointer;
   color: var(--ink);
 }
-.actions button.warn { color: var(--warn); }
-.actions button.danger { color: var(--danger); }
+.actions button.warn {
+  color: #a65c10;
+  background: linear-gradient(180deg, #fffef9 0%, #fff5e6 100%);
+  border-color: rgba(232, 160, 74, 0.35);
+}
+.actions button.danger {
+  color: #b33d30;
+  background: linear-gradient(180deg, #fff5f5 0%, #ffe8e6 100%);
+  border-color: rgba(224, 112, 96, 0.35);
+}
 .stats-list { margin: .8rem 0 1.1rem; padding: 0; list-style: none; }
 .stats-list li {
   display: flex;
@@ -332,10 +359,11 @@ h1 em { font-style: italic; color: var(--accent); }
 .grid-cells button, .grid-cells .cell {
   -webkit-appearance: none;
   appearance: none;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: rgba(232,242,236,.08);
+  border: 2px solid rgba(26, 43, 60, 0.08);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff 0%, #f6fffb 100%);
   color: var(--ink);
+  box-shadow: 0 2px 0 rgba(26, 43, 60, 0.05);
   font: inherit;
   font-weight: 600;
   aspect-ratio: 1;
@@ -362,16 +390,17 @@ h1 em { font-style: italic; color: var(--accent); }
   animation: wrongFlash .5s ease;
 }
 @keyframes wrongFlash {
-  0%, 100% { background: rgba(232,242,236,.08); }
-  50% { background: rgba(163,59,45,.35); }
+  0%, 100% { background: linear-gradient(180deg, #fff 0%, #f6fffb 100%); }
+  50% { background: rgba(224, 112, 96, 0.35); }
 }
 .task-bar {
   text-align: center;
   padding: .65rem .8rem;
-  border-radius: 12px;
-  background: rgba(62,207,142,.1);
-  color: var(--accent);
-  font-weight: 600;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #e8fff4 0%, #d4fce8 100%);
+  border: 2px solid rgba(46, 204, 113, 0.25);
+  color: var(--accent-deep);
+  font-weight: 700;
   margin-bottom: .85rem;
 }
 """
@@ -529,7 +558,7 @@ OVERLAY_JS = r"""
 var FGB_MSG = {
   exitConfirm: "退出并查看统计？",
   done: "完成！",
-  sessionDone: "本局完成！"
+  sessionDone: "完成！"
 };
 
 var _confirmCb = null;
@@ -570,8 +599,12 @@ function _resolveConfirm(ok) {
 })();
 
 var _celebrateTimer = null;
-/** 轻量完成动效：不挡点击，约 0.5s 自动消失 */
+/** 统一关卡/回合完成横幅（优先 FGBUI.stageDone，与 daily 一致） */
 function celebrate(message) {
+  if (window.FGBUI && FGBUI.stageDone) {
+    FGBUI.stageDone(message || FGB_MSG.done, { duration: 520 });
+    return;
+  }
   var el = document.getElementById("celebrate");
   var text = document.getElementById("celebrate-text");
   if (!el || !text) return;
@@ -640,7 +673,10 @@ html.fgb-daily-mode #view-casual-done { display: none !important; }
 html.fgb-daily-mode .mode-btn,
 html.fgb-daily-mode #casual-extra,
 html.fgb-daily-mode #btn-next,
-html.fgb-daily-mode #btn-restart { display: none !important; }
+html.fgb-daily-mode #btn-restart,
+html.fgb-daily-mode #btn-new,
+html.fgb-daily-mode #btn-hint,
+html.fgb-daily-mode [data-fgb-hint-control] { display: none !important; }
 /* 闯关 iframe 内：收掉重复顶栏/长说明；棋盘边长由 --fgb-board 动态计算 */
 html.fgb-daily-mode {
   --fgb-board: 280px;
@@ -652,8 +688,9 @@ html.fgb-daily-mode:not(.fgb-play-scroll) body { overflow: hidden; }
 html.fgb-daily-mode.fgb-play-scroll,
 html.fgb-daily-mode.fgb-play-scroll body { overflow: auto; }
 html.fgb-daily-mode .wrap {
-  width: min(720px, calc(100% - 0.75rem));
-  padding: 0.35rem 0 0.4rem;
+  width: 100%;
+  max-width: none;
+  padding: 0.35rem var(--play-gutter) 0.4rem;
   box-sizing: border-box;
 }
 html.fgb-daily-mode #view-play > .topbar { display: none !important; }
@@ -667,6 +704,17 @@ html.fgb-daily-mode .clover {
 }
 html.fgb-daily-mode .clover-wrap { margin: 0.1rem 0 0.3rem; }
 html.fgb-daily-mode .leaf { font-size: calc(var(--fgb-board) * 0.11) !important; }
+html.fgb-daily-mode .card-board-wrap {
+  max-width: var(--fgb-board) !important;
+  margin-left: auto;
+  margin-right: auto;
+}
+html.fgb-daily-mode .num-card .val {
+  font-size: calc(var(--fgb-board) * 0.14) !important;
+}
+html.fgb-daily-mode .num-card .expr {
+  font-size: calc(var(--fgb-board) * 0.045) !important;
+}
 html.fgb-daily-mode .sudoku-wrap { width: min(100%, var(--fgb-board)) !important; }
 html.fgb-daily-mode .sudoku { max-height: var(--fgb-board) !important; }
 html.fgb-daily-mode .maze-wrap { max-height: var(--fgb-board) !important; }
@@ -730,7 +778,7 @@ DAILY_BOOT_JS = r"""
     a.addEventListener("click", abortDaily);
   });
   // 游戏内退出按钮：每日模式禁止 show(home)，须通知父页结束挑战
-  ["btn-exit", "btn-exit-casual", "btn-exit-challenge"].forEach(function (id) {
+  ["btn-exit", "btn-exit-casual", "btn-exit-challenge", "btn-quit"].forEach(function (id) {
     var el = document.getElementById(id);
     if (!el) return;
     el.addEventListener("click", abortDaily, true);
@@ -829,6 +877,7 @@ def build_page(
     *,
     game_skin: str = "",
     game_title: str | None = None,
+    audio_clips: bool = False,
 ) -> str:
     wrap_cls = "wrap wide" if wide else "wrap"
     skin_attr = (
@@ -861,6 +910,11 @@ def build_page(
         '<script src="/js/fgb-client.js"></script>',
         '<script src="/js/fgb-ui.js"></script>',
         '<script src="/js/fgb-shell.js"></script>',
+        *(
+            ['<script src="/js/fgb-audio-clips.js"></script>']
+            if audio_clips
+            else []
+        ),
         "<script>",
         "/* fgb-daily-boot */",
         COMMON_JS_UTILS,
